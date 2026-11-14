@@ -47,28 +47,23 @@
 
   /* --- doca inferior: esconde ao descer, volta ao subir --- */
   const dock = document.querySelector('.dock');
-  // na página inicial a doca só aparece depois de o botão Marcar do painel sair do ecrã
+  // na página inicial a doca só aparece depois de o botão Marcar do painel ficar para trás (acima do ecrã)
   const boardCta = document.querySelector('.board-foot .btn');
-  let ctaVisible = !!boardCta;
-  if (dock && boardCta && 'IntersectionObserver' in window) {
-    dock.classList.add('is-hidden');
-    new IntersectionObserver((e) => {
-      ctaVisible = e[0].isIntersecting || e[0].boundingClientRect.top > window.innerHeight;
-      dock.classList.toggle('is-hidden', ctaVisible);
-    }).observe(boardCta);
-  } else ctaVisible = false;
+  const ctaAhead = () => !!boardCta && boardCta.getBoundingClientRect().bottom > 0;
   if (dock) {
     let last = window.scrollY, ticking = false;
+    const sync = () => {
+      const y = window.scrollY;
+      const nearBottom = window.innerHeight + y > document.body.scrollHeight - 120;
+      dock.classList.toggle('is-hidden', ctaAhead() || (y > last && y > 240 && !nearBottom));
+      last = y;
+      ticking = false;
+    };
+    if (ctaAhead()) dock.classList.add('is-hidden');
     window.addEventListener('scroll', () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const nearBottom = window.innerHeight + y > document.body.scrollHeight - 120;
-        dock.classList.toggle('is-hidden', ctaVisible || (y > last && y > 240 && !nearBottom));
-        last = y;
-        ticking = false;
-      });
+      requestAnimationFrame(sync);
     }, { passive: true });
   }
 
