@@ -77,13 +77,28 @@ router.get('/', (req, res) => {
        ORDER BY b.date, b.start_min LIMIT 12`
     )
     .all(d, d, nowIn(getSettings().timezone).min);
+  const nowMin = nowIn(getSettings().timezone).min;
+  const todayList = db
+    .prepare(
+      `SELECT b.*, s.name service_name, st.name staff_name, st.color staff_color FROM bookings b
+       JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
+       WHERE b.date = ? AND b.status != 'cancelled' ORDER BY b.start_min, st.sort`
+    )
+    .all(d);
+  const pendingList = db
+    .prepare(
+      `SELECT b.*, s.name service_name, st.name staff_name FROM bookings b
+       JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
+       WHERE b.status = 'pending' AND b.date >= ? ORDER BY b.date, b.start_min LIMIT 8`
+    )
+    .all(d);
   const recent = db
     .prepare(
       `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
        WHERE b.source = 'online' ORDER BY b.created_at DESC LIMIT 6`
     )
     .all();
-  res.render('admin/dashboard', { stats, upcoming, recent, d });
+  res.render('admin/dashboard', { stats, upcoming: upcoming.filter((b) => b.date !== d), recent, d, todayList, pendingList, nowMin });
 });
 
 // ---------- Agenda (vista diária por profissional) ----------
@@ -214,6 +229,8 @@ router.post('/marcacoes/:id', (req, res, next) => {
   if (action === 'status' && STATUS[req.body.status]) {
     db.prepare("UPDATE bookings SET status = ?, updated_at = datetime('now') WHERE id = ?").run(req.body.status, b.id);
     if (req.body.notify === '1') notifyStatusChange(getBooking(b.id));
+    const ret = String(req.body.back || '');
+    if (ret.startsWith('/admin') && !ret.startsWith('//')) return back(res, ret, `${b.customer_name}: ${STATUS[req.body.status].toLowerCase()}.`);
     return back(res, `/admin/marcacoes/${b.id}`, `Estado alterado para "${STATUS[req.body.status]}".`);
   }
 
@@ -382,7 +399,7 @@ router.get('/definicoes', (req, res) => res.render('admin/settings', { error: re
 router.post('/definicoes', (req, res) => {
   const numeric = { slot_step: [5, 120], min_notice_hours: [0, 720], max_days_ahead: [1, 365], buffer_min: [0, 120], cancel_hours: [0, 720] };
   for (const key of Object.keys(DEFAULT_SETTINGS)) {
-    if (key === 'auto_confirm') { setSetting(key, req.body.auto_confirm ? '1' : '0'); continue; }
+    if (key === 'auto_confirm' || key === 'demo_mode') { setSetting(key, req.body[key] ? '1' : '0'); continue; }
     if (!(key in req.body)) continue;
     let v = clean(req.body[key], 1000);
     if (numeric[key]) v = String(Math.max(numeric[key][0], Math.min(numeric[key][1], parseInt(v, 10) || 0)));

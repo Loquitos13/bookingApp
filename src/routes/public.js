@@ -1,9 +1,9 @@
 'use strict';
 const express = require('express');
 const { db, getSettings } = require('../db');
-const { getSlots, availableDays, createBooking, getBooking, canCustomerCancel, BookingError } = require('../availability');
+const { getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, canCustomerCancel, BookingError } = require('../availability');
 const { notifyNewBooking, notifyStatusChange, send } = require('../mailer');
-const { isDate, nowIn, timeToMin } = require('../time');
+const { isDate, nowIn, timeToMin, minToTime, weekday } = require('../time');
 
 const router = express.Router();
 
@@ -14,13 +14,38 @@ const staffServiceMap = () =>
 
 router.get('/', (req, res) => {
   const hours = db.prepare('SELECT * FROM hours ORDER BY weekday').all();
+  const now = nowIn(getSettings().timezone);
   res.render('public/home', {
     services: activeServices(),
     staff: activeStaff(),
     hours,
+    departures: nextDepartures(4),
+    status: openStatus(hours, now),
+    today: now.date,
     sent: req.query.enviado === '1',
   });
 });
+
+/** "Aberto agora · fecha às 19:30" / "Fechado · abre amanhã às 09:00" */
+function openStatus(hours, now) {
+  const byDay = Object.fromEntries(hours.map((h) => [h.weekday, h]));
+  const wd = weekday(now.date);
+  const h = byDay[wd];
+  if (h && !h.closed) {
+    const inBreak = h.break_start != null && now.min >= h.break_start && now.min < h.break_end;
+    if (now.min >= h.open_min && now.min < h.close_min && !inBreak) {
+      const closes = h.break_start != null && now.min < h.break_start ? h.break_start : h.close_min;
+      return { open: true, text: `Aberto agora · fecha às ${minToTime(closes)}` };
+    }
+    if (inBreak) return { open: false, text: `Pausa · reabre às ${minToTime(h.break_end)}` };
+    if (now.min < h.open_min) return { open: false, text: `Fechado · abre hoje às ${minToTime(h.open_min)}` };
+  }
+  for (let i = 1; i <= 7; i++) {
+    const n = byDay[(wd + i) % 7];
+    if (n && !n.closed) return { open: false, text: `Fechado · abre ${i === 1 ? 'amanhã' : ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][(wd + i) % 7]} às ${minToTime(n.open_min)}` };
+  }
+  return { open: false, text: 'Fechado' };
+}
 
 function renderBooking(res, extra = {}) {
   res.render('public/book', {
@@ -33,7 +58,27 @@ function renderBooking(res, extra = {}) {
   });
 }
 
-router.get('/marcar', (req, res) => renderBooking(res, { form: { serviceId: req.query.servico || '' } }));
+router.get('/marcar', (req, res) =>
+  renderBooking(res, {
+    form: {
+      serviceId: req.query.servico || '',
+      staffId: req.query.profissional || '',
+      date: isDate(req.query.dia) ? req.query.dia : '',
+      time: timeToMin(req.query.hora) != null ? req.query.hora : '',
+    },
+  })
+);
+
+// primeira vaga de cada profissional para um serviço (passo "Profissional")
+router.get('/api/first', (req, res) => {
+  const serviceId = +req.query.service;
+  if (!serviceId) return res.status(400).json({ error: 'service obrigatório' });
+  const staffIds = db.prepare('SELECT staff_id FROM staff_services ss JOIN staff s ON s.id = ss.staff_id WHERE ss.service_id = ? AND s.active = 1').all(serviceId).map((r) => r.staff_id);
+  const out = { any: firstSlot({ serviceId }) };
+  for (const id of staffIds) out[id] = firstSlot({ serviceId, staffId: id });
+  for (const k of Object.keys(out)) if (out[k]) delete out[k].staff;
+  res.json({ today: nowIn(getSettings().timezone).date, first: out });
+});
 
 // ---- API usada pelo formulário de marcação ----
 router.get('/api/days', (req, res) => {
@@ -96,6 +141,25 @@ router.get('/marcacao/:token', (req, res, next) => {
   if (!row) return next();
   const b = getBooking(row.id);
   res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1' });
+});
+
+router.get('/marcacao/:token.ics', (req, res, next) => {
+  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
+  if (!row) return next();
+  const b = getBooking(row.id);
+  const st = getSettings();
+  const stamp = (date, min) => `${date.replace(/-/g, '')}T${minToTime(min).replace(':', '')}00`;
+  const esc = (v) => String(v).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//bookingapp//PT', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+    `UID:${b.ref}@bookingapp`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+    `DTSTART;TZID=${st.timezone}:${stamp(b.date, b.start_min)}`, `DTEND;TZID=${st.timezone}:${stamp(b.date, b.end_min)}`,
+    `SUMMARY:${esc(`${b.service_name} · ${st.business_name}`)}`, `LOCATION:${esc(st.address)}`,
+    `DESCRIPTION:${esc(`Com ${b.staff_name}. Referência ${b.ref}.`)}`, 'END:VEVENT', 'END:VCALENDAR',
+  ].join('\r\n');
+  res.set('Content-Type', 'text/calendar; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="marcacao-${b.ref}.ics"`);
+  res.send(ics);
 });
 
 router.post('/marcacao/:token/cancelar', (req, res, next) => {

@@ -1,4 +1,4 @@
-# Equilíbrio — site + marcações online + back office
+# Template de marcações — site + reservas online + back office
 
 Aplicação completa para um negócio que trabalha por marcação (exemplo configurado: **clínica de fisioterapia e osteopatia**).
 Serve igualmente para cabeleireiros, barbearias, estética, nutrição, explicações, etc. — basta mudar textos, serviços e equipa no back office.
@@ -29,8 +29,15 @@ npm start          # http://localhost:3000  ·  back office em /admin
 npm test
 ```
 
-Na primeira execução é criada a base de dados `data/app.db` com dados de exemplo e o utilizador
+Na primeira execução é criada a base de dados `data/app.db` com **dados de demonstração fictícios** (negócio, equipa, ~150 marcações com datas relativas a hoje, mensagens e bloqueios) e o utilizador
 `admin@exemplo.pt` / `admin123` (**altere em Definições**, ou defina `ADMIN_EMAIL` e `ADMIN_PASSWORD` antes do primeiro arranque).
+
+## Adaptar a um cliente
+
+1. **Marca:** em `public/css/site.css` e `public/css/admin.css`, mude `--signal` (cor de destaque) e, se quiser, `--board` (cor do painel). O resto do sistema está em `DESIGN.md`.
+2. **Textos, contactos, regras:** Back office → Definições.
+3. **Serviços, equipa, horário, férias:** secções respetivas do back office.
+4. **Tirar os dados fictícios:** arranque a primeira vez com `DEMO=0` (base de dados vazia de marcações), ou desligue "modo demonstração" e apague `data/app.db` antes de entregar.
 
 ## Variáveis de ambiente
 
@@ -43,6 +50,7 @@ Na primeira execução é criada a base de dados `data/app.db` com dados de exem
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` | Envio real de emails. Sem isto, os emails são apenas escritos na consola |
 | `MAIL_FROM`, `NOTIFY_EMAIL` | Remetente e email que recebe os avisos de novas marcações |
 | `NODE_ENV=production` | Cookie de sessão só por HTTPS |
+| `DEMO=0` | Não criar dados de demonstração na primeira execução |
 
 ## Estrutura
 

@@ -1,116 +1,164 @@
-<%- include('../partials/public-head') %>
-<main>
-  <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
-        <p class="eyebrow"><%= site.business_subtitle %> · Lisboa</p>
-        <h1><%= site.tagline %></h1>
-        <p class="lead"><%= site.intro %></p>
-        <div class="hero-cta">
-          <a class="btn btn-lg" href="/marcar">Marcar consulta online</a>
-          <a class="btn btn-ghost btn-lg" href="tel:<%= site.phone.replace(/\s/g,'') %>">Ligar <%= site.phone %></a>
+<%- include('../partials/public-head', { bodyClass: 'page-home' }) %>
+<%
+  const dayLabel = (d) => d === today ? 'Hoje' : d === t.addDays(today, 1) ? 'Amanhã' : t.formatDateShort(d);
+  const tel = site.phone.replace(/\s/g, '');
+  const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(site.address);
+  const initials = (n) => n.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+%>
+<main id="conteudo">
+  <section class="opening">
+    <div class="wrap opening-grid">
+      <div class="opening-copy">
+        <div class="plate">
+          <h1 class="plate-name"><%= site.business_name %></h1>
+          <p class="plate-sub"><%= site.business_subtitle %></p>
         </div>
-        <ul class="hero-facts">
-          <li><strong>Marcação em 1 minuto</strong><span>Escolha o dia e a hora que lhe dão jeito</span></li>
-          <li><strong>Confirmação imediata</strong><span>Recebe tudo por email</span></li>
-          <li><strong>Cancelamento simples</strong><span>Até <%= site.cancel_hours %>h antes, sem custos</span></li>
-        </ul>
+        <p class="promise"><%= site.tagline %></p>
+        <p class="intro"><%= site.intro %></p>
+        <p class="status <%= status.open ? 'is-open' : '' %>"><span class="status-dot" aria-hidden="true"></span><%= status.text %></p>
       </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="arc arc-1"></div>
-        <div class="arc arc-2"></div>
-        <div class="hero-card">
-          <span class="hero-card-label">Próxima consulta</span>
-          <strong>Avaliação inicial</strong>
-          <span>60 min · com a nossa equipa</span>
-          <a href="/marcar" class="hero-card-link" tabindex="-1">Ver horários →</a>
-        </div>
-      </div>
+
+      <section class="board" aria-labelledby="board-title">
+        <header class="board-head">
+          <h2 id="board-title">Próximas vagas</h2>
+          <span class="board-clock" aria-hidden="true"><%- include('../partials/icon', { name: 'clock', size: 16 }) %> <span data-clock></span></span>
+        </header>
+        <% if (!departures.length) { %>
+          <p class="board-empty">Sem vagas online nas próximas duas semanas. Ligue-nos e encontramos um horário: <a href="tel:<%= tel %>"><%= site.phone %></a></p>
+        <% } else { %>
+          <div class="board-cols" aria-hidden="true"><span>Hora</span><span>Serviço · dia · com</span></div>
+          <ol class="deps">
+            <% departures.forEach((d, i) => { %>
+              <li>
+                <a class="dep" href="/marcar?servico=<%= d.service.id %>&profissional=<%= d.staffId %>&dia=<%= d.date %>&hora=<%= d.time %>">
+                  <%- include('../partials/flap', { text: d.time }) %>
+                  <span class="dep-body">
+                    <span class="dep-svc"><%= d.service.name %><% if (d.left <= 2) { %><span class="dep-state"><%= d.left === 1 ? 'Última vaga' : 'Últimas vagas' %></span><% } %></span>
+                    <span class="dep-meta"><strong><%= dayLabel(d.date) %></strong> · <%= d.staffName %><%= d.others > 0 ? ' ou outro' : '' %> · <%= d.service.duration_min %> min</span>
+                  </span>
+                  <%- include('../partials/icon', { name: 'arrow', cls: 'dep-go' }) %>
+                </a>
+              </li>
+            <% }) %>
+          </ol>
+        <% } %>
+        <footer class="board-foot">
+          <a class="btn btn-signal btn-block btn-lg" href="/marcar">Marcar <%- include('../partials/icon', { name: 'arrow' }) %></a>
+          <a class="board-link" href="/marcar">Ver todos os dias e horários</a>
+        </footer>
+      </section>
     </div>
   </section>
 
-  <section id="servicos" class="section">
+  <section id="servicos" class="band">
     <div class="wrap">
-      <div class="section-head">
+      <header class="band-head">
         <h2>Serviços</h2>
-        <p class="muted">Preços por sessão. Se não sabe por onde começar, marque uma avaliação inicial.</p>
-      </div>
-      <div class="services">
+        <p>Preço por sessão. Se não sabe por onde começar, comece pela <a href="/marcar?servico=<%= services[0] && services[0].id %>"><%= services[0] && services[0].name.toLowerCase() %></a>.</p>
+      </header>
+      <ul class="timetable">
         <% services.forEach(s => { %>
-          <article class="service">
-            <h3><%= s.name %></h3>
-            <p><%= s.description %></p>
-            <div class="service-foot">
-              <span class="service-meta"><%= s.duration_min %> min · <%= t.euros(s.price_cents) %></span>
-              <a class="link-arrow" href="/marcar?servico=<%= s.id %>">Marcar →</a>
-            </div>
-          </article>
+          <li class="tt-row">
+            <a href="/marcar?servico=<%= s.id %>">
+              <span class="tt-name"><%= s.name %></span>
+              <span class="tt-desc"><%= s.description %></span>
+              <span class="tt-meta"><span><%= s.duration_min %> min</span><span class="tt-price"><%= t.euros(s.price_cents) %></span></span>
+              <span class="tt-go">Marcar <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></span>
+            </a>
+          </li>
         <% }) %>
-      </div>
+      </ul>
     </div>
   </section>
 
-  <section class="section section-tint">
+  <section class="band band-line" aria-labelledby="como">
     <div class="wrap">
-      <div class="section-head"><h2>Como funciona</h2></div>
-      <ol class="steps">
-        <li><span>1</span><h3>Escolha o serviço</h3><p>E, se quiser, o profissional que prefere.</p></li>
-        <li><span>2</span><h3>Escolha dia e hora</h3><p>Só mostramos horários realmente livres.</p></li>
-        <li><span>3</span><h3>Receba a confirmação</h3><p>Com um link para ver ou cancelar a marcação.</p></li>
+      <header class="band-head"><h2 id="como">Marcar demora um minuto</h2><p>Sem criar conta. Só aparecem horários realmente livres.</p></header>
+      <ol class="line">
+        <li><span class="stop" aria-hidden="true"></span><strong>Serviço</strong><span>Escolha o que precisa.</span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong>Profissional</strong><span>Alguém em concreto ou o primeiro livre.</span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong>Dia e hora</strong><span>Toque num horário livre.</span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong>Confirmado</strong><span>Recebe o bilhete por email, com link para gerir.</span></li>
       </ol>
     </div>
   </section>
 
-  <section id="equipa" class="section">
+  <section id="equipa" class="band">
     <div class="wrap">
-      <div class="section-head"><h2>A equipa</h2></div>
-      <div class="team">
+      <header class="band-head"><h2>Equipa</h2></header>
+      <ul class="crew">
         <% staff.forEach(p => { %>
-          <article class="person">
-            <div class="avatar" style="--c: <%= p.color %>"><%= p.name.split(' ').map(w => w[0]).slice(0,2).join('') %></div>
-            <h3><%= p.name %></h3>
-            <p class="role"><%= p.role %></p>
-            <p class="muted"><%= p.bio %></p>
-          </article>
+          <li class="crew-row">
+            <%- include('../partials/flap', { text: initials(p.name), cls: 'flap-sm' }) %>
+            <div>
+              <h3><%= p.name %></h3>
+              <p class="crew-role"><%= p.role %></p>
+              <p class="crew-bio"><%= p.bio %></p>
+            </div>
+            <a class="crew-go" href="/marcar?profissional=<%= p.id %>">Marcar com <%= p.name.split(' ')[0] %> <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
+          </li>
         <% }) %>
-      </div>
+      </ul>
     </div>
   </section>
 
-  <section id="contacto" class="section section-tint">
-    <div class="wrap contact-grid">
+  <section id="visita" class="band band-dark">
+    <div class="wrap visit">
       <div>
-        <h2>Horário & contactos</h2>
+        <h2>Horário</h2>
+        <p class="status <%= status.open ? 'is-open' : '' %>"><span class="status-dot" aria-hidden="true"></span><%= status.text %></p>
         <table class="hours">
-          <% [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
-            <tr>
-              <th><%= t.WEEKDAYS[d] %></th>
+          <caption class="sr-only">Horário semanal</caption>
+          <tbody>
+          <% const todayWd = t.weekday(today); [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
+            <tr class="<%= d === todayWd ? 'is-today' : '' %>">
+              <th scope="row"><%= t.WEEKDAYS[d] %><%= d === todayWd ? ' · hoje' : '' %></th>
               <td>
-                <% if (!h || h.closed) { %><span class="muted">Encerrado</span><% } else if (h.break_start != null) { %>
-                  <%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.break_start) %> · <%= t.minToTime(h.break_end) %>–<%= t.minToTime(h.close_min) %>
+                <% if (!h || h.closed) { %>Encerrado<% } else if (h.break_start != null) { %>
+                  <%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.break_start) %>&ensp;<%= t.minToTime(h.break_end) %>–<%= t.minToTime(h.close_min) %>
                 <% } else { %><%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.close_min) %><% } %>
               </td>
             </tr>
           <% }) %>
+          </tbody>
         </table>
-        <p><%= site.address %><br>
-          <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a><br>
-          <a href="mailto:<%= site.email %>"><%= site.email %></a></p>
       </div>
-      <div class="card">
-        <h3>Envie-nos uma mensagem</h3>
-        <% if (sent) { %><p class="notice ok">Obrigado! Respondemos com a maior brevidade possível.</p><% } %>
-        <form method="post" action="/contacto" class="form">
-          <label>Nome<input name="name" required maxlength="120" autocomplete="name"></label>
-          <div class="row2">
-            <label>Email<input name="email" type="email" required autocomplete="email"></label>
-            <label>Telefone <span class="opt">(opcional)</span><input name="phone" type="tel" autocomplete="tel"></label>
-          </div>
-          <label>Mensagem<textarea name="message" rows="4" required maxlength="3000"></textarea></label>
-          <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <button class="btn">Enviar mensagem</button>
-        </form>
+      <div class="visit-where">
+        <h2>Onde estamos</h2>
+        <p class="visit-address"><%= site.address %></p>
+        <div class="visit-actions">
+          <a class="btn btn-signal" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %> Como chegar</a>
+          <a class="btn btn-ghost-dark" href="tel:<%= tel %>"><%- include('../partials/icon', { name: 'phone' }) %> <%= site.phone %></a>
+          <a class="btn btn-ghost-dark" href="mailto:<%= site.email %>"><%- include('../partials/icon', { name: 'mail' }) %> Email</a>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <section id="perguntas" class="band">
+    <div class="wrap faq-wrap">
+      <header class="band-head"><h2>Perguntas frequentes</h2></header>
+      <div class="faq">
+        <details><summary>Preciso de criar conta para marcar?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Não. Basta o nome, o email e o telemóvel. Recebe por email um link pessoal para ver ou cancelar a marcação.</p></details>
+        <details><summary>Como cancelo ou altero?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Pelo link do email de confirmação, até <%= site.cancel_hours %> horas antes. Depois disso, ligue para <a href="tel:<%= tel %>"><%= site.phone %></a>.</p></details>
+        <details><summary>Com quanta antecedência posso marcar?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Até <%= site.max_days_ahead %> dias. Para o próprio dia, com pelo menos <%= site.min_notice_hours %> horas de antecedência.</p></details>
+        <details><summary>Não encontro horário que me dê jeito.<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Escolha "sem preferência" no profissional, para ver todos os horários. Se mesmo assim não der, envie-nos uma mensagem abaixo.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="contacto" class="band band-tint">
+    <div class="wrap contact">
+      <header class="band-head"><h2>Envie-nos uma mensagem</h2><p>Respondemos por email, normalmente no próprio dia útil.</p></header>
+      <% if (sent) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> Mensagem enviada. Obrigado!</p><% } %>
+      <form method="post" action="/contacto" class="fields">
+        <label class="field"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name"></label>
+        <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" inputmode="email"></label>
+        <label class="field"><span>Telemóvel <em>opcional</em></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
+        <label class="field field-wide"><span>Mensagem</span><textarea name="message" rows="4" required maxlength="3000"></textarea></label>
+        <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="btn btn-ink">Enviar mensagem</button>
+      </form>
     </div>
   </section>
 </main>

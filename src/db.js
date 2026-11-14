@@ -115,6 +115,7 @@ const DEFAULT_SETTINGS = {
   buffer_min: '0',
   cancel_hours: '24',
   auto_confirm: '1',
+  demo_mode: process.env.DEMO === '0' ? '0' : '1',
 };
 
 function seed() {

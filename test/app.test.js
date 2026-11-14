@@ -9,6 +9,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'booking-test-'));
 process.env.DB_PATH = path.join(dir, 'test.db');
 process.env.ADMIN_EMAIL = 'admin@teste.pt';
 process.env.ADMIN_PASSWORD = 'segredo123';
+process.env.DEMO = '0';
 
 const app = require('../server');
 const { db } = require('../src/db');
@@ -65,12 +66,32 @@ test('marcação online, conflito e cancelamento', async () => {
   assert.ok(!s.slots.some((x) => x.time === '10:00' || x.time === '10:30'));
 
   const page = await (await fetch(base + loc)).text();
-  assert.match(page, /Marcação confirmada/);
+  assert.match(page, /Está marcado/);
+  assert.match(page, /class="ticket is-new/);
+
+  // exportação para calendário
+  const tok = loc.split('/')[2].split('?')[0];
+  const ics = await fetch(`${base}/marcacao/${tok}.ics`);
+  assert.equal(ics.status, 200);
+  assert.match(ics.headers.get('content-type'), /text\/calendar/);
+  const icsBody = await ics.text();
+  assert.match(icsBody, /BEGIN:VEVENT/);
+  assert.match(icsBody, new RegExp(`DTSTART;TZID=Europe/Lisbon:${d.replace(/-/g, '')}T100000`));
 
   const token = loc.split('/')[2].split('?')[0];
   const c = await post(`/marcacao/${token}/cancelar`, {});
   assert.equal(c.status, 302);
   assert.equal(db.prepare('SELECT status FROM bookings WHERE token = ?').get(token).status, 'cancelled');
+});
+
+test('primeira vaga e próximas vagas na página inicial', async () => {
+  const f = await (await fetch(`${base}/api/first?service=1`)).json();
+  assert.ok(f.first.any && f.first.any.time);
+  const home = await (await fetch(base + '/')).text();
+  assert.match(home, /Próximas vagas/);
+  assert.match(home, /href="\/marcar\?servico=\d+&profissional=\d+&dia=\d{4}-\d{2}-\d{2}&hora=\d{2}:\d{2}"/);
+  const pre = await (await fetch(`${base}/marcar?servico=1&dia=2030-01-07&hora=09:00`)).text();
+  assert.match(pre, /value="2030-01-07"/);
 });
 
 test('validação de dados do formulário', async () => {

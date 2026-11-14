@@ -1,43 +1,84 @@
-<%- include('../partials/admin-head', { title: 'Painel' }) %>
+<%- include('../partials/admin-head', { title: 'Hoje' }) %>
+<%
+  const nextId = (todayList.find(b => b.end_min > nowMin && ['confirmed', 'pending'].includes(b.status)) || {}).id;
+%>
 <header class="head">
-  <div><h1>Olá, <%= user.name.split(' ')[0] %></h1><p class="muted"><%= t.formatDateLong(d) %></p></div>
-  <a class="btn" href="/admin/marcacoes/nova">+ Nova marcação</a>
+  <div>
+    <h1>Hoje</h1>
+    <p class="muted"><%= t.formatDateLong(d) %></p>
+  </div>
+  <a class="btn btn-signal head-cta" href="/admin/marcacoes/nova"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> Nova marcação</a>
 </header>
 
-<section class="kpis">
-  <a class="kpi" href="/admin/agenda"><span>Hoje</span><strong><%= stats.today %></strong><small>marcações</small></a>
-  <a class="kpi" href="/admin/marcacoes?from=<%= d %>&to=<%= t.addDays(d, 6) %>"><span>Próximos 7 dias</span><strong><%= stats.week %></strong><small>marcações</small></a>
-  <a class="kpi <%= stats.pending ? 'kpi-warn' : '' %>" href="/admin/marcacoes?status=pending"><span>Por confirmar</span><strong><%= stats.pending %></strong><small>pedidos</small></a>
-  <div class="kpi"><span>Faturação prevista (mês)</span><strong><%= t.euros(stats.month) %></strong><small><%= stats.online30 %> marcações online nos últimos 30 dias</small></div>
+<nav class="tally" aria-label="Resumo">
+  <a href="/admin/agenda"><strong><%= stats.today %></strong> hoje</a>
+  <a href="/admin/marcacoes?status=pending" class="<%= stats.pending ? 'is-hot' : '' %>"><strong><%= stats.pending %></strong> por confirmar</a>
+  <a href="/admin/marcacoes?from=<%= d %>&to=<%= t.addDays(d, 6) %>"><strong><%= stats.week %></strong> nos próximos 7 dias</a>
+  <span><strong><%= t.euros(stats.month) %></strong> previsto este mês</span>
+</nav>
+
+<% if (pendingList.length) { %>
+<section class="panel panel-hot" aria-labelledby="pend">
+  <div class="panel-head"><h2 id="pend">Por confirmar</h2><a href="/admin/marcacoes?status=pending">Ver todos</a></div>
+  <ul class="list">
+    <% pendingList.forEach(b => { %>
+      <li class="row">
+        <a class="row-main" href="/admin/marcacoes/<%= b.id %>">
+          <span class="when"><strong><%= t.minToTime(b.start_min) %></strong><small><%= b.date === d ? 'Hoje' : t.formatDateShort(b.date) %></small></span>
+          <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <%= b.staff_name %></small></span>
+        </a>
+        <form method="post" action="/admin/marcacoes/<%= b.id %>" class="row-actions">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="status"><input type="hidden" name="notify" value="1"><input type="hidden" name="back" value="/admin">
+          <button class="btn btn-ink btn-sm" name="status" value="confirmed"><%- include('../partials/icon', { name: 'check', size: 16 }) %> Confirmar</button>
+          <button class="btn btn-ghost btn-sm" name="status" value="cancelled" onclick="return confirm('Recusar o pedido de <%= b.customer_name.replace(/'/g, '') %>?')">Recusar</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+<% } %>
+
+<section class="dboard" aria-labelledby="today-board">
+  <div class="dboard-head"><h2 id="today-board">Agenda de hoje</h2><a href="/admin/agenda">Abrir agenda <%- include('../partials/icon', { name: 'arrow', size: 16 }) %></a></div>
+  <% if (!todayList.length) { %>
+    <p class="dboard-empty">Sem marcações hoje. <a href="/admin/marcacoes/nova">Criar uma marcação</a></p>
+  <% } %>
+  <ol class="dboard-list">
+    <% todayList.forEach(b => { const past = b.end_min <= nowMin; %>
+      <li class="<%= past ? 'is-past' : '' %> <%= b.id === nextId ? 'is-next' : '' %>">
+        <a href="/admin/marcacoes/<%= b.id %>">
+          <%- include('../partials/flap', { text: t.minToTime(b.start_min), cls: 'flap-sm' }) %>
+          <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <i class="dot" style="background:<%= b.staff_color %>"></i><%= b.staff_name %></small></span>
+          <span class="badge badge-<%= b.status %>"><%= b.id === nextId ? 'A seguir' : STATUS[b.status] %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ol>
 </section>
 
 <div class="grid2">
   <section class="panel">
-    <div class="panel-head"><h2>Próximas marcações</h2><a href="/admin/agenda">Abrir agenda →</a></div>
+    <div class="panel-head"><h2>Próximos dias</h2><a href="/admin/marcacoes">Todas</a></div>
     <% if (!upcoming.length) { %><p class="empty">Sem marcações futuras.</p><% } %>
     <ul class="list">
-      <% upcoming.forEach(b => { %>
-        <li>
-          <a href="/admin/marcacoes/<%= b.id %>" class="row-link">
-            <span class="when"><strong><%= t.minToTime(b.start_min) %></strong><small><%= b.date === d ? 'Hoje' : t.formatDateShort(b.date) %></small></span>
-            <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <span class="dot" style="background:<%= b.staff_color %>"></span><%= b.staff_name %></small></span>
-            <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span>
-          </a>
-        </li>
+      <% upcoming.slice(0, 8).forEach(b => { %>
+        <li><a href="/admin/marcacoes/<%= b.id %>" class="row-main">
+          <span class="when"><strong><%= t.minToTime(b.start_min) %></strong><small><%= t.formatDateShort(b.date) %></small></span>
+          <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <%= b.staff_name %></small></span>
+          <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span>
+        </a></li>
       <% }) %>
     </ul>
   </section>
   <section class="panel">
-    <div class="panel-head"><h2>Últimas marcações online</h2><a href="/admin/marcacoes?status=">Ver todas →</a></div>
+    <div class="panel-head"><h2>Últimas pelo site</h2><a href="/admin/marcacoes?status=">Todas</a></div>
     <% if (!recent.length) { %><p class="empty">Ainda não há marcações feitas pelo site.</p><% } %>
     <ul class="list">
       <% recent.forEach(b => { %>
-        <li>
-          <a href="/admin/marcacoes/<%= b.id %>" class="row-link">
-            <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <%= t.formatDateShort(b.date) %> <%= t.minToTime(b.start_min) %></small></span>
-            <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span>
-          </a>
-        </li>
+        <li><a href="/admin/marcacoes/<%= b.id %>" class="row-main">
+          <span class="who"><strong><%= b.customer_name %></strong><small><%= b.service_name %> · <%= t.formatDateShort(b.date) %> <%= t.minToTime(b.start_min) %></small></span>
+          <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span>
+        </a></li>
       <% }) %>
     </ul>
   </section>

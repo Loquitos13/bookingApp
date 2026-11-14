@@ -24,6 +24,8 @@
     <div class="ag-times">
       <% for (let m = from; m < to; m += 60) { %><span style="top: <%= (m - from) * PPM %>px"><%= t.minToTime(m) %></span><% } %>
     </div>
+    <% const nowM = (() => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: site.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':'); return +p[0] * 60 + +p[1]; })(); %>
+    <% if (date === today && nowM > from && nowM < to) { %><div class="ag-now" style="top: <%= (nowM - from) * PPM %>px; left: 58px" aria-hidden="true"></div><% } %>
     <% staff.forEach(p => { %>
       <div class="ag-col">
         <% for (let m = from; m < to; m += 30) { %>

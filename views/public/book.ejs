@@ -1,92 +1,126 @@
-<%- include('../partials/public-head', { title: 'Marcar consulta' }) %>
-<main class="wrap page">
-  <h1 class="page-title">Marcar consulta</h1>
-  <p class="lead">Escolha o serviço, o dia e a hora. Demora menos de um minuto.</p>
+<%- include('../partials/public-head', { title: 'Marcar', bodyClass: 'page-book' }) %>
+<%
+  const initials = (n) => n.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const errStep = !error ? '' : /hor[aá]rio|dia e a hora|indispon/i.test(error) ? 3 : /servi/i.test(error) ? 1 : 4;
+%>
+<main id="conteudo" class="book">
+  <div class="wrap book-grid">
+    <div class="book-main">
+      <header class="book-head">
+        <h1>Marcar</h1>
+        <ol class="route" aria-label="Passos da marcação">
+          <li data-route="1"><button type="button" class="route-stop" data-goto="1"><span class="stop" aria-hidden="true"></span><span class="route-label">Serviço</span><span class="route-value" data-value="service"></span></button></li>
+          <li data-route="2"><button type="button" class="route-stop" data-goto="2"><span class="stop" aria-hidden="true"></span><span class="route-label">Profissional</span><span class="route-value" data-value="staff"></span></button></li>
+          <li data-route="3"><button type="button" class="route-stop" data-goto="3"><span class="stop" aria-hidden="true"></span><span class="route-label">Dia e hora</span><span class="route-value" data-value="when"></span></button></li>
+          <li data-route="4"><button type="button" class="route-stop" data-goto="4"><span class="stop" aria-hidden="true"></span><span class="route-label">Dados</span><span class="route-value"></span></button></li>
+        </ol>
+      </header>
 
-  <% if (error) { %><p class="notice err" role="alert"><%= error %></p><% } %>
+      <% if (error) { %><p class="notice notice-err" role="alert" id="form-error"><%= error %></p><% } %>
 
-  <form method="post" action="/marcar" id="booking" class="booking" novalidate>
-    <div class="booking-main">
-      <fieldset class="step" id="step-service">
-        <legend><span class="num">1</span> Serviço</legend>
-        <div class="choices">
-          <% services.forEach(s => { %>
-            <label class="choice">
-              <input type="radio" name="serviceId" value="<%= s.id %>" <%= String(form.serviceId) === String(s.id) ? 'checked' : '' %> required>
-              <span class="choice-body">
-                <strong><%= s.name %></strong>
-                <small><%= s.duration_min %> min · <%= t.euros(s.price_cents) %></small>
+      <form method="post" action="/marcar" id="booking" novalidate data-error-step="<%= errStep %>">
+        <fieldset class="step" data-step="1">
+          <legend class="step-title" tabindex="-1">Que serviço procura?</legend>
+          <div class="opts">
+            <% services.forEach(s => { %>
+              <label class="opt">
+                <input type="radio" name="serviceId" value="<%= s.id %>" <%= String(form.serviceId) === String(s.id) ? 'checked' : '' %> required>
+                <span class="opt-body">
+                  <span class="opt-name"><%= s.name %></span>
+                  <span class="opt-desc"><%= s.description %></span>
+                  <span class="opt-meta"><%= s.duration_min %> min · <%= t.euros(s.price_cents) %></span>
+                </span>
+                <span class="opt-tick" aria-hidden="true"><%- include('../partials/icon', { name: 'check', size: 18 }) %></span>
+              </label>
+            <% }) %>
+          </div>
+        </fieldset>
+
+        <fieldset class="step" data-step="2">
+          <legend class="step-title" tabindex="-1">Com quem?</legend>
+          <div class="opts">
+            <label class="opt" data-staff="">
+              <input type="radio" name="staffId" value="" <%= !form.staffId ? 'checked' : '' %>>
+              <span class="flap flap-sm" aria-hidden="true"><span class="flap-cell">1</span><span class="flap-cell">º</span></span>
+              <span class="opt-body">
+                <span class="opt-name">Sem preferência</span>
+                <span class="opt-meta" data-first="any">Mostra todos os horários</span>
               </span>
+              <span class="opt-tick" aria-hidden="true"><%- include('../partials/icon', { name: 'check', size: 18 }) %></span>
             </label>
-          <% }) %>
-        </div>
-      </fieldset>
-
-      <fieldset class="step" id="step-staff">
-        <legend><span class="num">2</span> Profissional</legend>
-        <div class="choices choices-staff">
-          <label class="choice">
-            <input type="radio" name="staffId" value="" <%= !form.staffId ? 'checked' : '' %>>
-            <span class="choice-body"><strong>Sem preferência</strong><small>Mais horários disponíveis</small></span>
-          </label>
-          <% staff.forEach(p => { %>
-            <label class="choice" data-staff="<%= p.id %>">
-              <input type="radio" name="staffId" value="<%= p.id %>" <%= String(form.staffId) === String(p.id) ? 'checked' : '' %>>
-              <span class="choice-body">
-                <span class="dot" style="background: <%= p.color %>"></span>
-                <strong><%= p.name %></strong><small><%= p.role %></small>
-              </span>
-            </label>
-          <% }) %>
-        </div>
-      </fieldset>
-
-      <fieldset class="step" id="step-time">
-        <legend><span class="num">3</span> Dia e hora</legend>
-        <div class="when">
-          <div class="calendar" id="calendar" aria-live="polite">
-            <p class="muted">Escolha primeiro um serviço.</p>
+            <% staff.forEach(p => { %>
+              <label class="opt" data-staff="<%= p.id %>">
+                <input type="radio" name="staffId" value="<%= p.id %>" <%= String(form.staffId) === String(p.id) ? 'checked' : '' %>>
+                <%- include('../partials/flap', { text: initials(p.name), cls: 'flap-sm' }) %>
+                <span class="opt-body">
+                  <span class="opt-name"><%= p.name %></span>
+                  <span class="opt-meta" data-first="<%= p.id %>"><%= p.role %></span>
+                </span>
+                <span class="opt-tick" aria-hidden="true"><%- include('../partials/icon', { name: 'check', size: 18 }) %></span>
+              </label>
+            <% }) %>
           </div>
-          <div class="slots-wrap">
-            <p class="slots-title" id="slots-title">&nbsp;</p>
-            <div class="slots" id="slots" role="listbox" aria-label="Horários disponíveis"></div>
-          </div>
-        </div>
-        <input type="hidden" name="date" id="f-date" value="<%= form.date || '' %>">
-        <input type="hidden" name="time" id="f-time" value="<%= form.time || '' %>">
-      </fieldset>
+        </fieldset>
 
-      <fieldset class="step" id="step-details">
-        <legend><span class="num">4</span> Os seus dados</legend>
-        <div class="form">
-          <label>Nome completo<input name="name" required maxlength="120" autocomplete="name" value="<%= form.name || '' %>"></label>
-          <div class="row2">
-            <label>Email<input name="email" type="email" required autocomplete="email" value="<%= form.email || '' %>"></label>
-            <label>Telemóvel<input name="phone" type="tel" required autocomplete="tel" value="<%= form.phone || '' %>"></label>
+        <fieldset class="step" data-step="3">
+          <legend class="step-title" tabindex="-1">Quando?</legend>
+          <div class="days-wrap">
+            <p class="days-month" id="days-month" aria-live="polite"></p>
+            <div class="days" id="days" role="radiogroup" aria-label="Dia"></div>
           </div>
-          <label>Notas <span class="opt">(opcional — ex.: zona da dor, lesão, seguro)</span>
-            <textarea name="notes" rows="3" maxlength="1000"><%= form.notes || '' %></textarea></label>
-          <label class="check"><input type="checkbox" name="consent" value="1" required>
-            <span>Autorizo o tratamento dos meus dados para gestão desta marcação.</span></label>
+          <div class="slots" id="slots" aria-live="polite">
+            <noscript><p>Indique o dia e a hora:</p></noscript>
+          </div>
+          <div class="nojs-when">
+            <label class="field"><span>Dia</span><input type="date" name="date" id="f-date" value="<%= form.date || '' %>"></label>
+            <label class="field"><span>Hora</span><input name="time" id="f-time" value="<%= form.time || '' %>" placeholder="HH:MM" pattern="\d{1,2}:\d{2}"></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="step" data-step="4">
+          <legend class="step-title" tabindex="-1">Os seus dados</legend>
+          <div class="ticket-preview" aria-hidden="true" id="preview">
+            <span class="tp-when" data-value="when-long"></span>
+            <span class="tp-svc" data-value="service"></span>
+            <span class="tp-staff" data-value="staff-long"></span>
+          </div>
+          <div class="fields">
+            <label class="field field-wide"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name" value="<%= form.name || '' %>"><em class="field-err">Indique o seu nome.</em></label>
+            <label class="field"><span>Telemóvel</span><input name="phone" type="tel" required autocomplete="tel" inputmode="tel" value="<%= form.phone || '' %>" minlength="9"><em class="field-err">Indique um número com pelo menos 9 dígitos.</em></label>
+            <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" inputmode="email" value="<%= form.email || '' %>"><em class="field-err">Indique um email válido, por exemplo nome@exemplo.pt.</em></label>
+            <div class="field field-wide">
+              <button type="button" class="link-btn" id="add-note" aria-expanded="<%= form.notes ? 'true' : 'false' %>" aria-controls="note"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> Acrescentar uma nota</button>
+              <label id="note" class="field" <%= form.notes ? '' : 'hidden' %>><span>Nota para a equipa <em>opcional</em></span><textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: o motivo da consulta"><%= form.notes || '' %></textarea></label>
+            </div>
+            <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span>Aceito que os meus dados sejam usados para gerir esta marcação.</span></label>
+          </div>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        </div>
-      </fieldset>
+          <button class="btn btn-signal btn-lg btn-block submit-nojs">Confirmar marcação</button>
+        </fieldset>
+      </form>
     </div>
 
-    <aside class="summary card" aria-label="Resumo">
-      <h3>Resumo</h3>
-      <dl>
-        <dt>Serviço</dt><dd id="s-service">—</dd>
-        <dt>Profissional</dt><dd id="s-staff">Sem preferência</dd>
-        <dt>Data</dt><dd id="s-date">—</dd>
-        <dt>Hora</dt><dd id="s-time">—</dd>
-        <dt>Preço</dt><dd id="s-price">—</dd>
-      </dl>
-      <button class="btn btn-block" id="submit" disabled>Confirmar marcação</button>
-      <p class="tiny muted">Pode cancelar gratuitamente até <%= site.cancel_hours %>h antes.</p>
+    <aside class="book-aside" aria-label="Resumo">
+      <div class="stub">
+        <p class="stub-title"><%= site.business_name %></p>
+        <dl>
+          <dt>Serviço</dt><dd data-value="service">—</dd>
+          <dt>Profissional</dt><dd data-value="staff-long">Sem preferência</dd>
+          <dt>Quando</dt><dd data-value="when-long">—</dd>
+          <dt>Preço</dt><dd data-value="price">—</dd>
+        </dl>
+        <p class="stub-note">Cancelamento gratuito até <%= site.cancel_hours %>h antes.</p>
+      </div>
     </aside>
-  </form>
+  </div>
+
+  <div class="book-bar" id="bar">
+    <div class="wrap book-bar-inner">
+      <span class="bar-sum" id="bar-sum" aria-live="polite"></span>
+      <button type="button" class="btn btn-signal btn-lg" id="next" disabled>Continuar <%- include('../partials/icon', { name: 'arrow' }) %></button>
+    </div>
+  </div>
 </main>
-<script type="application/json" id="booking-data"><%- JSON.stringify({ services, staff, links }).replace(/</g, '\\u003c') %></script>
-<script src="/static/js/book.js"></script>
-<%- include('../partials/public-foot') %>
+<script type="application/json" id="booking-data"><%- JSON.stringify({ services, staff: staff.map(p => ({ id: p.id, name: p.name, role: p.role })), links, cancelHours: site.cancel_hours }).replace(/</g, '\\u003c') %></script>
+<script src="/static/js/book.js" defer></script>
+<%- include('../partials/public-foot', { bottomBar: false }) %>

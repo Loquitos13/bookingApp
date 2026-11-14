@@ -1,0 +1,2 @@
+<%# Células de painel split-flap. Uso: include('../partials/flap', { text: '16:30' }) %>
+<span class="flap<%= typeof cls !== 'undefined' ? ' ' + cls : '' %>" aria-label="<%= text %>" role="text"><% String(text).split('').forEach(ch => { %><% if (ch === ':' || ch === ' ') { %><span class="flap-sep" aria-hidden="true"><%= ch %></span><% } else { %><span class="flap-cell" aria-hidden="true" data-ch="<%= ch %>"><%= ch %></span><% } %><% }) %></span>

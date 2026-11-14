@@ -2,26 +2,38 @@
 <html lang="pt-PT">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %><%= site.business_name %> — <%= site.business_subtitle %></title>
   <meta name="description" content="<%= site.tagline %>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#12171d">
+  <link rel="preload" href="/static/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/css/site.css">
+  <script>document.documentElement.classList.add('js')</script>
 </head>
-<body>
-<header class="site-header">
-  <div class="wrap header-inner">
-    <a class="brand" href="/">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span><strong><%= site.business_name %></strong><small><%= site.business_subtitle %></small></span>
+<body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark" href="/" aria-label="<%= site.business_name %> — início">
+      <span class="mark-plate" aria-hidden="true"><%= site.business_name.trim()[0] %></span>
+      <span class="mark-name"><%= site.business_name %></span>
     </a>
-    <nav class="nav" aria-label="Principal">
+    <nav class="topnav" aria-label="Principal">
       <a href="/#servicos">Serviços</a>
       <a href="/#equipa">Equipa</a>
-      <a href="/#contacto">Contactos</a>
-      <a class="btn btn-sm" href="/marcar">Marcar consulta</a>
+      <a href="/#visita">Horário e contactos</a>
+      <a class="btn btn-signal btn-sm" href="/marcar">Marcar</a>
     </nav>
+    <details class="menu">
+      <summary aria-label="Abrir menu"><%- include('icon', { name: 'menu', size: 22 }) %></summary>
+      <div class="menu-sheet">
+        <a href="/#servicos">Serviços</a>
+        <a href="/#equipa">Equipa</a>
+        <a href="/#visita">Horário e contactos</a>
+        <a href="/#perguntas">Perguntas frequentes</a>
+        <a class="btn btn-signal" href="/marcar">Marcar <%- include('icon', { name: 'arrow' }) %></a>
+      </div>
+    </details>
   </div>
 </header>

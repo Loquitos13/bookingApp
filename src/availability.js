@@ -91,6 +91,42 @@ function availableDays({ serviceId, staffId = null, from, days = 42 }) {
   return out;
 }
 
+/** Primeiro horário livre (a partir de hoje) para um serviço/profissional. */
+function firstSlot({ serviceId, staffId = null, horizon = null }) {
+  const st = getSettings();
+  const today = nowIn(st.timezone).date;
+  const max = horizon ?? +st.max_days_ahead;
+  for (let i = 0; i <= max; i++) {
+    const date = addDays(today, i);
+    const s = getSlots({ serviceId, staffId, date })[0];
+    if (s) return { date, start: s.start, time: s.time, staff: s.staff };
+  }
+  return null;
+}
+
+/** "Próximas partidas": uma vaga por serviço, sem repetir o mesmo dia+hora, ordenadas por data/hora. */
+function nextDepartures(limit = 4) {
+  const st = getSettings();
+  const today = nowIn(st.timezone).date;
+  const services = db.prepare('SELECT * FROM services WHERE active = 1 ORDER BY sort, name').all();
+  const staffName = Object.fromEntries(db.prepare('SELECT id, name FROM staff').all().map((s) => [s.id, s.name]));
+  const used = new Set();
+  const out = [];
+  for (const svc of services) {
+    for (let i = 0; i <= 14; i++) {
+      const date = addDays(today, i);
+      const slots = getSlots({ serviceId: svc.id, date });
+      // afasta-se das horas já mostradas (mínimo 30 min) para o painel mostrar a variedade real
+      const s = slots.find((x) => ![...used].some((u) => u.date === date && Math.abs(u.start - x.start) < 30));
+      if (!s) continue;
+      used.add({ date, start: s.start });
+      out.push({ date, start: s.start, time: s.time, service: svc, staffId: s.staff[0], staffName: staffName[s.staff[0]], others: s.staff.length - 1, left: slots.length });
+      break;
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start).slice(0, limit);
+}
+
 class BookingError extends Error {}
 
 /** Cria uma marcação de forma atómica, revalidando a disponibilidade. */
@@ -155,6 +191,6 @@ function canCustomerCancel(b) {
 }
 
 module.exports = {
-  getSlots, availableDays, createBooking, getBooking, staffForService, busyIntervals,
+  getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, staffForService, busyIntervals,
   canCustomerCancel, BookingError, ACTIVE_STATUSES,
 };

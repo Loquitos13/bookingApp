@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
   <title>Entrar · Back office</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body class="login-body">
-  <form method="post" action="/admin/login" class="login card">
+  <form method="post" action="/admin/login" class="login">
     <div class="side-brand dark"><span class="mark"></span><%= site.business_name %></div>
     <h1>Back office</h1>
     <% if (error) { %><p class="alert"><%= error %></p><% } %>
     <input type="hidden" name="next" value="<%= next %>">
     <label>Email<input name="email" type="email" required autofocus autocomplete="username"></label>
     <label>Palavra-passe<input name="password" type="password" required autocomplete="current-password"></label>
-    <button class="btn">Entrar</button>
+    <button class="btn btn-signal">Entrar</button>
+    <% if (site.demo_mode === '1') { %><p class="muted tiny">Demonstração: admin@exemplo.pt / admin123</p><% } %>
   </form>
 </body>
 </html>

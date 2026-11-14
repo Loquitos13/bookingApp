@@ -1,7 +1,14 @@
 'use strict';
 const path = require('node:path');
 const express = require('express');
-const { getSettings } = require('./src/db');
+const { db, getSettings, setSetting } = require('./src/db');
+const { seedDemo } = require('./src/demo');
+
+// Dados de demonstração (fictícios) na primeira execução do template
+if (getSettings().demo_mode === '1' && !getSettings().demo_seeded && !db.prepare('SELECT COUNT(*) c FROM bookings').get().c) {
+  seedDemo();
+  setSetting('demo_seeded', '1');
+}
 const { loadSession } = require('./src/auth');
 const time = require('./src/time');
 
@@ -29,10 +36,10 @@ app.use(loadSession);
 app.use('/admin', require('./src/routes/admin'));
 app.use('/', require('./src/routes/public'));
 
-app.use((req, res) => res.status(404).render('public/message', { title: 'Página não encontrada', text: 'A página que procura não existe.' }));
+app.use((req, res) => res.status(404).render('public/message', { code: '404', title: 'Esta página não existe', text: 'Pode ter sido removida ou o endereço está incompleto.' }));
 app.use((err, req, res, _next) => {
   console.error(err);
-  res.status(500).render('public/message', { title: 'Ocorreu um erro', text: 'Tente novamente dentro de instantes.' });
+  res.status(500).render('public/message', { code: '500', title: 'Algo correu mal', text: 'Não foi culpa sua. Tente novamente dentro de instantes ou ligue-nos.' });
 });
 
 const PORT = +process.env.PORT || 3000;

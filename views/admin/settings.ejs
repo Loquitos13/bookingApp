@@ -20,7 +20,8 @@
   <label>Cancelamento online até (horas antes)<input type="number" name="cancel_hours" min="0" value="<%= site.cancel_hours %>"></label>
   <label>Fuso horário<input name="timezone" value="<%= site.timezone %>"></label>
   <label class="check span2"><input type="checkbox" name="auto_confirm" value="1" <%= site.auto_confirm === '1' ? 'checked' : '' %>> Confirmar automaticamente as marcações feitas no site (desligado = ficam "Pendentes" até aprovar)</label>
-  <div class="span2"><button class="btn">Guardar definições</button></div>
+  <label class="check span2"><input type="checkbox" name="demo_mode" value="1" <%= site.demo_mode === '1' ? 'checked' : '' %>> Modo demonstração (mostra o aviso "conteúdo fictício" no site e no back office)</label>
+  <div class="span2"><button class="btn btn-signal">Guardar definições</button></div>
 </form>
 
 <form method="post" action="/admin/definicoes/password" class="panel form-grid">

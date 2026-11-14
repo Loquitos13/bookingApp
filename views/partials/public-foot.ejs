@@ -1,15 +1,22 @@
-<footer class="site-footer">
-  <div class="wrap footer-inner">
-    <div>
-      <strong><%= site.business_name %></strong> · <%= site.business_subtitle %><br>
-      <span class="muted"><%= site.address %></span>
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div class="foot-name">
+      <strong><%= site.business_name %></strong>
+      <span><%= site.business_subtitle %></span>
     </div>
-    <div class="muted">
-      <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a> ·
-      <a href="mailto:<%= site.email %>"><%= site.email %></a>
-    </div>
-    <div class="muted">© <%= new Date().getFullYear() %> <%= site.business_name %></div>
+    <address>
+      <%= site.address %><br>
+      <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a> · <a href="mailto:<%= site.email %>"><%= site.email %></a>
+    </address>
+    <p class="foot-small">© <%= new Date().getFullYear() %> <%= site.business_name %><% if (site.demo_mode === '1') { %> · Conteúdo de demonstração: o negócio, a equipa e os contactos são fictícios.<% } %></p>
   </div>
 </footer>
+<% if (typeof bottomBar === 'undefined' || bottomBar) { %>
+<nav class="dock" aria-label="Ações rápidas">
+  <a class="dock-call" href="tel:<%= site.phone.replace(/\s/g,'') %>"><%- include('icon', { name: 'phone' }) %> Ligar</a>
+  <a class="btn btn-signal dock-book" href="/marcar">Marcar <%- include('icon', { name: 'arrow' }) %></a>
+</nav>
+<% } %>
+<script src="/static/js/site.js" defer></script>
 </body>
 </html>
