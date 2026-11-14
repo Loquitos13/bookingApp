@@ -1,0 +1,79 @@
+<%- include('../partials/admin-head', { title: 'Marcação ' + b.ref }) %>
+<header class="head">
+  <div>
+    <h1><%= b.customer_name %> <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span></h1>
+    <p class="muted">Ref. <%= b.ref %> · <%= b.source === 'online' ? 'Marcada pelo site' : 'Criada no back office' %> · <%= b.created_at %> UTC</p>
+  </div>
+  <a href="/admin/agenda?data=<%= b.date %>">Ver na agenda →</a>
+</header>
+<% if (error) { %><p class="alert"><%= error %></p><% } %>
+
+<div class="grid2">
+  <section class="panel">
+    <h2><%= b.service_name %></h2>
+    <dl class="dl">
+      <dt>Data</dt><dd><%= t.formatDateLong(b.date) %></dd>
+      <dt>Hora</dt><dd><%= t.minToTime(b.start_min) %> – <%= t.minToTime(b.end_min) %></dd>
+      <dt>Profissional</dt><dd><span class="dot" style="background:<%= b.staff_color %>"></span><%= b.staff_name %></dd>
+      <dt>Preço</dt><dd><%= t.euros(b.price_cents) %></dd>
+      <dt>Telefone</dt><dd><a href="tel:<%= b.customer_phone %>"><%= b.customer_phone %></a></dd>
+      <dt>Email</dt><dd><a href="mailto:<%= b.customer_email %>"><%= b.customer_email %></a></dd>
+      <dt>Notas</dt><dd><%= b.notes || '—' %></dd>
+    </dl>
+
+    <h3>Alterar estado</h3>
+    <form method="post" class="status-form">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="status">
+      <div class="seg">
+        <% Object.entries(STATUS).forEach(([k, v]) => { %>
+          <button name="status" value="<%= k %>" class="seg-btn <%= b.status === k ? 'on' : '' %>"><%= v %></button>
+        <% }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="notify" value="1" checked> Avisar o cliente por email (confirmação / cancelamento)</label>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Reagendar</h3>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="reschedule">
+      <label>Data<input type="date" name="date" value="<%= b.date %>" required></label>
+      <label>Hora<input name="time" value="<%= t.minToTime(b.start_min) %>" pattern="\d{1,2}:\d{2}" required></label>
+      <label class="span2">Profissional<select name="staffId">
+        <% staff.forEach(p => { %><option value="<%= p.id %>" <%= p.id === b.staff_id ? 'selected' : '' %>><%= p.name %></option><% }) %>
+      </select></label>
+      <label class="check span2"><input type="checkbox" name="force" value="1"> Ignorar conflitos</label>
+      <div class="span2"><button class="btn btn-ghost">Reagendar</button></div>
+    </form>
+
+    <h3>Dados e notas</h3>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="details">
+      <label class="span2">Nome<input name="name" value="<%= b.customer_name %>"></label>
+      <label>Email<input name="email" value="<%= b.customer_email %>"></label>
+      <label>Telefone<input name="phone" value="<%= b.customer_phone %>"></label>
+      <label class="span2">Notas do cliente<textarea name="notes" rows="2"><%= b.notes %></textarea></label>
+      <label class="span2">Notas internas<textarea name="internal_notes" rows="3"><%= b.internal_notes %></textarea></label>
+      <div class="span2"><button class="btn btn-ghost">Guardar</button></div>
+    </form>
+  </section>
+</div>
+
+<section class="panel">
+  <h3>Histórico deste cliente</h3>
+  <% if (!history.length) { %><p class="empty">Primeira marcação deste cliente.</p><% } else { %>
+  <ul class="list">
+    <% history.forEach(h => { %>
+      <li><a class="row-link" href="/admin/marcacoes/<%= h.id %>">
+        <span class="who"><strong><%= t.formatDateShort(h.date) %> · <%= t.minToTime(h.start_min) %></strong><small><%= h.service_name %></small></span>
+        <span class="badge badge-<%= h.status %>"><%= STATUS[h.status] %></span></a></li>
+    <% }) %>
+  </ul>
+  <% } %>
+</section>
+
+<form method="post" onsubmit="return confirm('Apagar definitivamente esta marcação? (Para manter histórico, prefira Cancelar.)')" class="danger-zone">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="delete">
+  <button class="linkbtn danger">Apagar marcação</button>
+</form>
+<%- include('../partials/admin-foot') %>

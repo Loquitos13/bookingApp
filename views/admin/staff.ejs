@@ -1,0 +1,34 @@
+<%- include('../partials/admin-head', { title: 'Equipa' }) %>
+<header class="head"><div><h1>Equipa</h1><p class="muted">Cada profissional tem a sua agenda. Escolha os serviços que cada um presta.</p></div></header>
+
+<% const fields = (p) => { const mine = new Set(links.filter(l => l.staff_id === p.id).map(l => l.service_id)); %>
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label>Nome<input name="name" value="<%= p.name || '' %>" required></label>
+  <label>Função<input name="role" value="<%= p.role || '' %>" placeholder="ex.: Fisioterapeuta"></label>
+  <label class="span2">Apresentação (aparece no site)<textarea name="bio" rows="2"><%= p.bio || '' %></textarea></label>
+  <fieldset class="span2 svc-checks"><legend>Serviços</legend>
+    <% services.forEach(s => { %><label class="check"><input type="checkbox" name="services" value="<%= s.id %>" <%= (p.id ? mine.has(s.id) : true) ? 'checked' : '' %>> <%= s.name %></label><% }) %>
+  </fieldset>
+  <label>Cor na agenda<input type="color" name="color" value="<%= p.color || '#3d7a6a' %>"></label>
+  <label>Ordem<input type="number" name="sort" value="<%= p.sort || 0 %>"></label>
+  <label class="check span2"><input type="checkbox" name="active" value="1" <%= p.active !== 0 ? 'checked' : '' %>> Ativo (aceita marcações)</label>
+<% } %>
+
+<div class="cards">
+  <% staff.forEach(p => { %>
+    <form method="post" action="/admin/equipa/<%= p.id %>" class="panel form-grid <%= p.active ? '' : 'inactive' %>">
+      <h3 class="span2"><span class="dot" style="background:<%= p.color %>"></span><%= p.name %></h3>
+      <% fields(p) %>
+      <div class="span2 row-actions">
+        <button class="btn">Guardar</button>
+        <button class="linkbtn danger" name="action" value="delete" onclick="return confirm('Remover este profissional?')">Remover</button>
+      </div>
+    </form>
+  <% }) %>
+  <form method="post" action="/admin/equipa" class="panel form-grid new">
+    <h3 class="span2">Novo profissional</h3>
+    <% fields({}) %>
+    <div class="span2"><button class="btn">Adicionar</button></div>
+  </form>
+</div>
+<%- include('../partials/admin-foot') %>

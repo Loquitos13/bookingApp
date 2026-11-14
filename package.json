@@ -1,0 +1,29 @@
+{
+  "name": "bookingapp",
+  "version": "1.0.0",
+  "description": "Site informativo com marcações online e back office",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --watch --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Loquitos13/bookingApp.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Loquitos13/bookingApp/issues"
+  },
+  "homepage": "https://github.com/Loquitos13/bookingApp#readme",
+  "dependencies": {
+    "ejs": "^7.0.2",
+    "express": "^4.22.3",
+    "nodemailer": "^10.5.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "private": true
+}

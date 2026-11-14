@@ -1,0 +1,117 @@
+<%- include('../partials/public-head') %>
+<main>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow"><%= site.business_subtitle %> · Lisboa</p>
+        <h1><%= site.tagline %></h1>
+        <p class="lead"><%= site.intro %></p>
+        <div class="hero-cta">
+          <a class="btn btn-lg" href="/marcar">Marcar consulta online</a>
+          <a class="btn btn-ghost btn-lg" href="tel:<%= site.phone.replace(/\s/g,'') %>">Ligar <%= site.phone %></a>
+        </div>
+        <ul class="hero-facts">
+          <li><strong>Marcação em 1 minuto</strong><span>Escolha o dia e a hora que lhe dão jeito</span></li>
+          <li><strong>Confirmação imediata</strong><span>Recebe tudo por email</span></li>
+          <li><strong>Cancelamento simples</strong><span>Até <%= site.cancel_hours %>h antes, sem custos</span></li>
+        </ul>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="arc arc-1"></div>
+        <div class="arc arc-2"></div>
+        <div class="hero-card">
+          <span class="hero-card-label">Próxima consulta</span>
+          <strong>Avaliação inicial</strong>
+          <span>60 min · com a nossa equipa</span>
+          <a href="/marcar" class="hero-card-link" tabindex="-1">Ver horários →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="servicos" class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Serviços</h2>
+        <p class="muted">Preços por sessão. Se não sabe por onde começar, marque uma avaliação inicial.</p>
+      </div>
+      <div class="services">
+        <% services.forEach(s => { %>
+          <article class="service">
+            <h3><%= s.name %></h3>
+            <p><%= s.description %></p>
+            <div class="service-foot">
+              <span class="service-meta"><%= s.duration_min %> min · <%= t.euros(s.price_cents) %></span>
+              <a class="link-arrow" href="/marcar?servico=<%= s.id %>">Marcar →</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tint">
+    <div class="wrap">
+      <div class="section-head"><h2>Como funciona</h2></div>
+      <ol class="steps">
+        <li><span>1</span><h3>Escolha o serviço</h3><p>E, se quiser, o profissional que prefere.</p></li>
+        <li><span>2</span><h3>Escolha dia e hora</h3><p>Só mostramos horários realmente livres.</p></li>
+        <li><span>3</span><h3>Receba a confirmação</h3><p>Com um link para ver ou cancelar a marcação.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="equipa" class="section">
+    <div class="wrap">
+      <div class="section-head"><h2>A equipa</h2></div>
+      <div class="team">
+        <% staff.forEach(p => { %>
+          <article class="person">
+            <div class="avatar" style="--c: <%= p.color %>"><%= p.name.split(' ').map(w => w[0]).slice(0,2).join('') %></div>
+            <h3><%= p.name %></h3>
+            <p class="role"><%= p.role %></p>
+            <p class="muted"><%= p.bio %></p>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section id="contacto" class="section section-tint">
+    <div class="wrap contact-grid">
+      <div>
+        <h2>Horário & contactos</h2>
+        <table class="hours">
+          <% [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
+            <tr>
+              <th><%= t.WEEKDAYS[d] %></th>
+              <td>
+                <% if (!h || h.closed) { %><span class="muted">Encerrado</span><% } else if (h.break_start != null) { %>
+                  <%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.break_start) %> · <%= t.minToTime(h.break_end) %>–<%= t.minToTime(h.close_min) %>
+                <% } else { %><%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.close_min) %><% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </table>
+        <p><%= site.address %><br>
+          <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a><br>
+          <a href="mailto:<%= site.email %>"><%= site.email %></a></p>
+      </div>
+      <div class="card">
+        <h3>Envie-nos uma mensagem</h3>
+        <% if (sent) { %><p class="notice ok">Obrigado! Respondemos com a maior brevidade possível.</p><% } %>
+        <form method="post" action="/contacto" class="form">
+          <label>Nome<input name="name" required maxlength="120" autocomplete="name"></label>
+          <div class="row2">
+            <label>Email<input name="email" type="email" required autocomplete="email"></label>
+            <label>Telefone <span class="opt">(opcional)</span><input name="phone" type="tel" autocomplete="tel"></label>
+          </div>
+          <label>Mensagem<textarea name="message" rows="4" required maxlength="3000"></textarea></label>
+          <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="btn">Enviar mensagem</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+<%- include('../partials/public-foot') %>

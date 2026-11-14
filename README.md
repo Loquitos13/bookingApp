@@ -1,0 +1,60 @@
+# Equilíbrio — site + marcações online + back office
+
+Aplicação completa para um negócio que trabalha por marcação (exemplo configurado: **clínica de fisioterapia e osteopatia**).
+Serve igualmente para cabeleireiros, barbearias, estética, nutrição, explicações, etc. — basta mudar textos, serviços e equipa no back office.
+
+## O que inclui
+
+**Site público**
+- Página informativa: apresentação, serviços com preço e duração, equipa, horário, contactos e formulário de mensagem.
+- Marcação online em 4 passos: serviço → profissional (ou "sem preferência") → calendário com dias/horas realmente livres → dados do cliente.
+- Página pessoal da marcação (link enviado por email) com opção de cancelar até X horas antes.
+
+**Back office** (`/admin`)
+- Painel com indicadores (hoje, próximos 7 dias, por confirmar, faturação prevista do mês).
+- Agenda diária por profissional — clique num espaço livre para marcar.
+- Lista de marcações com pesquisa/filtros, exportação CSV, ficha da marcação (alterar estado, reagendar, notas internas, histórico do cliente).
+- Marcações manuais (telefone/balcão), com opção de "encaixe" fora da disponibilidade.
+- Gestão de serviços, equipa (cor na agenda, serviços que presta), horário semanal com pausa de almoço, férias/feriados/bloqueios.
+- Mensagens do formulário de contacto.
+- Definições: textos do site, contactos, intervalo entre horários, pausa entre marcações, antecedência mínima/máxima, prazo de cancelamento, confirmação automática ou manual.
+
+## Arrancar
+
+Requer Node.js 22.13+ (usa o SQLite incluído no Node — sem base de dados externa).
+
+```bash
+npm install
+npm start          # http://localhost:3000  ·  back office em /admin
+npm test
+```
+
+Na primeira execução é criada a base de dados `data/app.db` com dados de exemplo e o utilizador
+`admin@exemplo.pt` / `admin123` (**altere em Definições**, ou defina `ADMIN_EMAIL` e `ADMIN_PASSWORD` antes do primeiro arranque).
+
+## Variáveis de ambiente
+
+| Variável | Para quê |
+|---|---|
+| `PORT` | Porta (por omissão 3000) |
+| `BASE_URL` | URL público, usado nos links dos emails (ex.: `https://www.minhaclinica.pt`) |
+| `DB_PATH` | Caminho do ficheiro SQLite |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Utilizador inicial do back office |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` | Envio real de emails. Sem isto, os emails são apenas escritos na consola |
+| `MAIL_FROM`, `NOTIFY_EMAIL` | Remetente e email que recebe os avisos de novas marcações |
+| `NODE_ENV=production` | Cookie de sessão só por HTTPS |
+
+## Estrutura
+
+```
+server.js               Express + EJS
+src/db.js               Esquema SQLite e dados iniciais
+src/availability.js     Cálculo de horários livres e criação atómica de marcações
+src/routes/public.js    Site, API de disponibilidade, marcação, cancelamento
+src/routes/admin.js     Back office
+src/auth.js             Sessões, login, proteção CSRF
+src/mailer.js           Emails ao cliente e ao negócio
+views/                  Páginas (public/ e admin/)
+public/                 CSS e JS do calendário
+test/                   Testes (node --test)
+```

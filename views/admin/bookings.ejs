@@ -1,0 +1,41 @@
+<%- include('../partials/admin-head', { title: 'Marcações' }) %>
+<header class="head">
+  <h1>Marcações</h1>
+  <div class="toolbar">
+    <a class="btn btn-ghost" href="/admin/marcacoes/exportar.csv">Exportar CSV</a>
+    <a class="btn" href="/admin/marcacoes/nova">+ Nova marcação</a>
+  </div>
+</header>
+
+<form class="filters panel" method="get">
+  <label>Pesquisar<input name="q" value="<%= f.q %>" placeholder="Nome, email, telefone ou ref."></label>
+  <label>Estado<select name="status"><option value="">Todos</option>
+    <% Object.entries(STATUS).forEach(([k, v]) => { %><option value="<%= k %>" <%= f.status === k ? 'selected' : '' %>><%= v %></option><% }) %></select></label>
+  <label>Profissional<select name="staff"><option value="">Todos</option>
+    <% staff.forEach(s => { %><option value="<%= s.id %>" <%= f.staff === s.id ? 'selected' : '' %>><%= s.name %></option><% }) %></select></label>
+  <label>De<input type="date" name="from" value="<%= f.from %>"></label>
+  <label>Até<input type="date" name="to" value="<%= f.to %>"></label>
+  <button class="btn">Filtrar</button>
+</form>
+
+<div class="panel table-wrap">
+  <% if (!rows.length) { %><p class="empty">Nenhuma marcação encontrada.</p><% } else { %>
+  <table class="table">
+    <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Origem</th><th>Estado</th></tr></thead>
+    <tbody>
+      <% rows.forEach(b => { %>
+        <tr onclick="location.href='/admin/marcacoes/<%= b.id %>'">
+          <td><%= t.formatDateShort(b.date) %></td>
+          <td><%= t.minToTime(b.start_min) %></td>
+          <td><a href="/admin/marcacoes/<%= b.id %>"><strong><%= b.customer_name %></strong></a><br><small class="muted"><%= b.customer_phone %></small></td>
+          <td><%= b.service_name %></td>
+          <td><span class="dot" style="background:<%= b.staff_color %>"></span><%= b.staff_name %></td>
+          <td><%= b.source === 'online' ? 'Site' : 'Manual' %></td>
+          <td><span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/admin-foot') %>

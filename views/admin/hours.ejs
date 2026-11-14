@@ -1,0 +1,23 @@
+<%- include('../partials/admin-head', { title: 'Horário' }) %>
+<header class="head"><div><h1>Horário de funcionamento</h1><p class="muted">Os horários disponíveis no site são calculados a partir daqui. Deixe a pausa vazia se não houver.</p></div></header>
+<form method="post" class="panel">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <table class="table hours-table">
+    <thead><tr><th>Dia</th><th>Aberto</th><th>Abre</th><th>Fecha</th><th>Pausa de</th><th>até</th></tr></thead>
+    <tbody>
+      <% [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
+        <tr>
+          <th><%= t.WEEKDAYS[d] %></th>
+          <td><label class="switch"><input type="checkbox" <%= h.closed ? '' : 'checked' %> onchange="this.closest('tr').querySelector('[name=closed_<%= d %>]').value = this.checked ? '' : '1'"><span></span></label>
+              <input type="hidden" name="closed_<%= d %>" value="<%= h.closed ? '1' : '' %>"></td>
+          <td><input type="time" name="open_<%= d %>" value="<%= t.minToTime(h.open_min) %>" step="900"></td>
+          <td><input type="time" name="close_<%= d %>" value="<%= t.minToTime(h.close_min) %>" step="900"></td>
+          <td><input type="time" name="bstart_<%= d %>" value="<%= h.break_start != null ? t.minToTime(h.break_start) : '' %>" step="900"></td>
+          <td><input type="time" name="bend_<%= d %>" value="<%= h.break_end != null ? t.minToTime(h.break_end) : '' %>" step="900"></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <button class="btn">Guardar horário</button>
+</form>
+<%- include('../partials/admin-foot') %>

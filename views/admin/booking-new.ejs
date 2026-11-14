@@ -1,0 +1,41 @@
+<%- include('../partials/admin-head', { title: 'Nova marcação' }) %>
+<header class="head"><h1>Nova marcação</h1><a href="/admin/marcacoes">← Voltar</a></header>
+<% if (error) { %><p class="alert"><%= error %></p><% } %>
+<form method="post" action="/admin/marcacoes" class="panel form-grid" id="new-booking">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label>Serviço<select name="serviceId" required>
+    <option value="">— escolher —</option>
+    <% services.forEach(s => { %><option value="<%= s.id %>" <%= String(form.serviceId) === String(s.id) ? 'selected' : '' %>><%= s.name %> (<%= s.duration_min %> min)<%= s.active ? '' : ' — inativo' %></option><% }) %>
+  </select></label>
+  <label>Profissional<select name="staffId">
+    <option value="">Qualquer disponível</option>
+    <% staff.forEach(p => { %><option value="<%= p.id %>" <%= String(form.staffId) === String(p.id) ? 'selected' : '' %>><%= p.name %></option><% }) %>
+  </select></label>
+  <label>Data<input type="date" name="date" value="<%= form.date %>" required></label>
+  <label>Hora<input name="time" value="<%= form.time %>" placeholder="HH:MM" pattern="\d{1,2}:\d{2}" required list="slot-list" autocomplete="off">
+    <datalist id="slot-list"></datalist><small class="muted" id="slot-hint"></small></label>
+  <label>Nome do cliente<input name="name" value="<%= form.name || '' %>" required></label>
+  <label>Telefone<input name="phone" type="tel" value="<%= form.phone && form.phone !== '—' ? form.phone : '' %>"></label>
+  <label>Email<input name="email" type="email" value="<%= form.email && form.email !== '—' ? form.email : '' %>"></label>
+  <label class="span2">Notas do cliente<textarea name="notes" rows="2"><%= form.notes || '' %></textarea></label>
+  <label class="span2">Notas internas<textarea name="internal_notes" rows="2"><%= form.internalNotes || '' %></textarea></label>
+  <label class="check"><input type="checkbox" name="notify" value="1" <%= form.notify ? 'checked' : '' %>> Enviar email de confirmação ao cliente</label>
+  <label class="check"><input type="checkbox" name="force" value="1" <%= form.force ? 'checked' : '' %>> Ignorar disponibilidade (encaixe)</label>
+  <div class="span2"><button class="btn">Criar marcação</button></div>
+</form>
+<script>
+(function () {
+  const f = document.getElementById('new-booking');
+  const list = document.getElementById('slot-list'), hint = document.getElementById('slot-hint');
+  async function refresh() {
+    const s = f.serviceId.value, d = f.date.value;
+    if (!s || !d) { hint.textContent = ''; return; }
+    const r = await fetch(`/admin/api/slots?service=${s}&staff=${f.staffId.value}&date=${d}`).then(r => r.json());
+    list.innerHTML = r.slots.map(x => `<option value="${x.time}">`).join('');
+    hint.textContent = r.slots.length ? `Livres: ${r.slots.slice(0, 14).map(x => x.time).join(', ')}${r.slots.length > 14 ? '…' : ''}` : 'Sem horários livres neste dia.';
+  }
+  ['serviceId', 'staffId', 'date'].forEach(n => f[n].addEventListener('change', refresh));
+  refresh();
+})();
+</script>
+<%- include('../partials/admin-foot') %>

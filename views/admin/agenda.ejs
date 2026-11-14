@@ -1,0 +1,56 @@
+<%- include('../partials/admin-head', { title: 'Agenda' }) %>
+<% const PPM = 1.5; const H = (to - from) * PPM; %>
+<header class="head">
+  <div>
+    <h1>Agenda</h1>
+    <p class="muted"><%= t.formatDateLong(date) %><%= date === today ? ' · hoje' : '' %><%= !hours || hours.closed ? ' · encerrado' : '' %></p>
+  </div>
+  <div class="toolbar">
+    <a class="btn btn-ghost" href="?data=<%= t.addDays(date, -1) %>" aria-label="Dia anterior">‹</a>
+    <a class="btn btn-ghost" href="?data=<%= today %>">Hoje</a>
+    <a class="btn btn-ghost" href="?data=<%= t.addDays(date, 1) %>" aria-label="Dia seguinte">›</a>
+    <form method="get"><input type="date" name="data" value="<%= date %>" onchange="this.form.submit()" aria-label="Ir para data"></form>
+    <a class="btn" href="/admin/marcacoes/nova?data=<%= date %>">+ Nova</a>
+  </div>
+</header>
+
+<% if (!staff.length) { %><p class="empty">Adicione profissionais na secção Equipa.</p><% } else { %>
+<div class="agenda" style="--cols: <%= staff.length %>">
+  <div class="ag-head">
+    <span></span>
+    <% staff.forEach(p => { %><span><i class="dot" style="background:<%= p.color %>"></i><%= p.name %></span><% }) %>
+  </div>
+  <div class="ag-body" style="height: <%= H %>px">
+    <div class="ag-times">
+      <% for (let m = from; m < to; m += 60) { %><span style="top: <%= (m - from) * PPM %>px"><%= t.minToTime(m) %></span><% } %>
+    </div>
+    <% staff.forEach(p => { %>
+      <div class="ag-col">
+        <% for (let m = from; m < to; m += 30) { %>
+          <a class="ag-cell" style="top: <%= (m - from) * PPM %>px; height: <%= 30 * PPM %>px" href="/admin/marcacoes/nova?data=<%= date %>&staff=<%= p.id %>&hora=<%= t.minToTime(m) %>" title="Marcar às <%= t.minToTime(m) %>"></a>
+        <% } %>
+        <% /* períodos fechados */
+          const closed = [];
+          if (!hours || hours.closed) closed.push([from, to]);
+          else {
+            closed.push([from, hours.open_min], [hours.close_min, to]);
+            if (hours.break_start != null) closed.push([hours.break_start, hours.break_end]);
+          }
+          blocks.filter(b => !b.staff_id || b.staff_id === p.id).forEach(b => closed.push([b.start_min ?? from, b.end_min ?? to, b.reason || 'Bloqueado']));
+          closed.filter(([a, z]) => z > a).forEach(([a, z, label]) => { %>
+          <div class="ag-closed" style="top: <%= (Math.max(a, from) - from) * PPM %>px; height: <%= (Math.min(z, to) - Math.max(a, from)) * PPM %>px"><% if (label) { %><span><%= label %></span><% } %></div>
+        <% }) %>
+        <% bookings.filter(b => b.staff_id === p.id).forEach(b => { %>
+          <a class="ag-bk st-<%= b.status %>" href="/admin/marcacoes/<%= b.id %>"
+             style="top: <%= (b.start_min - from) * PPM %>px; height: <%= (b.end_min - b.start_min) * PPM - 2 %>px; --c: <%= p.color %>">
+            <strong><%= t.minToTime(b.start_min) %> <%= b.customer_name %></strong>
+            <small><%= b.service_name %><%= b.status === 'pending' ? ' · por confirmar' : '' %></small>
+          </a>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
+</div>
+<p class="muted tiny">Clique num espaço livre para criar uma marcação nesse horário.</p>
+<% } %>
+<%- include('../partials/admin-foot') %>

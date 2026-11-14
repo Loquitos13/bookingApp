@@ -1,0 +1,22 @@
+<%- include('../partials/admin-head', { title: 'Mensagens' }) %>
+<header class="head"><div><h1>Mensagens</h1><p class="muted">Recebidas pelo formulário de contacto do site.</p></div></header>
+<% if (!messages.length) { %><p class="empty panel">Ainda não há mensagens.</p><% } %>
+<div class="cards">
+  <% messages.forEach(m => { %>
+    <article class="panel msg <%= m.read ? 'read' : 'unread' %>">
+      <div class="msg-head">
+        <strong><%= m.name %></strong>
+        <span class="muted tiny"><%= m.created_at %> UTC</span>
+      </div>
+      <p class="muted tiny"><a href="mailto:<%= m.email %>"><%= m.email %></a><%= m.phone ? ' · ' + m.phone : '' %></p>
+      <p class="msg-body"><%= m.message %></p>
+      <form method="post" action="/admin/mensagens/<%= m.id %>" class="row-actions">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <a class="btn btn-ghost" href="mailto:<%= m.email %>?subject=<%= encodeURIComponent('Re: ' + site.business_name) %>">Responder</a>
+        <button class="btn btn-ghost" name="action" value="toggle"><%= m.read ? 'Marcar como não lida' : 'Marcar como lida' %></button>
+        <button class="linkbtn danger" name="action" value="delete" onclick="return confirm('Apagar mensagem?')">Apagar</button>
+      </form>
+    </article>
+  <% }) %>
+</div>
+<%- include('../partials/admin-foot') %>

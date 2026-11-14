@@ -1,0 +1,40 @@
+<%- include('../partials/public-head', { title: 'A sua marcação' }) %>
+<main class="wrap narrow page">
+  <% if (isNew) { %>
+    <div class="success-mark" aria-hidden="true">✓</div>
+    <h1 class="page-title"><%= b.status === 'pending' ? 'Pedido recebido' : 'Marcação confirmada' %></h1>
+    <p class="lead"><%= b.status === 'pending' ? 'Vamos confirmar a sua marcação em breve.' : 'Está tudo tratado.' %> Enviámos os detalhes para <strong><%= b.customer_email %></strong>.</p>
+  <% } else { %>
+    <h1 class="page-title">A sua marcação</h1>
+  <% } %>
+  <% if (cancelled && b.status === 'cancelled') { %><p class="notice ok">A marcação foi cancelada.</p><% } %>
+  <% if (cancelled && b.status !== 'cancelled') { %><p class="notice err">Já não é possível cancelar online. Por favor contacte-nos por telefone.</p><% } %>
+
+  <div class="card ticket">
+    <div class="ticket-head">
+      <span class="badge badge-<%= b.status %>"><%= { pending: 'Pendente', confirmed: 'Confirmada', completed: 'Concluída', cancelled: 'Cancelada', no_show: 'Falta' }[b.status] %></span>
+      <span class="muted">Ref. <strong><%= b.ref %></strong></span>
+    </div>
+    <dl class="ticket-body">
+      <dt>Serviço</dt><dd><%= b.service_name %> (<%= b.duration_min %> min)</dd>
+      <dt>Profissional</dt><dd><%= b.staff_name %></dd>
+      <dt>Data</dt><dd><%= t.formatDateLong(b.date) %></dd>
+      <dt>Hora</dt><dd><%= t.minToTime(b.start_min) %> – <%= t.minToTime(b.end_min) %></dd>
+      <dt>Preço</dt><dd><%= t.euros(b.price_cents) %></dd>
+      <dt>Local</dt><dd><%= site.address %></dd>
+    </dl>
+  </div>
+
+  <div class="actions">
+    <% if (canCancel) { %>
+      <form method="post" action="/marcacao/<%= b.token %>/cancelar" onsubmit="return confirm('Tem a certeza que quer cancelar esta marcação?')">
+        <button class="btn btn-ghost">Cancelar marcação</button>
+      </form>
+    <% } else if (['pending','confirmed'].includes(b.status)) { %>
+      <p class="muted">Para alterar ou cancelar com menos de <%= site.cancel_hours %>h de antecedência, ligue para <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p>
+    <% } %>
+    <a class="btn" href="/marcar">Fazer outra marcação</a>
+  </div>
+  <p class="tiny muted">Guarde esta página: o link é pessoal e permite gerir a marcação.</p>
+</main>
+<%- include('../partials/public-foot') %>

@@ -1,0 +1,15 @@
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div>
+      <strong><%= site.business_name %></strong> · <%= site.business_subtitle %><br>
+      <span class="muted"><%= site.address %></span>
+    </div>
+    <div class="muted">
+      <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a> ·
+      <a href="mailto:<%= site.email %>"><%= site.email %></a>
+    </div>
+    <div class="muted">© <%= new Date().getFullYear() %> <%= site.business_name %></div>
+  </div>
+</footer>
+</body>
+</html>

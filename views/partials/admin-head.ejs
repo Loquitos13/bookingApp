@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title><%= title %> · Back office · <%= site.business_name %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <a class="side-brand" href="/admin"><span class="mark"></span><%= site.business_name %></a>
+    <nav>
+      <% const nav = [
+        ['/admin', 'Painel'], ['/admin/agenda', 'Agenda'], ['/admin/marcacoes', 'Marcações', pendingCount],
+        ['/admin/servicos', 'Serviços'], ['/admin/equipa', 'Equipa'], ['/admin/horario', 'Horário'],
+        ['/admin/bloqueios', 'Férias e bloqueios'], ['/admin/mensagens', 'Mensagens', unread], ['/admin/definicoes', 'Definições'] ];
+      nav.forEach(([href, label, n]) => {
+        const active = href === '/admin' ? (path === '/admin' || path === '/admin/') : path.startsWith(href); %>
+        <a href="<%= href %>" class="<%= active ? 'active' : '' %>"><%= label %><% if (n) { %><span class="count"><%= n %></span><% } %></a>
+      <% }) %>
+    </nav>
+    <div class="side-foot">
+      <a href="/" target="_blank" rel="noopener">Ver site ↗</a>
+      <form method="post" action="/admin/logout"><button class="linkbtn">Sair (<%= user.name %>)</button></form>
+    </div>
+  </aside>
+  <main class="main">
+    <% if (flash) { %><div class="flash" role="status"><%= flash %></div><% } %>

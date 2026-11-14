@@ -1,0 +1,31 @@
+<%- include('../partials/admin-head', { title: 'Férias e bloqueios' }) %>
+<header class="head"><div><h1>Férias e bloqueios</h1><p class="muted">Feriados, férias, formações ou pausas pontuais. Nesses períodos não aparecem horários no site.</p></div></header>
+<div class="grid2">
+  <form method="post" class="panel form-grid">
+    <h3 class="span2">Novo bloqueio</h3>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label class="span2">Quem<select name="staff_id"><option value="">Toda a clínica</option>
+      <% staff.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></label>
+    <label>De<input type="date" name="date_from" value="<%= d %>" required></label>
+    <label>Até<input type="date" name="date_to" value="<%= d %>"></label>
+    <label>Das <span class="muted">(vazio = dia inteiro)</span><input type="time" name="start_time" step="900"></label>
+    <label>Às<input type="time" name="end_time" step="900"></label>
+    <label class="span2">Motivo<input name="reason" placeholder="ex.: Férias, Feriado, Formação"></label>
+    <div class="span2"><button class="btn">Adicionar bloqueio</button></div>
+  </form>
+  <section class="panel">
+    <h3>Bloqueios ativos e futuros</h3>
+    <% if (!blocks.length) { %><p class="empty">Sem bloqueios.</p><% } %>
+    <ul class="list">
+      <% blocks.forEach(b => { %>
+        <li class="row-link">
+          <span class="who"><strong><%= b.reason || 'Bloqueado' %></strong>
+            <small><%= b.staff_name || 'Toda a clínica' %> · <%= t.formatDateShort(b.date_from) %><%= b.date_to !== b.date_from ? ' → ' + t.formatDateShort(b.date_to) : '' %>
+            · <%= b.start_min == null ? 'dia inteiro' : t.minToTime(b.start_min) + '–' + t.minToTime(b.end_min) %></small></span>
+          <form method="post" action="/admin/bloqueios/<%= b.id %>/apagar"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linkbtn danger">Remover</button></form>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+</div>
+<%- include('../partials/admin-foot') %>

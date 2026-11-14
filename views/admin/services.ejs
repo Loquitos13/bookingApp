@@ -1,0 +1,31 @@
+<%- include('../partials/admin-head', { title: 'Serviços' }) %>
+<header class="head"><div><h1>Serviços</h1><p class="muted">O que os clientes podem marcar no site. A duração define o tamanho de cada marcação.</p></div></header>
+
+<% const fields = (s) => { %>
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label class="span2">Nome<input name="name" value="<%= s.name || '' %>" required></label>
+  <label>Duração (min)<input type="number" name="duration_min" min="5" max="600" step="5" value="<%= s.duration_min || 45 %>" required></label>
+  <label>Preço (€)<input name="price" inputmode="decimal" value="<%= s.price_cents != null ? (s.price_cents / 100).toFixed(2).replace('.', ',') : '' %>"></label>
+  <label class="span2">Descrição<textarea name="description" rows="2"><%= s.description || '' %></textarea></label>
+  <label>Ordem<input type="number" name="sort" value="<%= s.sort || 0 %>"></label>
+  <label class="check"><input type="checkbox" name="active" value="1" <%= s.active !== 0 ? 'checked' : '' %>> Visível no site</label>
+<% } %>
+
+<div class="cards">
+  <% services.forEach(s => { %>
+    <form method="post" action="/admin/servicos/<%= s.id %>" class="panel form-grid <%= s.active ? '' : 'inactive' %>">
+      <% fields(s) %>
+      <div class="span2 row-actions">
+        <button class="btn">Guardar</button>
+        <span class="muted tiny"><%= s.uses %> marcações</span>
+        <button class="linkbtn danger" name="action" value="delete" onclick="return confirm('Apagar este serviço?')">Apagar</button>
+      </div>
+    </form>
+  <% }) %>
+  <form method="post" action="/admin/servicos" class="panel form-grid new">
+    <h3 class="span2">Novo serviço</h3>
+    <% fields({}) %>
+    <div class="span2"><button class="btn">Adicionar serviço</button></div>
+  </form>
+</div>
+<%- include('../partials/admin-foot') %>

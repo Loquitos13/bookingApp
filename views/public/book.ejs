@@ -1,0 +1,92 @@
+<%- include('../partials/public-head', { title: 'Marcar consulta' }) %>
+<main class="wrap page">
+  <h1 class="page-title">Marcar consulta</h1>
+  <p class="lead">Escolha o serviço, o dia e a hora. Demora menos de um minuto.</p>
+
+  <% if (error) { %><p class="notice err" role="alert"><%= error %></p><% } %>
+
+  <form method="post" action="/marcar" id="booking" class="booking" novalidate>
+    <div class="booking-main">
+      <fieldset class="step" id="step-service">
+        <legend><span class="num">1</span> Serviço</legend>
+        <div class="choices">
+          <% services.forEach(s => { %>
+            <label class="choice">
+              <input type="radio" name="serviceId" value="<%= s.id %>" <%= String(form.serviceId) === String(s.id) ? 'checked' : '' %> required>
+              <span class="choice-body">
+                <strong><%= s.name %></strong>
+                <small><%= s.duration_min %> min · <%= t.euros(s.price_cents) %></small>
+              </span>
+            </label>
+          <% }) %>
+        </div>
+      </fieldset>
+
+      <fieldset class="step" id="step-staff">
+        <legend><span class="num">2</span> Profissional</legend>
+        <div class="choices choices-staff">
+          <label class="choice">
+            <input type="radio" name="staffId" value="" <%= !form.staffId ? 'checked' : '' %>>
+            <span class="choice-body"><strong>Sem preferência</strong><small>Mais horários disponíveis</small></span>
+          </label>
+          <% staff.forEach(p => { %>
+            <label class="choice" data-staff="<%= p.id %>">
+              <input type="radio" name="staffId" value="<%= p.id %>" <%= String(form.staffId) === String(p.id) ? 'checked' : '' %>>
+              <span class="choice-body">
+                <span class="dot" style="background: <%= p.color %>"></span>
+                <strong><%= p.name %></strong><small><%= p.role %></small>
+              </span>
+            </label>
+          <% }) %>
+        </div>
+      </fieldset>
+
+      <fieldset class="step" id="step-time">
+        <legend><span class="num">3</span> Dia e hora</legend>
+        <div class="when">
+          <div class="calendar" id="calendar" aria-live="polite">
+            <p class="muted">Escolha primeiro um serviço.</p>
+          </div>
+          <div class="slots-wrap">
+            <p class="slots-title" id="slots-title">&nbsp;</p>
+            <div class="slots" id="slots" role="listbox" aria-label="Horários disponíveis"></div>
+          </div>
+        </div>
+        <input type="hidden" name="date" id="f-date" value="<%= form.date || '' %>">
+        <input type="hidden" name="time" id="f-time" value="<%= form.time || '' %>">
+      </fieldset>
+
+      <fieldset class="step" id="step-details">
+        <legend><span class="num">4</span> Os seus dados</legend>
+        <div class="form">
+          <label>Nome completo<input name="name" required maxlength="120" autocomplete="name" value="<%= form.name || '' %>"></label>
+          <div class="row2">
+            <label>Email<input name="email" type="email" required autocomplete="email" value="<%= form.email || '' %>"></label>
+            <label>Telemóvel<input name="phone" type="tel" required autocomplete="tel" value="<%= form.phone || '' %>"></label>
+          </div>
+          <label>Notas <span class="opt">(opcional — ex.: zona da dor, lesão, seguro)</span>
+            <textarea name="notes" rows="3" maxlength="1000"><%= form.notes || '' %></textarea></label>
+          <label class="check"><input type="checkbox" name="consent" value="1" required>
+            <span>Autorizo o tratamento dos meus dados para gestão desta marcação.</span></label>
+          <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        </div>
+      </fieldset>
+    </div>
+
+    <aside class="summary card" aria-label="Resumo">
+      <h3>Resumo</h3>
+      <dl>
+        <dt>Serviço</dt><dd id="s-service">—</dd>
+        <dt>Profissional</dt><dd id="s-staff">Sem preferência</dd>
+        <dt>Data</dt><dd id="s-date">—</dd>
+        <dt>Hora</dt><dd id="s-time">—</dd>
+        <dt>Preço</dt><dd id="s-price">—</dd>
+      </dl>
+      <button class="btn btn-block" id="submit" disabled>Confirmar marcação</button>
+      <p class="tiny muted">Pode cancelar gratuitamente até <%= site.cancel_hours %>h antes.</p>
+    </aside>
+  </form>
+</main>
+<script type="application/json" id="booking-data"><%- JSON.stringify({ services, staff, links }).replace(/</g, '\\u003c') %></script>
+<script src="/static/js/book.js"></script>
+<%- include('../partials/public-foot') %>

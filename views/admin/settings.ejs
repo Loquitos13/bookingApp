@@ -1,0 +1,33 @@
+<%- include('../partials/admin-head', { title: 'Definições' }) %>
+<header class="head"><h1>Definições</h1></header>
+<% if (error) { %><p class="alert"><%= error %></p><% } %>
+<form method="post" class="panel form-grid">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h3 class="span2">Negócio e site</h3>
+  <label>Nome<input name="business_name" value="<%= site.business_name %>" required></label>
+  <label>Subtítulo<input name="business_subtitle" value="<%= site.business_subtitle %>"></label>
+  <label class="span2">Frase principal (título da página inicial)<input name="tagline" value="<%= site.tagline %>"></label>
+  <label class="span2">Texto de apresentação<textarea name="intro" rows="3"><%= site.intro %></textarea></label>
+  <label>Telefone<input name="phone" value="<%= site.phone %>"></label>
+  <label>Email<input name="email" type="email" value="<%= site.email %>"></label>
+  <label class="span2">Morada<input name="address" value="<%= site.address %>"></label>
+
+  <h3 class="span2">Regras de marcação</h3>
+  <label>Intervalo entre horários (min)<input type="number" name="slot_step" min="5" max="120" step="5" value="<%= site.slot_step %>"></label>
+  <label>Pausa entre marcações (min)<input type="number" name="buffer_min" min="0" max="120" value="<%= site.buffer_min %>"></label>
+  <label>Antecedência mínima (horas)<input type="number" name="min_notice_hours" min="0" value="<%= site.min_notice_hours %>"></label>
+  <label>Marcar com até (dias de antecedência)<input type="number" name="max_days_ahead" min="1" max="365" value="<%= site.max_days_ahead %>"></label>
+  <label>Cancelamento online até (horas antes)<input type="number" name="cancel_hours" min="0" value="<%= site.cancel_hours %>"></label>
+  <label>Fuso horário<input name="timezone" value="<%= site.timezone %>"></label>
+  <label class="check span2"><input type="checkbox" name="auto_confirm" value="1" <%= site.auto_confirm === '1' ? 'checked' : '' %>> Confirmar automaticamente as marcações feitas no site (desligado = ficam "Pendentes" até aprovar)</label>
+  <div class="span2"><button class="btn">Guardar definições</button></div>
+</form>
+
+<form method="post" action="/admin/definicoes/password" class="panel form-grid">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h3 class="span2">Alterar palavra-passe</h3>
+  <label>Palavra-passe atual<input type="password" name="current" required autocomplete="current-password"></label>
+  <label>Nova palavra-passe<input type="password" name="next" minlength="8" required autocomplete="new-password"></label>
+  <div class="span2"><button class="btn btn-ghost">Alterar</button></div>
+</form>
+<%- include('../partials/admin-foot') %>
