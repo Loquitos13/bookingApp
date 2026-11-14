@@ -44,10 +44,10 @@
 
     <% if (live) { %>
     <div class="ticket-actions">
-      <a class="action" href="/marcacao/<%= b.token %>.ics"><%- include('../partials/icon', { name: 'calendar' }) %><span>Adicionar ao calendário</span></a>
-      <a class="action" href="<%= gcal %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'external' }) %><span>Google Calendar</span></a>
-      <a class="action" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %><span>Como chegar</span></a>
-      <button type="button" class="action" data-share data-title="<%= b.service_name %> · <%= site.business_name %>" data-text="<%= t.formatDateLong(b.date) %> às <%= t.minToTime(b.start_min) %>" hidden><%- include('../partials/icon', { name: 'share' }) %><span>Partilhar</span></button>
+      <a class="action" href="/marcacao/<%= b.token %>.ics"><%- include('../partials/icon', { name: 'calendar' }) %><span>Adicionar ao calendário</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
+      <a class="action" href="<%= gcal %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'external' }) %><span>Google Calendar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
+      <a class="action" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %><span>Como chegar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
+      <button type="button" class="action" data-share data-title="<%= b.service_name %> · <%= site.business_name %>" data-text="<%= t.formatDateLong(b.date) %> às <%= t.minToTime(b.start_min) %>" hidden><%- include('../partials/icon', { name: 'share' }) %><span>Partilhar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></button>
     </div>
     <% } %>
 

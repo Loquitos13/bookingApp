@@ -1,0 +1,631 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T23:52:44+00:00",
+  "title": "Design System: Painel de Partidas",
+  "extensions": {
+    "colorMeta": {
+      "signal": {
+        "role": "primary",
+        "displayName": "Flap Yellow",
+        "canonical": "oklch(84.2% 0.168 90)",
+        "tonalRamp": [
+          "#150800",
+          "#342200",
+          "#563e00",
+          "#7a5d00",
+          "#a17d00",
+          "#c9a000",
+          "#f3c316",
+          "#ffeb8b"
+        ],
+        "swappable": true
+      },
+      "signal-press": {
+        "role": "primary",
+        "displayName": "Pressed Yellow",
+        "canonical": "oklch(78.3% 0.159 90)",
+        "tonalRamp": [
+          "#160800",
+          "#352100",
+          "#573e00",
+          "#7b5c00",
+          "#a27d00",
+          "#ca9f00",
+          "#f0c43e",
+          "#ffec98"
+        ],
+        "swappable": true
+      },
+      "on-signal": {
+        "role": "primary",
+        "displayName": "Ink on Signal",
+        "canonical": "oklch(20.2% 0.014 253)",
+        "tonalRamp": [
+          "#070c11",
+          "#21262c",
+          "#3e4248",
+          "#5d6267",
+          "#7f8388",
+          "#a2a5aa",
+          "#c6c9cd",
+          "#edeff1"
+        ],
+        "swappable": true
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Signal Red",
+        "canonical": "oklch(54.6% 0.178 33)",
+        "tonalRamp": [
+          "#2c0000",
+          "#540000",
+          "#7f0800",
+          "#ac2b12",
+          "#d4533a",
+          "#f47e66",
+          "#ffa891",
+          "#ffd9c8"
+        ]
+      },
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Ink",
+        "canonical": "oklch(20.2% 0.014 253)",
+        "tonalRamp": [
+          "#070c11",
+          "#21262c",
+          "#3e4248",
+          "#5d6267",
+          "#7f8388",
+          "#a2a5aa",
+          "#c6c9cd",
+          "#edeff1"
+        ],
+        "swappable": true
+      },
+      "board-raise": {
+        "role": "neutral",
+        "displayName": "Raised Board",
+        "canonical": "oklch(24.4% 0.018 252)",
+        "tonalRamp": [
+          "#060c12",
+          "#1f262e",
+          "#3c434b",
+          "#5c6269",
+          "#7d838a",
+          "#a0a6ac",
+          "#c5cacf",
+          "#eceff2"
+        ]
+      },
+      "cell-top": {
+        "role": "neutral",
+        "displayName": "Flap Cell Top",
+        "canonical": "oklch(29.7% 0.022 251)",
+        "tonalRamp": [
+          "#060c13",
+          "#1d262f",
+          "#3a434d",
+          "#5a626c",
+          "#7c838c",
+          "#9fa6ae",
+          "#c4cad0",
+          "#ebeff3"
+        ]
+      },
+      "cell-bot": {
+        "role": "neutral",
+        "displayName": "Flap Cell Bottom",
+        "canonical": "oklch(25.3% 0.018 252)",
+        "tonalRamp": [
+          "#060c12",
+          "#1f262e",
+          "#3c434b",
+          "#5b6269",
+          "#7d838a",
+          "#a0a6ac",
+          "#c5cacf",
+          "#eceff2"
+        ]
+      },
+      "slat": {
+        "role": "neutral",
+        "displayName": "Board Slat",
+        "canonical": "rgba(242, 243, 238, 0.09)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#61615f",
+          "#828380",
+          "#a5a5a2",
+          "#c9cac5",
+          "#eeefeb"
+        ],
+        "note": "Board white at 9% over board ink."
+      },
+      "on-board": {
+        "role": "neutral",
+        "displayName": "Board White",
+        "canonical": "oklch(96.2% 0.007 116)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#61615f",
+          "#828380",
+          "#a5a5a2",
+          "#c9cac5",
+          "#eeefeb"
+        ]
+      },
+      "on-board-2": {
+        "role": "neutral",
+        "displayName": "Board Grey",
+        "canonical": "oklch(76.2% 0.017 245)",
+        "tonalRamp": [
+          "#090c0e",
+          "#212629",
+          "#3d4348",
+          "#5b6268",
+          "#7b838b",
+          "#9da6af",
+          "#c1cad3",
+          "#e8eff6"
+        ]
+      },
+      "enamel": {
+        "role": "neutral",
+        "displayName": "Station Enamel",
+        "canonical": "oklch(95.1% 0.008 99)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252523",
+          "#424240",
+          "#62615e",
+          "#83827f",
+          "#a6a5a1",
+          "#cac9c4",
+          "#efefea"
+        ]
+      },
+      "enamel-2": {
+        "role": "neutral",
+        "displayName": "Worn Enamel",
+        "canonical": "oklch(91.2% 0.011 95)",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#262523",
+          "#43423f",
+          "#62615d",
+          "#84827d",
+          "#a7a59f",
+          "#cbc9c2",
+          "#f0eee8"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Ticket Paper",
+        "canonical": "oklch(98.8% 0.005 95)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#62615f",
+          "#838280",
+          "#a6a5a2",
+          "#cac9c6",
+          "#efeeeb"
+        ]
+      },
+      "office-bg": {
+        "role": "neutral",
+        "displayName": "Office Ground",
+        "canonical": "oklch(93.4% 0.008 91)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262523",
+          "#43423f",
+          "#62615e",
+          "#83827e",
+          "#a6a5a0",
+          "#cbc9c4",
+          "#f0eeea"
+        ],
+        "note": "Back office only (admin.css --bg)."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Enamel Ink",
+        "canonical": "oklch(20.2% 0.014 253)",
+        "tonalRamp": [
+          "#070c11",
+          "#21262c",
+          "#3e4248",
+          "#5d6267",
+          "#7f8388",
+          "#a2a5aa",
+          "#c6c9cd",
+          "#edeff1"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Faded Ink",
+        "canonical": "oklch(43.2% 0.024 246)",
+        "tonalRamp": [
+          "#060c12",
+          "#1d262e",
+          "#38434e",
+          "#57636e",
+          "#79848e",
+          "#9ca6b0",
+          "#c1cad3",
+          "#e9eff5"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Enamel Rule",
+        "canonical": "rgba(18, 23, 29, 0.14)",
+        "tonalRamp": [
+          "#070c11",
+          "#21262c",
+          "#3e4248",
+          "#5d6267",
+          "#7f8388",
+          "#a2a5aa",
+          "#c6c9cd",
+          "#edeff1"
+        ],
+        "note": "Enamel ink at 14% over enamel."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Business name on the enamel plate only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Band, booking, step and ticket page titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Service, staff and station names; uppercase."
+      },
+      "flap": {
+        "displayName": "Flap",
+        "purpose": "Every time, initials and reference, inside split-flap cells."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose: intros, descriptions, bios, answers; 54-64ch."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "All button and action labels; uppercase."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Board column heads, ticket field names, weekday caps."
+      }
+    },
+    "fonts": [
+      {
+        "family": "Big Shoulders Display",
+        "weights": [
+          700,
+          800
+        ],
+        "source": "public/fonts (self-hosted, OFL)"
+      },
+      {
+        "family": "Barlow Condensed",
+        "weights": [
+          500,
+          600,
+          700
+        ],
+        "source": "public/fonts (self-hosted, OFL)"
+      },
+      {
+        "family": "Barlow",
+        "weights": [
+          400,
+          500,
+          600
+        ],
+        "source": "public/fonts (self-hosted, OFL)"
+      }
+    ],
+    "shadows": [
+      {
+        "name": "flap-hinge",
+        "value": "0 1px 0 rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05)",
+        "purpose": "Every split-flap cell."
+      },
+      {
+        "name": "slot-hinge",
+        "value": "0 1px 0 rgba(0, 0, 0, .35)",
+        "purpose": "Time slot tiles."
+      },
+      {
+        "name": "issued-ticket",
+        "value": "drop-shadow(0 18px 24px rgba(18, 23, 29, .18)) drop-shadow(0 2px 3px rgba(18, 23, 29, .2))",
+        "purpose": "Printed ticket only, as a filter so the notched mask casts correctly."
+      },
+      {
+        "name": "field-halo",
+        "value": "0 0 0 4px rgba(245, 197, 24, .55)",
+        "purpose": "Focused input; should derive from --signal."
+      },
+      {
+        "name": "floating-control",
+        "value": "0 8px 20px rgba(18, 23, 29, .3), 0 2px 4px rgba(18, 23, 29, .2)",
+        "purpose": "Back-office floating + button and phone more-sheet."
+      },
+      {
+        "name": "next-ring",
+        "value": "inset 0 0 0 2px var(--signal)",
+        "purpose": "Next booking on the back-office day board."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Entrances, sheets, ticket issue, hover nudges."
+      },
+      {
+        "name": "ease-snap",
+        "value": "cubic-bezier(.5, 0, .2, 1)",
+        "purpose": "Flap strike."
+      },
+      {
+        "name": "flap-strike",
+        "value": "90ms",
+        "purpose": "One cell squash-and-flash per flip."
+      },
+      {
+        "name": "flap-flip-interval",
+        "value": "75ms, 3-6 random flips",
+        "purpose": "Time between glyphs before a cell lands."
+      },
+      {
+        "name": "flap-stagger",
+        "value": "55ms per cell, 120ms per row",
+        "purpose": "Left-to-right, row-by-row strike order."
+      },
+      {
+        "name": "slot-stagger",
+        "value": "18ms per slot, capped at 14; 220ms rise",
+        "purpose": "Time slots entering."
+      },
+      {
+        "name": "step-in",
+        "value": "260ms, 28px slide, direction-aware",
+        "purpose": "Booking step change."
+      },
+      {
+        "name": "ticket-issue",
+        "value": "800ms clip-path slide",
+        "purpose": "New ticket printing out; flaps strike 450ms after."
+      },
+      {
+        "name": "sheet-up",
+        "value": "320ms",
+        "purpose": "Bottom sheet on phones; 0.96 scale pop on desktop."
+      },
+      {
+        "name": "press",
+        "value": "scale(.97) over 100ms",
+        "purpose": "Button and action press."
+      },
+      {
+        "name": "view-transition",
+        "value": "180ms",
+        "purpose": "Cross-document page transition."
+      },
+      {
+        "name": "beacon",
+        "value": "2.4s loop",
+        "purpose": "Open-now status dot pulse."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "all durations 0.01ms; flaps show final value; view transitions off",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "gutter-wide",
+        "value": "600px"
+      },
+      {
+        "name": "sm",
+        "value": "700px"
+      },
+      {
+        "name": "lg",
+        "value": "900px"
+      },
+      {
+        "name": "booking-aside",
+        "value": "1024px"
+      },
+      {
+        "name": "office-tablet",
+        "value": "1000px (max)"
+      },
+      {
+        "name": "office-phone",
+        "value": "760px (max)"
+      }
+    ],
+    "rebrand": {
+      "swap": [
+        "--signal",
+        "--signal-press",
+        "--on-signal"
+      ],
+      "optional": [
+        "--board",
+        "--board-raise",
+        "--cell-top",
+        "--cell-bot",
+        "--ink"
+      ],
+      "files": [
+        "public/css/site.css (:root)",
+        "public/css/admin.css (:root)"
+      ],
+      "check": "on-signal contrast >= 4.5:1 against the new signal"
+    }
+  },
+  "components": [
+    {
+      "name": "Signal Button",
+      "kind": "button",
+      "refersTo": "button-signal",
+      "description": "The one primary action per view, e.g. Marcar.",
+      "html": "<button class=\"ds-btn ds-btn-signal\">Marcar <svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:48px;padding:0 20px;border:2px solid transparent;border-radius:var(--r);font:700 1.0625rem/1 var(--cond);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s,transform .1s var(--ease-out);} .ds-btn:active{transform:scale(.97);} .ds-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px;} .ds-btn svg{transition:transform .2s var(--ease-out);} .ds-btn:hover svg{transform:translateX(3px);} .ds-btn-signal{background:var(--signal);color:var(--on-signal);} .ds-btn-signal:hover{background:var(--signal-press);}"
+    },
+    {
+      "name": "Ink Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Secondary confirmation on enamel.",
+      "html": "<button class=\"ds-btn ds-btn-ink\">Adicionar ao calendário</button>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:48px;padding:0 20px;border:2px solid transparent;border-radius:var(--r);font:700 1.0625rem/1 var(--cond);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s,transform .1s var(--ease-out);} .ds-btn:active{transform:scale(.97);} .ds-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px;} .ds-btn svg{transition:transform .2s var(--ease-out);} .ds-btn:hover svg{transform:translateX(3px);} .ds-btn-ink{background:var(--ink);color:var(--on-board);} .ds-btn-ink:hover{background:#253039;}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Tertiary action on enamel; rule border that turns ink on hover.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Voltar</button>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:48px;padding:0 20px;border:2px solid transparent;border-radius:var(--r);font:700 1.0625rem/1 var(--cond);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s,transform .1s var(--ease-out);} .ds-btn:active{transform:scale(.97);} .ds-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px;} .ds-btn svg{transition:transform .2s var(--ease-out);} .ds-btn:hover svg{transform:translateX(3px);} .ds-btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule);} .ds-btn-ghost:hover{border-color:var(--ink);}"
+    },
+    {
+      "name": "Split-flap Time",
+      "kind": "custom",
+      "refersTo": "flap-cell",
+      "description": "Every time, initials and reference; characters strike to value on load.",
+      "html": "<div class=\"ds-wrap\"><span class=\"ds-flap\" role=\"text\" aria-label=\"16:30\"><span class=\"ds-flap-cell\" aria-hidden=\"true\">1</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">6</span><span class=\"ds-flap-sep\" aria-hidden=\"true\">:</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">3</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span></span></div>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-wrap{background:var(--board);padding:16px;border-radius:14px;display:inline-block;} .ds-flap{display:inline-flex;gap:.08em;font:700 1.75rem/1 var(--cond);font-variant-numeric:tabular-nums;color:var(--on-board);} .ds-flap-cell{position:relative;display:grid;place-items:center;width:.74em;height:1.22em;border-radius:.12em;overflow:hidden;background:linear-gradient(var(--cell-top) 0 50%,var(--cell-bot) 50% 100%);box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);} .ds-flap-cell::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55);} .ds-flap-sep{display:grid;place-items:center;width:.26em;color:var(--on-board-2);} "
+    },
+    {
+      "name": "Departures Board",
+      "kind": "custom",
+      "refersTo": "departure-row",
+      "description": "Board-ink list of the next real free slots, each row a booking link.",
+      "html": "<section class=\"ds-board\"><header class=\"ds-board-head\"><h2>Próximas vagas</h2></header><a class=\"ds-dep\" href=\"#\"><span class=\"ds-flap\" role=\"text\" aria-label=\"09:30\"><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">9</span><span class=\"ds-flap-sep\" aria-hidden=\"true\">:</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">3</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span></span><span class=\"ds-dep-body\"><span class=\"ds-dep-svc\">Fisioterapia<span class=\"ds-tag\">Última vaga</span></span><span class=\"ds-dep-meta\"><strong>Hoje</strong> · Ana Costa · 50 min</span></span><span class=\"ds-go\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></span></a><a class=\"ds-dep\" href=\"#\"><span class=\"ds-flap\" role=\"text\" aria-label=\"11:00\"><span class=\"ds-flap-cell\" aria-hidden=\"true\">1</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">1</span><span class=\"ds-flap-sep\" aria-hidden=\"true\">:</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span></span><span class=\"ds-dep-body\"><span class=\"ds-dep-svc\">Osteopatia</span><span class=\"ds-dep-meta\"><strong>Amanhã</strong> · Rui Lopes · 60 min</span></span><span class=\"ds-go\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></span></a></section>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-flap{display:inline-flex;gap:.08em;font:700 1.75rem/1 var(--cond);font-variant-numeric:tabular-nums;color:var(--on-board);} .ds-flap-cell{position:relative;display:grid;place-items:center;width:.74em;height:1.22em;border-radius:.12em;overflow:hidden;background:linear-gradient(var(--cell-top) 0 50%,var(--cell-bot) 50% 100%);box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);} .ds-flap-cell::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55);} .ds-flap-sep{display:grid;place-items:center;width:.26em;color:var(--on-board-2);} .ds-board{background:var(--board);color:var(--on-board);border-radius:14px;overflow:hidden;font-family:var(--sans);max-width:460px;} .ds-board-head{padding:18px 20px 12px;} .ds-board-head h2{margin:0;font:700 1rem var(--cond);text-transform:uppercase;letter-spacing:.16em;color:var(--on-board-2);} .ds-dep{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:14px 20px;border-top:1px solid var(--slat);color:inherit;text-decoration:none;transition:background-color .15s;} .ds-dep:hover{background:var(--board-raise);} .ds-dep:focus-visible{outline:3px solid var(--signal);outline-offset:-3px;} .ds-dep-body{display:grid;gap:3px;min-width:0;} .ds-dep-svc{font:700 1.25rem/1.05 var(--cond);text-transform:uppercase;letter-spacing:.02em;} .ds-dep-meta{font-size:.9375rem;color:var(--on-board-2);} .ds-dep-meta strong{color:var(--signal);font-weight:600;} .ds-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:4px;background:var(--danger);color:#fff;font:700 .75rem/1.4 var(--cond);text-transform:uppercase;letter-spacing:.08em;vertical-align:1px;} .ds-go{color:var(--on-board-2);transition:transform .2s var(--ease-out),color .15s;} .ds-dep:hover .ds-go{transform:translateX(4px);color:var(--signal);}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Paper field with condensed label; ink border and signal halo on focus.",
+      "html": "<label class=\"ds-field\"><span>Nome</span><input class=\"ds-input\" placeholder=\"Maria Silva\"></label>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-field{display:grid;gap:6px;max-width:360px;} .ds-field>span{font:600 .9375rem var(--cond);text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);} .ds-input{font:400 1.0625rem/1.4 var(--sans);color:var(--ink);min-height:52px;padding:12px 14px;background:var(--paper);border:2px solid var(--rule);border-radius:var(--r);transition:border-color .15s,box-shadow .15s;} .ds-input:hover{border-color:rgba(18,23,29,.35);} .ds-input:focus,.ds-input:focus-visible{outline:none;border-color:var(--ink);box-shadow:0 0 0 4px color-mix(in srgb,var(--signal) 55%,transparent);}"
+    },
+    {
+      "name": "Time Slots",
+      "kind": "chip",
+      "refersTo": "slot",
+      "description": "Flap-gradient time tiles; the selected one fills signal.",
+      "html": "<div class=\"ds-slots\"><button class=\"ds-slot\">09:00</button><button class=\"ds-slot\" aria-checked=\"true\">09:30</button><button class=\"ds-slot\">10:00</button><button class=\"ds-slot\">10:30</button></div>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;max-width:400px;} .ds-slot{min-height:52px;border:0;border-radius:6px;background:linear-gradient(var(--cell-top) 0 50%,var(--cell-bot) 50% 100%);color:var(--on-board);font:700 1.375rem/1 var(--cond);font-variant-numeric:tabular-nums;letter-spacing:.02em;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.35);transition:transform .1s var(--ease-out);} .ds-slot:hover{background:linear-gradient(#2e3844 0 50%,#232b34 50% 100%);} .ds-slot:active{transform:scale(.95);} .ds-slot:focus-visible{outline:3px solid var(--ink);outline-offset:2px;} .ds-slot[aria-checked=true]{background:var(--signal);color:var(--on-signal);}"
+    },
+    {
+      "name": "Route Stations",
+      "kind": "nav",
+      "refersTo": "route",
+      "description": "Four-station booking progress line: done ink, current signal, future rule.",
+      "html": "<ol class=\"ds-route\"><li class=\"done\"><span class=\"ds-stop\"></span><b>Serviço</b></li><li class=\"done\"><span class=\"ds-stop\"></span><b>Profissional</b></li><li class=\"cur\"><span class=\"ds-stop\"></span><b>Dia e hora</b></li><li><span class=\"ds-stop\"></span><b>Dados</b></li></ol>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-route{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);max-width:420px;background:var(--enamel);} .ds-route li{position:relative;display:grid;justify-items:center;gap:6px;color:var(--ink-2);} .ds-route li::before{content:'';position:absolute;top:12px;left:0;right:0;height:4px;background:var(--rule);} .ds-route li:first-child::before{left:50%;} .ds-route li:last-child::before{right:50%;} .ds-route li.done::before{background:var(--ink);} .ds-route li.cur::before{background:linear-gradient(90deg,var(--ink) 50%,var(--rule) 50%);} .ds-stop{position:relative;width:28px;height:28px;border-radius:50%;border:4px solid var(--rule);background:var(--enamel);transition:transform .25s var(--ease-out);} .ds-route li.done .ds-stop{border-color:var(--ink);background:var(--ink);} .ds-route li.cur .ds-stop{border-color:var(--ink);background:var(--signal);transform:scale(1.12);} .ds-route b{font:700 .875rem/1.1 var(--cond);text-transform:uppercase;letter-spacing:.06em;} .ds-route li.done b,.ds-route li.cur b{color:var(--ink);}"
+    },
+    {
+      "name": "Printed Ticket",
+      "kind": "card",
+      "refersTo": "ticket-main",
+      "description": "Confirmation ticket: board body, notched perforation, signal stub with reference.",
+      "html": "<div class=\"ds-ticket\"><div class=\"ds-tmain\"><div class=\"ds-tbiz\">Equilíbrio</div><div class=\"ds-ttime\"><span class=\"ds-flap\" role=\"text\" aria-label=\"16:30\"><span class=\"ds-flap-cell\" aria-hidden=\"true\">1</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">6</span><span class=\"ds-flap-sep\" aria-hidden=\"true\">:</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">3</span><span class=\"ds-flap-cell\" aria-hidden=\"true\">0</span></span></div><div class=\"ds-tdate\">Quinta, 20 nov</div></div><div class=\"ds-tstub\"><span class=\"ds-tstate\">Confirmada</span><span class=\"ds-tref\">K7Q2</span></div></div>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-flap{display:inline-flex;gap:.08em;font:700 1.75rem/1 var(--cond);font-variant-numeric:tabular-nums;color:var(--on-board);} .ds-flap-cell{position:relative;display:grid;place-items:center;width:.74em;height:1.22em;border-radius:.12em;overflow:hidden;background:linear-gradient(var(--cell-top) 0 50%,var(--cell-bot) 50% 100%);box-shadow:0 1px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);} .ds-flap-cell::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55);} .ds-flap-sep{display:grid;place-items:center;width:.26em;color:var(--on-board-2);} .ds-ticket{--notch:14px;display:grid;max-width:380px;filter:drop-shadow(0 18px 24px rgba(18,23,29,.18)) drop-shadow(0 2px 3px rgba(18,23,29,.2));} .ds-tmain{background:var(--board);color:var(--on-board);padding:24px 22px 22px;border-radius:14px 14px 0 0;-webkit-mask:radial-gradient(circle var(--notch) at 0 100%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle var(--notch) at 100% 100%,#0000 98%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle var(--notch) at 0 100%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle var(--notch) at 100% 100%,#0000 98%,#000) right/51% 100% no-repeat;} .ds-tbiz{font:800 1.375rem/1 var(--display);text-transform:uppercase;} .ds-ttime{margin:18px 0 12px;} .ds-ttime .ds-flap{font-size:2.75rem;} .ds-tdate{font:600 1.25rem/1.1 var(--cond);text-transform:uppercase;} .ds-tstub{position:relative;display:flex;justify-content:space-between;align-items:center;padding:20px 22px;background:var(--signal);color:var(--on-signal);border-radius:0 0 14px 14px;-webkit-mask:radial-gradient(circle var(--notch) at 0 0,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle var(--notch) at 100% 0,#0000 98%,#000) right/51% 100% no-repeat;mask:radial-gradient(circle var(--notch) at 0 0,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle var(--notch) at 100% 0,#0000 98%,#000) right/51% 100% no-repeat;} .ds-tstub::before{content:'';position:absolute;left:calc(var(--notch) + 6px);right:calc(var(--notch) + 6px);top:0;border-top:2px dashed rgba(18,23,29,.45);} .ds-tstate{font:700 1.0625rem var(--cond);text-transform:uppercase;letter-spacing:.08em;} .ds-tref{font:800 2rem/1 var(--display);letter-spacing:.04em;}"
+    },
+    {
+      "name": "Enamel Plate",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "Business name as a painted station sign with inset keyline.",
+      "html": "<div class=\"ds-plate\"><div class=\"ds-plate-name\">Equilíbrio</div><div class=\"ds-plate-sub\">Fisioterapia &amp; Osteopatia</div></div>",
+      "css": ":host{--board:#12171d;--board-raise:#1a2129;--cell-top:#252e38;--cell-bot:#1c232b;--slat:rgba(242,243,238,.09);--on-board:#f2f3ee;--on-board-2:#a9b3bc;--enamel:#f0efe9;--enamel-2:#e4e2da;--paper:#fcfbf7;--ink:#12171d;--ink-2:#46525d;--rule:rgba(18,23,29,.14);--signal:#f5c518;--signal-press:#e0b207;--on-signal:#12171d;--danger:#c2391f;--display:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif;--r:8px;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.5,0,.2,1);} .ds-plate{position:relative;background:var(--board);color:var(--on-board);border-radius:12px;padding:22px 22px 20px;isolation:isolate;max-width:460px;} .ds-plate::before{content:'';position:absolute;inset:7px;border:2px solid rgba(242,243,238,.82);border-radius:7px;pointer-events:none;} .ds-plate-name{font:800 4rem/.86 var(--display);text-transform:uppercase;letter-spacing:.005em;} .ds-plate-sub{margin-top:10px;font:600 1.25rem/1.1 var(--cond);text-transform:uppercase;letter-spacing:.1em;color:var(--signal);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Station Departures Board",
+    "overview": "**Creative North Star: \"The Station Departures Board\"**\n\nThe site is the business's departures board. What leaves next is a real free slot, set in split-flap cells and readable from across the room; booking it travels a four-station line and prints a ticket. The world is station enamel: a deep board ink for the dark regions (plate, board, ticket, footer, back-office sidebar), a warm enamel white for reading regions, and one signal colour that the installer swaps per client. A reserved signal red exists only for \"última vaga\" and errors.\n\nDensity is that of a timetable, not a brochure. Content is grouped by rows, by the board's thin slats and by heavy ink rules, never by white cards. Names, times and labels are painted in condensed sign-writer capitals; prose sits in a plain grotesk underneath. The back office is the same world in a working register: the same inks, flap cells and signal, with paper panels for dense forms.\n\nMotion is mechanical. Values snap rather than tween: flap characters strike through random glyphs to their final value, staggered left to right and row by row; the ticket is issued with a clipped slide. Reduced motion swaps every one of these to instant. The world explicitly refuses the SaaS booking widget (white card, purple calendar, avatar row) and the spa-brochure hero.",
+    "keyCharacteristics": [
+      "Two inks plus one signal; no third hue anywhere on public surfaces.",
+      "Every time of day is drawn in flap cells, never as plain text in a box.",
+      "Grouping by rows, slats and rules; filled containers are dark objects (plate, board, ticket), not white cards.",
+      "Condensed uppercase for anything a sign would carry; sentence-case grotesk for anything a person would read.",
+      "Rebrand by swapping `signal` (and optionally `board`); structure never changes per client."
+    ],
+    "rules": [
+      {
+        "name": "The Two Inks One Signal Rule",
+        "body": "Every public surface is built from board ink, station enamel and the signal. No third hue, no gradients of colour, no tinted accents. Signal red is a reserved state, not a palette colour. The only extra colour in the system is the per-staff identity dot in the back office, which is user data.",
+        "section": "colors"
+      },
+      {
+        "name": "The Swap Rule",
+        "body": "A client rebrand changes `signal` (with `signal-press` and `on-signal` following it) and, if the client needs it, `board` (with `board-raise`, `cell-top`, `cell-bot` and `ink` re-derived from it). Nothing else changes per client: no layout, type or component edits. Every use of the signal must therefore read the token, never a literal yellow, and `on-signal` must be re-checked for at least 4.5:1 against the new signal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Points Rule",
+        "body": "The signal marks the one thing to do or the one thing chosen: the next action, the selected value, today, the current step. If two unrelated things on a screen are yellow, one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sign and Prose Rule",
+        "body": "If a station sign, board or ticket would print it (names, times, states, labels, buttons), it is condensed uppercase. If a person reads it as a sentence, it is Barlow in sentence case. Never set prose in caps; never set a time in the body face.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Time Rule",
+        "body": "Every number that can change (times, durations, prices, counts) uses tabular figures so values strike in place without shifting the row.",
+        "section": "typography"
+      },
+      {
+        "name": "The Real Object Rule",
+        "body": "Only things that exist as objects in the world (a flap cell, a ticket, a floating button) carry a shadow. Panels, rows, bands and cards never lift.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** draw every time of day, set of initials and booking reference in split-flap cells with tabular figures.",
+      "**Do** rebrand a client by changing `signal` (and optionally `board`) and re-checking `on-signal` contrast; leave everything else alone.",
+      "**Do** group by rows, slats and 2px ink rules; reserve filled containers for dark objects (plate, board, ticket, stub).",
+      "**Do** keep the signal for the one primary action or the one selected value on a screen.",
+      "**Do** set names, times, states, labels and buttons in condensed uppercase, and sentences in Barlow sentence case.",
+      "**Do** make flap values strike mechanically (75ms flips, 55ms per cell, 120ms per row) and swap all motion to instant under reduced motion.",
+      "**Do** keep touch targets at 44px or more, and give every status a word as well as a colour."
+    ],
+    "donts": [
+      "**Don't** build the SaaS booking widget: no white booking card, no purple or blue calendar grid, no avatar row.",
+      "**Don't** build a spa-brochure hero: the opening is the enamel plate and the live board, not a mood image with a tagline.",
+      "**Don't** introduce a third hue, a gradient of colour, or a tinted accent on public surfaces.",
+      "**Don't** use signal red for anything but \"última vaga\", errors and destructive actions.",
+      "**Don't** put white cards with shadows on enamel; panels, rows and bands never lift.",
+      "**Don't** tween a changing value (count-ups, cross-fades of times); values snap.",
+      "**Don't** hard-code a literal yellow anywhere; read `signal` so the swap reaches it."
+    ]
+  }
+}
