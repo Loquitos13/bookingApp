@@ -73,6 +73,32 @@ function seedDemo() {
       }
     }
 
+    // um dia quase cheio para um profissional: a demo mostra o aviso "Última vaga" no painel
+    const busiest = db.prepare('SELECT id FROM staff WHERE active = 1 ORDER BY sort LIMIT 1 OFFSET 1').get();
+    let fullDay = addDays(today, 1);
+    while (!hours[weekday(fullDay)] || hours[weekday(fullDay)].closed) fullDay = addDays(fullDay, 1);
+    if (busiest) {
+      const h = hours[weekday(fullDay)];
+      const mine = services.filter((sv) => links.some((l) => l.staff_id === busiest.id && l.service_id === sv.id));
+      db.prepare('DELETE FROM bookings WHERE staff_id = ? AND date = ?').run(busiest.id, fullDay);
+      const windows = h.break_start != null ? [[h.open_min, h.break_start], [h.break_end, h.close_min]] : [[h.open_min, h.close_min]];
+      const gapStart = windows[0][0] + 60; // só fica livre uma hora a meio da manhã
+      const bySize = [...mine].sort((a, b) => b.duration_min - a.duration_min);
+      for (const [ws, we] of windows) {
+        let t = ws;
+        while (t < we) {
+          if (t >= gapStart && t < gapStart + 60) { t = gapStart + 60; continue; }
+          const limit = t < gapStart ? Math.min(we, gapStart) : we;
+          const svc = bySize.find((sv) => t + sv.duration_min <= limit);
+          if (!svc) break;
+          const first = pick(FIRST), last = pick(LAST);
+          ins.run(bookingRef(), randomToken(), svc.id, busiest.id, fullDay, t, t + svc.duration_min, svc.price_cents, `${first} ${last}`,
+            `${first}.${last}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') + '@exemplo.pt', '910 000 000', '', 'confirmed', 'online', '-2 days');
+          t += svc.duration_min;
+        }
+      }
+    }
+
     const msg = db.prepare("INSERT INTO messages(name, email, phone, message, read, created_at) VALUES (?,?,?,?,?, datetime('now', ?))");
     msg.run('Helena Vaz', 'helena.vaz@exemplo.pt', '', 'Bom dia, aceitam o seguro de saúde da minha empresa? Obrigada.', 0, '-3 hours');
     msg.run('Carlos Moura', 'carlos.moura@exemplo.pt', '913 000 111', 'É possível marcar duas sessões seguidas para mim e para o meu filho?', 0, '-1 day');
