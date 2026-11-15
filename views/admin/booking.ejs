@@ -1,7 +1,7 @@
 <%- include('../partials/admin-head', { title: 'Marcação ' + b.ref }) %>
 <header class="head">
   <div>
-    <h1><%= b.customer_name %> <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span></h1>
+    <h1><a class="h-link" href="/admin/clientes/ficha?email=<%= encodeURIComponent(b.customer_email.toLowerCase()) %>" title="Ver ficha do cliente"><%= b.customer_name %></a> <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span></h1>
     <p class="muted">Ref. <%= b.ref %> · <%= b.source === 'online' ? 'Marcada pelo site' : 'Criada no back office' %> · <%= b.created_at %> UTC</p>
   </div>
   <a href="/admin/agenda?data=<%= b.date %>">Ver na agenda →</a>

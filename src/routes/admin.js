@@ -104,22 +104,64 @@ router.get('/', (req, res) => {
 // ---------- Agenda (vista diária por profissional) ----------
 router.get('/agenda', (req, res) => {
   const date = isDate(req.query.data) ? req.query.data : today();
-  const staff = db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
-  const bookings = db
-    .prepare(
-      `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
-       WHERE b.date = ? AND b.status != 'cancelled' ORDER BY b.start_min`
-    )
-    .all(date);
-  const blocks = db
-    .prepare('SELECT * FROM blocks WHERE date_from <= ? AND date_to >= ?')
-    .all(date, date);
-  const h = db.prepare('SELECT * FROM hours WHERE weekday = ?').get(weekday(date));
-  let from = 8 * 60, to = 20 * 60;
-  if (h && !h.closed) { from = Math.min(h.open_min, ...bookings.map((b) => b.start_min)); to = Math.max(h.close_min, ...bookings.map((b) => b.end_min)); }
+  const view = ['dia', 'semana', 'mes'].includes(req.query.vista) ? req.query.vista : 'dia';
+  const allStaff = db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
+  const staffId = +req.query.staff || null;
+  const staff = staffId ? allStaff.filter((p) => p.id === staffId) : allStaff;
+  const hoursBy = Object.fromEntries(db.prepare('SELECT * FROM hours').all().map((h) => [h.weekday, h]));
+  const monday = addDays(date, -((weekday(date) + 6) % 7));
+
+  let rangeFrom = date, rangeTo = date;
+  if (view === 'semana') { rangeFrom = monday; rangeTo = addDays(monday, 6); }
+  if (view === 'mes') {
+    const first = date.slice(0, 8) + '01';
+    rangeFrom = addDays(first, -((weekday(first) + 6) % 7));
+    rangeTo = addDays(rangeFrom, 41);
+  }
+  const bookings = db.prepare(
+    `SELECT b.*, s.name service_name, st.color staff_color, st.name staff_name FROM bookings b
+     JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
+     WHERE b.date BETWEEN ? AND ? AND b.status != 'cancelled' ${staffId ? 'AND b.staff_id = ' + staffId : ''} ORDER BY b.date, b.start_min`
+  ).all(rangeFrom, rangeTo);
+  const blocks = db.prepare('SELECT * FROM blocks WHERE date_from <= ? AND date_to >= ?').all(rangeTo, rangeFrom);
+
+  // colunas: dia = uma por profissional; semana = uma por dia
+  const columns = view === 'dia'
+    ? staff.map((p) => ({ key: `${date}|${p.id}`, date, staffId: p.id, label: p.name, color: p.color }))
+    : view === 'semana'
+      ? [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addDays(monday, i); return { key: d, date: d, staffId, label: d, isDay: true }; })
+      : [];
+  let from = 24 * 60, to = 0;
+  for (const c of columns) {
+    const h = hoursBy[weekday(c.date)];
+    if (h && !h.closed) { from = Math.min(from, h.open_min); to = Math.max(to, h.close_min); }
+  }
+  for (const bk of bookings) { from = Math.min(from, bk.start_min); to = Math.max(to, bk.end_min); }
+  if (from >= to) { from = 8 * 60; to = 20 * 60; }
   from = Math.floor(from / 60) * 60;
   to = Math.ceil(to / 60) * 60;
-  res.render('admin/agenda', { date, staff, bookings, blocks, hours: h, from, to, today: today() });
+
+  res.render('admin/agenda', {
+    view, date, monday, staff, allStaff, staffId, columns, bookings, blocks, hoursBy, from, to, today: today(),
+    rangeFrom, step: +getSettings().slot_step || 15,
+  });
+});
+
+// arrastar para reagendar (agenda): valida conflitos, a não ser que force=true (desfazer)
+router.post('/api/reagendar', (req, res) => {
+  const b = getBooking(+req.body.id);
+  if (!b) return res.status(404).json({ error: 'Marcação não encontrada.' });
+  const date = String(req.body.date || '');
+  const start = +req.body.start;
+  const staffId = +req.body.staffId || b.staff_id;
+  if (!isDate(date) || !Number.isInteger(start) || start < 0 || start + b.duration_min > 24 * 60) return res.status(400).json({ error: 'Data ou hora inválida.' });
+  const end = start + b.duration_min;
+  if (!req.body.force && busyIntervals(staffId, date, { ignoreBookingId: b.id }).some(([s0, e0]) => start < e0 && end > s0)) {
+    return res.status(409).json({ error: 'Colide com outra marcação ou bloqueio.' });
+  }
+  db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?").run(date, start, end, staffId, b.id);
+  const nb = getBooking(b.id);
+  res.json({ ok: true, booking: { id: nb.id, date: nb.date, start: nb.start_min, staffId: nb.staff_id, staffName: nb.staff_name }, before: { date: b.date, start: b.start_min, staffId: b.staff_id } });
 });
 
 // ---------- Marcações ----------
@@ -178,7 +220,13 @@ function formData() {
 }
 
 router.get('/marcacoes/nova', (req, res) => {
-  res.render('admin/booking-new', { ...formData(), error: null, form: { date: isDate(req.query.data) ? req.query.data : today(), staffId: +req.query.staff || '', time: req.query.hora || '' } });
+  res.render('admin/booking-new', {
+    ...formData(), error: null,
+    form: {
+      date: isDate(req.query.data) ? req.query.data : today(), staffId: +req.query.staff || '', time: req.query.hora || '',
+      name: clean(req.query.nome, 120), email: clean(req.query.email, 160), phone: clean(req.query.tel, 30),
+    },
+  });
 });
 
 router.get('/api/slots', (req, res) => {
@@ -260,6 +308,62 @@ router.post('/marcacoes/:id', (req, res, next) => {
     return back(res, '/admin/marcacoes', 'Marcação apagada.');
   }
   res.redirect(`/admin/marcacoes/${b.id}`);
+});
+
+// ---------- Clientes (agregados a partir das marcações, pela chave email) ----------
+const CLIENT_SQL = `
+  SELECT lower(b.customer_email) email,
+    (SELECT customer_name FROM bookings x WHERE lower(x.customer_email) = lower(b.customer_email) ORDER BY x.created_at DESC LIMIT 1) name,
+    (SELECT customer_phone FROM bookings x WHERE lower(x.customer_email) = lower(b.customer_email) ORDER BY x.created_at DESC LIMIT 1) phone,
+    COUNT(*) total,
+    SUM(b.status = 'completed') visits,
+    SUM(b.status = 'no_show') no_shows,
+    SUM(b.status IN ('pending','confirmed') AND b.date >= ?) upcoming,
+    MAX(CASE WHEN b.status = 'completed' THEN b.date END) last_visit,
+    MIN(CASE WHEN b.status IN ('pending','confirmed') AND b.date >= ? THEN b.date END) next_visit,
+    COALESCE(SUM(CASE WHEN b.status = 'completed' THEN b.price_cents END), 0) spent
+  FROM bookings b WHERE b.customer_email LIKE '%@%'`;
+
+router.get('/clientes', (req, res) => {
+  const q = clean(req.query.q, 80);
+  const sort = ['recent', 'visits', 'name', 'no_shows'].includes(req.query.ordem) ? req.query.ordem : 'recent';
+  const order = { recent: 'COALESCE(next_visit, last_visit) DESC', visits: 'visits DESC, name', name: 'name COLLATE NOCASE', no_shows: 'no_shows DESC, name' }[sort];
+  const d = today();
+  const where = q ? ` AND (b.customer_name LIKE ? OR b.customer_email LIKE ? OR b.customer_phone LIKE ?)` : '';
+  const rows = db.prepare(`${CLIENT_SQL}${where} GROUP BY lower(b.customer_email) ORDER BY ${order} LIMIT 300`)
+    .all(d, d, ...(q ? [`%${q}%`, `%${q}%`, `%${q}%`] : []));
+  res.render('admin/clients', { rows, q, sort, d });
+});
+
+router.get('/clientes/ficha', (req, res, next) => {
+  const email = clean(req.query.email, 160).toLowerCase();
+  const d = today();
+  const c = db.prepare(`${CLIENT_SQL} AND lower(b.customer_email) = ? GROUP BY lower(b.customer_email)`).get(d, d, email);
+  if (!c) return next();
+  const bookings = db.prepare(
+    `SELECT b.*, s.name service_name, st.name staff_name, st.color staff_color FROM bookings b
+     JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
+     WHERE lower(b.customer_email) = ? ORDER BY b.date DESC, b.start_min DESC`
+  ).all(email);
+  const notes = (db.prepare('SELECT notes FROM client_notes WHERE email = ?').get(email) || {}).notes || '';
+  res.render('admin/client', { c, bookings, notes, d });
+});
+
+router.post('/clientes/ficha', (req, res) => {
+  const email = clean(req.body.email, 160).toLowerCase();
+  db.prepare(`INSERT INTO client_notes(email, notes) VALUES (?, ?) ON CONFLICT(email) DO UPDATE SET notes = excluded.notes, updated_at = datetime('now')`)
+    .run(email, clean(req.body.notes, 4000));
+  back(res, '/admin/clientes/ficha?email=' + encodeURIComponent(email), 'Notas guardadas.');
+});
+
+// autocompletar clientes no formulário de nova marcação
+router.get('/api/clientes', (req, res) => {
+  const q = clean(req.query.q, 80);
+  if (q.length < 2) return res.json({ clients: [] });
+  const d = today();
+  const rows = db.prepare(`${CLIENT_SQL} AND (b.customer_name LIKE ? OR b.customer_email LIKE ? OR b.customer_phone LIKE ?) GROUP BY lower(b.customer_email) ORDER BY total DESC LIMIT 6`)
+    .all(d, d, `%${q}%`, `%${q}%`, `%${q}%`);
+  res.json({ clients: rows.map(({ name, email, phone, visits }) => ({ name, email, phone, visits })) });
 });
 
 // ---------- Serviços ----------

@@ -131,3 +131,61 @@ test('back office exige login e CSRF', async () => {
   assert.equal(m.status, 302);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM bookings WHERE customer_name = 'Encaixe'").get().c, 1);
 });
+
+test('cliente reagenda online pelo link pessoal', async () => {
+  // o dia de nextWeekday() foi bloqueado num teste anterior: usa o dia útil seguinte
+  let d = addDays(nextWeekday(), 1);
+  while ([0, 6].includes(weekday(d))) d = addDays(d, 1);
+  const r = await post('/marcar', { serviceId: 1, staffId: 1, date: d, time: '15:00', name: 'Rui Teste', email: 'rui@teste.pt', phone: '913333333', consent: '1' });
+  const token = r.headers.get('location').split('/')[2].split('?')[0];
+  assert.equal((await fetch(`${base}/marcacao/${token}/reagendar`)).status, 200);
+  // a própria marcação não bloqueia o seu horário atual
+  const s = await (await fetch(`${base}/api/slots?service=1&staff=1&date=${d}&token=${token}`)).json();
+  assert.ok(s.slots.some((x) => x.time === '15:00'));
+  const m = await post(`/marcacao/${token}/reagendar`, { date: d, time: '16:30', anyStaff: '0' });
+  assert.equal(m.status, 302);
+  assert.match(m.headers.get('location'), /reagendada=1/);
+  const b = db.prepare('SELECT start_min, staff_id FROM bookings WHERE token = ?').get(token);
+  assert.equal(b.start_min, 16 * 60 + 30);
+  assert.equal(b.staff_id, 1);
+  // horário ocupado → recusa
+  const other = await post('/marcar', { serviceId: 1, staffId: 1, date: d, time: '17:30', name: 'Ana Teste', email: 'ana@teste.pt', phone: '914444444', consent: '1' });
+  assert.equal(other.status, 302);
+  const bad = await post(`/marcacao/${token}/reagendar`, { date: d, time: '17:30', anyStaff: '0' });
+  assert.match(bad.headers.get('location'), /erro=/);
+});
+
+test('back office: clientes, arrastar na agenda, vistas e app', async () => {
+  const ok = await post('/admin/login', { email: 'admin@teste.pt', password: 'segredo123' });
+  const cookie = ok.headers.get('set-cookie').split(';')[0];
+  const csrf = db.prepare('SELECT csrf FROM sessions ORDER BY expires_at DESC').get().csrf;
+  const get = (u) => fetch(base + u, { headers: { cookie } });
+
+  for (const v of ['dia', 'semana', 'mes']) assert.equal((await get(`/admin/agenda?vista=${v}`)).status, 200, v);
+  assert.equal((await get('/admin/clientes')).status, 200);
+  const ficha = await get('/admin/clientes/ficha?email=rui%40teste.pt');
+  assert.equal(ficha.status, 200);
+  assert.match(await ficha.text(), /Rui Teste/);
+  const ac = await (await get('/admin/api/clientes?q=Rui')).json();
+  assert.equal(ac.clients[0].email, 'rui@teste.pt');
+  const notes = await post('/admin/clientes/ficha', { _csrf: csrf, email: 'rui@teste.pt', notes: 'Prefere manhãs' }, { cookie });
+  assert.equal(notes.status, 302);
+  assert.equal(db.prepare('SELECT notes FROM client_notes WHERE email = ?').get('rui@teste.pt').notes, 'Prefere manhãs');
+
+  // arrastar: mover para um horário livre, depois tentar colidir
+  const rui = db.prepare("SELECT * FROM bookings WHERE customer_email = 'rui@teste.pt'").get();
+  const move = (body) => fetch(base + '/admin/api/reagendar', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ _csrf: csrf, ...body }) });
+  const mv = await move({ id: rui.id, date: rui.date, start: 10 * 60, staffId: 1 });
+  assert.equal(mv.status, 200);
+  const j = await mv.json();
+  assert.equal(j.before.start, rui.start_min);
+  const ana = db.prepare("SELECT * FROM bookings WHERE customer_email = 'ana@teste.pt'").get();
+  assert.equal((await move({ id: rui.id, date: ana.date, start: ana.start_min, staffId: ana.staff_id })).status, 409);
+  const noCsrf = await fetch(base + '/admin/api/reagendar', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ id: rui.id }) });
+  assert.equal(noCsrf.status, 403);
+
+  const man = await (await fetch(base + '/admin/manifest.webmanifest')).json();
+  assert.equal(man.start_url, '/admin');
+  const sw = await fetch(base + '/admin/sw.js');
+  assert.equal(sw.headers.get('service-worker-allowed'), '/admin');
+});

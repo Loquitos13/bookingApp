@@ -27,6 +27,18 @@ function seedDemo() {
   const hours = Object.fromEntries(db.prepare('SELECT * FROM hours').all().map((h) => [h.weekday, h]));
   const step = +st.slot_step || 15;
 
+  // um grupo fixo de clientes fictícios: os primeiros são "habituais" e aparecem mais vezes
+  const strip = (v) => v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const CLIENTS = [];
+  for (let i = 0; CLIENTS.length < 32 && i < 400; i++) {
+    const first = pick(FIRST), last = pick(LAST);
+    const name = `${first} ${last}`;
+    if (CLIENTS.some((c) => c.name === name)) continue;
+    const phone = `9${Math.floor(10000000 + rand() * 89999999)}`.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+    CLIENTS.push({ name, email: `${strip(first)}.${strip(last)}@exemplo.pt`, phone });
+  }
+  const client = () => CLIENTS[Math.floor(rand() ** 1.8 * CLIENTS.length)];
+
   const ins = db.prepare(
     `INSERT INTO bookings(ref, token, service_id, staff_id, date, start_min, end_min, price_cents, customer_name,
       customer_email, customer_phone, notes, status, source, created_at)
@@ -63,12 +75,10 @@ function seedDemo() {
         if (off < 0) status = rand() < 0.86 ? 'completed' : rand() < 0.5 ? 'no_show' : 'cancelled';
         else if (rand() < 0.12) status = 'pending';
         else if (rand() < 0.06) status = 'cancelled';
-        const first = pick(FIRST), last = pick(LAST);
-        const email = `${first}.${last}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') + '@exemplo.pt';
-        const phone = `9${Math.floor(10000000 + rand() * 89999999)}`.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+        const c = client();
         ins.run(
-          bookingRef(), randomToken(), svc.id, staffId, date, start, end, svc.price_cents, `${first} ${last}`,
-          email, phone, pick(NOTES), status, rand() < 0.7 ? 'online' : 'admin', `${Math.min(off, 0) - Math.ceil(rand() * 6)} days`
+          bookingRef(), randomToken(), svc.id, staffId, date, start, end, svc.price_cents, c.name,
+          c.email, c.phone, pick(NOTES), status, rand() < 0.7 ? 'online' : 'admin', `${Math.min(off, 0) - Math.ceil(rand() * 6)} days`
         );
       }
     }
@@ -91,13 +101,18 @@ function seedDemo() {
           const limit = t < gapStart ? Math.min(we, gapStart) : we;
           const svc = bySize.find((sv) => t + sv.duration_min <= limit);
           if (!svc) break;
-          const first = pick(FIRST), last = pick(LAST);
-          ins.run(bookingRef(), randomToken(), svc.id, busiest.id, fullDay, t, t + svc.duration_min, svc.price_cents, `${first} ${last}`,
-            `${first}.${last}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') + '@exemplo.pt', '910 000 000', '', 'confirmed', 'online', '-2 days');
+          const c = client();
+          ins.run(bookingRef(), randomToken(), svc.id, busiest.id, fullDay, t, t + svc.duration_min, svc.price_cents, c.name,
+            c.email, c.phone, '', 'confirmed', 'online', '-2 days');
           t += svc.duration_min;
         }
       }
     }
+
+    db.exec('DELETE FROM client_notes;');
+    const cn = db.prepare('INSERT INTO client_notes(email, notes) VALUES (?, ?)');
+    cn.run(CLIENTS[0].email, 'Cliente habitual. Prefere o fim do dia. (exemplo)');
+    cn.run(CLIENTS[1].email, 'Recuperação de entorse no tornozelo esquerdo. (exemplo)');
 
     const msg = db.prepare("INSERT INTO messages(name, email, phone, message, read, created_at) VALUES (?,?,?,?,?, datetime('now', ?))");
     msg.run('Helena Vaz', 'helena.vaz@exemplo.pt', '', 'Bom dia, aceitam o seguro de saúde da minha empresa? Obrigada.', 0, '-3 hours');

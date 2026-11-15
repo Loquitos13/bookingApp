@@ -1,58 +1,113 @@
 <%- include('../partials/admin-head', { title: 'Agenda' }) %>
-<% const PPM = 1.5; const H = (to - from) * PPM; %>
+<%
+  const PPM = 1.5; const H = (to - from) * PPM;
+  const stepDays = view === 'dia' ? 1 : view === 'semana' ? 7 : 0;
+  const shiftMonth = (d, n) => { const [y, m] = d.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1 + n, 1)); return dt.toISOString().slice(0, 10); };
+  const prev = view === 'mes' ? shiftMonth(date, -1) : t.addDays(date, -stepDays);
+  const next = view === 'mes' ? shiftMonth(date, 1) : t.addDays(date, stepDays);
+  const q = (o) => '?' + Object.entries(Object.assign({ vista: view, data: date, staff: staffId || '' }, o)).filter(([, v]) => v !== '' && v != null).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+  const [yy, mm] = date.split('-').map(Number);
+  const title = view === 'dia' ? t.formatDateLong(date)
+    : view === 'semana' ? `${t.formatDateShort(monday)} – ${t.formatDateShort(t.addDays(monday, 6))}`
+    : `${t.MONTHS[mm - 1][0].toUpperCase() + t.MONTHS[mm - 1].slice(1)} de ${yy}`;
+  const nowM = (() => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: site.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':'); return +p[0] * 60 + +p[1]; })();
+%>
 <header class="head">
   <div>
     <h1>Agenda</h1>
-    <p class="muted"><%= t.formatDateLong(date) %><%= date === today ? ' · hoje' : '' %><%= !hours || hours.closed ? ' · encerrado' : '' %></p>
+    <p class="muted"><%= title %><%= view === 'dia' && date === today ? ' · hoje' : '' %></p>
   </div>
   <div class="toolbar">
-    <a class="btn btn-ghost" href="?data=<%= t.addDays(date, -1) %>" aria-label="Dia anterior">‹</a>
-    <a class="btn btn-ghost" href="?data=<%= today %>">Hoje</a>
-    <a class="btn btn-ghost" href="?data=<%= t.addDays(date, 1) %>" aria-label="Dia seguinte">›</a>
-    <form method="get"><input type="date" name="data" value="<%= date %>" onchange="this.form.submit()" aria-label="Ir para data"></form>
-    <a class="btn" href="/admin/marcacoes/nova?data=<%= date %>">+ Nova</a>
+    <div class="seg seg-tight" role="group" aria-label="Vista">
+      <% [['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês']].forEach(([k, l]) => { %><a class="seg-btn <%= view === k ? 'on' : '' %>" href="<%= q({ vista: k }) %>" <%- view === k ? 'aria-current="true"' : '' %>><%= l %></a><% }) %>
+    </div>
+    <a class="btn btn-ghost btn-icon" href="<%= q({ data: prev }) %>" aria-label="Anterior"><%- include('../partials/icon', { name: 'back', size: 18 }) %></a>
+    <a class="btn btn-ghost" href="<%= q({ data: today }) %>">Hoje</a>
+    <a class="btn btn-ghost btn-icon" href="<%= q({ data: next }) %>" aria-label="Seguinte"><%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
+    <form method="get" class="date-jump"><input type="hidden" name="vista" value="<%= view %>"><% if (staffId) { %><input type="hidden" name="staff" value="<%= staffId %>"><% } %><input type="date" name="data" value="<%= date %>" onchange="this.form.submit()" aria-label="Ir para data"></form>
   </div>
 </header>
 
-<% if (!staff.length) { %><p class="empty">Adicione profissionais na secção Equipa.</p><% } else { %>
-<div class="agenda" style="--cols: <%= staff.length %>">
+<nav class="chips" aria-label="Profissional">
+  <a class="chip <%= !staffId ? 'on' : '' %>" href="<%= q({ staff: '' }) %>">Todos</a>
+  <% allStaff.forEach(p => { %><a class="chip <%= staffId === p.id ? 'on' : '' %>" href="<%= q({ staff: p.id }) %>"><i class="dot" style="background:<%= p.color %>"></i><%= p.name.split(' ')[0] %></a><% }) %>
+</nav>
+
+<% if (!allStaff.length) { %><p class="empty panel">Adicione profissionais na secção Equipa.</p><% } else if (view === 'mes') { %>
+  <%
+    const byDay = {};
+    bookings.forEach(b => (byDay[b.date] = byDay[b.date] || []).push(b));
+  %>
+  <div class="month">
+    <% ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].forEach(w => { %><span class="month-wd"><%= w %></span><% }) %>
+    <% for (let i = 0; i < 42; i++) { const d = t.addDays(rangeFrom, i); const list = byDay[d] || []; const h = hoursBy[t.weekday(d)]; const off = !h || h.closed; const blocked = blocks.some(b => !b.staff_id && b.start_min == null && b.date_from <= d && b.date_to >= d); const pend = list.filter(b => b.status === 'pending').length; %>
+      <a class="mday <%= d.slice(0, 7) !== date.slice(0, 7) ? 'is-out' : '' %> <%= d === today ? 'is-today' : '' %> <%= off || blocked ? 'is-off' : '' %>" href="<%= q({ vista: 'dia', data: d }) %>" aria-label="<%= t.formatDateLong(d) %>: <%= list.length %> marcações">
+        <span class="mday-n"><%= +d.slice(8) %></span>
+        <% if (list.length) { %>
+          <span class="mday-count"><%= list.length %></span>
+          <span class="mday-dots"><% list.slice(0, 8).forEach(b => { %><i style="background:<%= b.staff_color %>"></i><% }) %></span>
+          <% if (pend) { %><span class="mday-pend"><%= pend %> por confirmar</span><% } %>
+        <% } else if (blocked) { %><span class="mday-note">Fechado</span><% } %>
+      </a>
+    <% } %>
+  </div>
+<% } else { %>
+<div class="agenda <%= view === 'semana' ? 'is-week' : '' %>" style="--cols: <%= columns.length %>" data-ppm="<%= PPM %>" data-from="<%= from %>" data-step="<%= step %>" data-csrf="<%= csrf %>">
   <div class="ag-head">
     <span></span>
-    <% staff.forEach(p => { %><span><i class="dot" style="background:<%= p.color %>"></i><%= p.name %></span><% }) %>
+    <% columns.forEach(c => { %>
+      <% if (c.isDay) { %><a class="<%= c.date === today ? 'is-today' : '' %>" href="<%= q({ vista: 'dia', data: c.date }) %>"><%= t.formatDateShort(c.date) %></a>
+      <% } else { %><span><i class="dot" style="background:<%= c.color %>"></i><%= c.label %></span><% } %>
+    <% }) %>
   </div>
   <div class="ag-body" style="height: <%= H %>px">
     <div class="ag-times">
       <% for (let m = from; m < to; m += 60) { %><span style="top: <%= (m - from) * PPM %>px"><%= t.minToTime(m) %></span><% } %>
     </div>
-    <% const nowM = (() => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: site.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':'); return +p[0] * 60 + +p[1]; })(); %>
-    <% if (date === today && nowM > from && nowM < to) { %><div class="ag-now" style="top: <%= (nowM - from) * PPM %>px; left: 58px" aria-hidden="true"></div><% } %>
-    <% staff.forEach(p => { %>
-      <div class="ag-col">
+    <% columns.forEach((c, ci) => {
+      const h = hoursBy[t.weekday(c.date)];
+      const colBookings = bookings.filter(b => b.date === c.date && (!c.staffId || b.staff_id === c.staffId));
+      // faixas para marcações sobrepostas (vista semana com todos os profissionais)
+      // agrupa em blocos de sobreposição: só esses partilham a largura
+      let cluster = [], clusterEnd = -1, lanes = [];
+      const closeCluster = () => { cluster.forEach(b => (b._n = lanes.length)); cluster = []; lanes = []; };
+      colBookings.forEach(b => {
+        if (b.start_min >= clusterEnd) { closeCluster(); clusterEnd = -1; }
+        let l = lanes.findIndex(end => end <= b.start_min); if (l < 0) { l = lanes.length; lanes.push(0); }
+        lanes[l] = b.end_min; b._lane = l; cluster.push(b); clusterEnd = Math.max(clusterEnd, b.end_min);
+      });
+      closeCluster();
+    %>
+      <div class="ag-col <%= c.date === today ? 'is-today' : '' %>" data-date="<%= c.date %>" data-staff="<%= c.staffId || '' %>">
         <% for (let m = from; m < to; m += 30) { %>
-          <a class="ag-cell" style="top: <%= (m - from) * PPM %>px; height: <%= 30 * PPM %>px" href="/admin/marcacoes/nova?data=<%= date %>&staff=<%= p.id %>&hora=<%= t.minToTime(m) %>" title="Marcar às <%= t.minToTime(m) %>"></a>
+          <a class="ag-cell" style="top: <%= (m - from) * PPM %>px; height: <%= 30 * PPM %>px" href="/admin/marcacoes/nova?data=<%= c.date %>&staff=<%= c.staffId || '' %>&hora=<%= t.minToTime(m) %>" aria-label="Marcar <%= t.formatDateShort(c.date) %> às <%= t.minToTime(m) %>" tabindex="-1"></a>
         <% } %>
-        <% /* períodos fechados */
+        <%
           const closed = [];
-          if (!hours || hours.closed) closed.push([from, to]);
+          if (!h || h.closed) closed.push([from, to, 'Encerrado']);
           else {
-            closed.push([from, hours.open_min], [hours.close_min, to]);
-            if (hours.break_start != null) closed.push([hours.break_start, hours.break_end]);
+            closed.push([from, h.open_min], [h.close_min, to]);
+            if (h.break_start != null) closed.push([h.break_start, h.break_end, 'Pausa']);
           }
-          blocks.filter(b => !b.staff_id || b.staff_id === p.id).forEach(b => closed.push([b.start_min ?? from, b.end_min ?? to, b.reason || 'Bloqueado']));
+          blocks.filter(b => b.date_from <= c.date && b.date_to >= c.date && (!b.staff_id || (c.staffId && b.staff_id === c.staffId)))
+            .forEach(b => closed.push([b.start_min ?? from, b.end_min ?? to, b.reason || 'Bloqueado']));
           closed.filter(([a, z]) => z > a).forEach(([a, z, label]) => { %>
           <div class="ag-closed" style="top: <%= (Math.max(a, from) - from) * PPM %>px; height: <%= (Math.min(z, to) - Math.max(a, from)) * PPM %>px"><% if (label) { %><span><%= label %></span><% } %></div>
         <% }) %>
-        <% bookings.filter(b => b.staff_id === p.id).forEach(b => { %>
-          <a class="ag-bk st-<%= b.status %>" href="/admin/marcacoes/<%= b.id %>"
-             style="top: <%= (b.start_min - from) * PPM %>px; height: <%= (b.end_min - b.start_min) * PPM - 2 %>px; --c: <%= p.color %>">
-            <strong><%= t.minToTime(b.start_min) %> <%= b.customer_name %></strong>
-            <small><%= b.service_name %><%= b.status === 'pending' ? ' · por confirmar' : '' %></small>
+        <% if (c.date === today && nowM > from && nowM < to) { %><div class="ag-now" style="top: <%= (nowM - from) * PPM %>px" aria-hidden="true"></div><% } %>
+        <% colBookings.forEach(b => { %>
+          <a class="ag-bk st-<%= b.status %>" href="/admin/marcacoes/<%= b.id %>" data-id="<%= b.id %>" data-start="<%= b.start_min %>" data-dur="<%= b.end_min - b.start_min %>" data-staff="<%= b.staff_id %>"
+             style="top: <%= (b.start_min - from) * PPM %>px; height: <%= (b.end_min - b.start_min) * PPM - 2 %>px; --c: <%= b.staff_color %>; left: calc(<%= b._lane * 100 / b._n %>% + 3px); width: calc(<%= 100 / b._n %>% - 6px)">
+            <strong><span class="ag-t"><%= t.minToTime(b.start_min) %></span> <%= b.customer_name %></strong>
+            <small><% if (view === 'semana' && !staffId) { %><i class="dot" style="background:<%= b.staff_color %>"></i><% } %><%= b.service_name %><%= b.status === 'pending' ? ' · por confirmar' : '' %></small>
           </a>
         <% }) %>
       </div>
     <% }) %>
   </div>
 </div>
-<p class="muted tiny">Clique num espaço livre para criar uma marcação nesse horário.</p>
+<p class="muted tiny agenda-hint">Toque num espaço livre para marcar. Arraste uma marcação para mudar a hora<%= view === 'dia' ? ' ou o profissional' : ' ou o dia' %>.</p>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="/static/js/agenda.js" defer></script>
 <% } %>
 <%- include('../partials/admin-foot') %>

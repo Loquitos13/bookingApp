@@ -69,4 +69,19 @@ function notifyStatusChange(b) {
   });
 }
 
-module.exports = { send, notifyNewBooking, notifyStatusChange };
+function notifyRescheduled(b, before) {
+  const st = getSettings();
+  const was = `${formatDateLong(before.date)} às ${minToTime(before.start)}`;
+  send({
+    to: b.customer_email,
+    subject: `${st.business_name}: marcação alterada (${b.ref})`,
+    text: `Olá ${b.customer_name},\n\nA sua marcação foi alterada (antes: ${was}).\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
+  });
+  send({
+    to: process.env.NOTIFY_EMAIL || st.email,
+    subject: `Marcação ${b.ref} reagendada pelo cliente`,
+    text: `${b.customer_name} mudou de ${was} para ${formatDateLong(b.date)} às ${minToTime(b.start_min)} (${b.staff_name}).\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
+  });
+}
+
+module.exports = { send, notifyNewBooking, notifyStatusChange, notifyRescheduled };

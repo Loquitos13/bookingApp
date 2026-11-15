@@ -1,8 +1,8 @@
 'use strict';
 const express = require('express');
 const { db, getSettings } = require('../db');
-const { getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, canCustomerCancel, BookingError } = require('../availability');
-const { notifyNewBooking, notifyStatusChange, send } = require('../mailer');
+const { getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, canCustomerCancel, rescheduleBooking, BookingError } = require('../availability');
+const { notifyNewBooking, notifyStatusChange, notifyRescheduled, send } = require('../mailer');
 const { isDate, nowIn, timeToMin, minToTime, weekday } = require('../time');
 
 const router = express.Router();
@@ -81,20 +81,22 @@ router.get('/api/first', (req, res) => {
 });
 
 // ---- API usada pelo formulário de marcação ----
+// ?token= (link pessoal) faz a própria marcação não contar como ocupada, para o reagendamento
+const ignoreFor = (token) => (token ? (db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(token)) || {}).id || null : null);
 router.get('/api/days', (req, res) => {
   const serviceId = +req.query.service;
   const staffId = req.query.staff ? +req.query.staff : null;
   if (!serviceId) return res.status(400).json({ error: 'service obrigatório' });
   const st = getSettings();
   const today = nowIn(st.timezone).date;
-  res.json({ today, maxDays: +st.max_days_ahead, days: availableDays({ serviceId, staffId, from: today, days: +st.max_days_ahead + 1 }) });
+  res.json({ today, maxDays: +st.max_days_ahead, days: availableDays({ serviceId, staffId, from: today, days: +st.max_days_ahead + 1, ignoreBookingId: ignoreFor(req.query.token) }) });
 });
 
 router.get('/api/slots', (req, res) => {
   const serviceId = +req.query.service;
   const staffId = req.query.staff ? +req.query.staff : null;
   if (!serviceId || !isDate(req.query.date)) return res.status(400).json({ error: 'parâmetros inválidos' });
-  res.json({ slots: getSlots({ serviceId, staffId, date: req.query.date }).map(({ start, time }) => ({ start, time })) });
+  res.json({ slots: getSlots({ serviceId, staffId, date: req.query.date, ignoreBookingId: ignoreFor(req.query.token) }).map(({ start, time }) => ({ start, time })) });
 });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -140,7 +142,7 @@ router.get('/marcacao/:token', (req, res, next) => {
   const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
   if (!row) return next();
   const b = getBooking(row.id);
-  res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1' });
+  res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1', moved: req.query.reagendada === '1' });
 });
 
 router.get('/marcacao/:token.ics', (req, res, next) => {
@@ -160,6 +162,38 @@ router.get('/marcacao/:token.ics', (req, res, next) => {
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Content-Disposition', `attachment; filename="marcacao-${b.ref}.ics"`);
   res.send(ics);
+});
+
+function bookingByToken(token) {
+  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(token));
+  return row ? getBooking(row.id) : null;
+}
+
+router.get('/marcacao/:token/reagendar', (req, res, next) => {
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
+  if (!canCustomerCancel(b)) return res.redirect(`/marcacao/${b.token}`);
+  res.render('public/reschedule', { b, error: req.query.erro || null });
+});
+
+router.post('/marcacao/:token/reagendar', (req, res, next) => {
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
+  if (!canCustomerCancel(b)) return res.redirect(`/marcacao/${b.token}`);
+  const date = clean(req.body.date, 10);
+  const start = timeToMin(req.body.time);
+  const back = (msg) => res.redirect(`/marcacao/${b.token}/reagendar?erro=` + encodeURIComponent(msg));
+  if (!isDate(date) || start == null) return back('Escolha o dia e a hora.');
+  try {
+    const before = { date: b.date, start: b.start_min };
+    const nb = rescheduleBooking(b.id, { date, start, staffId: req.body.anyStaff === '1' ? null : b.staff_id });
+    db.prepare("UPDATE bookings SET internal_notes = trim(internal_notes || ' [Reagendada pelo cliente online]') WHERE id = ?").run(b.id);
+    notifyRescheduled(nb, before);
+    res.redirect(`/marcacao/${b.token}?reagendada=1`);
+  } catch (e) {
+    if (!(e instanceof BookingError)) throw e;
+    back(e.message);
+  }
 });
 
 router.post('/marcacao/:token/cancelar', (req, res, next) => {

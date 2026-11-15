@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
   <title>Entrar · Back office</title>
+  <link rel="manifest" href="/admin/manifest.webmanifest">
+  <meta name="theme-color" content="#12171d">
+  <link rel="stylesheet" href="/static/css/tokens.css">
   <link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body class="login-body">
@@ -16,5 +19,9 @@
     <button class="btn btn-signal">Entrar</button>
     <% if (site.demo_mode === '1') { %><p class="muted tiny">Demonstração: admin@exemplo.pt / admin123</p><% } %>
   </form>
+  <script>
+    // depois de sair, apaga as páginas guardadas pela app
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('logout');
+  </script>
 </body>
 </html>

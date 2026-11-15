@@ -1,0 +1,66 @@
+<%- include('../partials/public-head', { title: 'Mudar dia ou hora', bodyClass: 'page-book' }) %>
+<main id="conteudo" class="book">
+  <div class="wrap book-grid">
+    <div class="book-main">
+      <header class="book-head">
+        <a class="link-btn back-link" href="/marcacao/<%= b.token %>"><%- include('../partials/icon', { name: 'back', size: 18 }) %> Voltar ao bilhete</a>
+        <h1>Mudar dia ou hora</h1>
+      </header>
+      <div class="ticket-preview now-preview">
+        <span class="tp-staff">Marcação atual</span>
+        <span class="tp-when"><%= t.formatDateLong(b.date) %> · <%= t.minToTime(b.start_min) %></span>
+        <span class="tp-svc"><%= b.service_name %> · <%= b.staff_name %></span>
+      </div>
+      <% if (error) { %><p class="notice notice-err" role="alert"><%= error %></p><% } %>
+
+      <form method="post" id="move" novalidate>
+        <fieldset class="step is-static">
+          <legend class="step-title">Com quem?</legend>
+          <div class="seg-row" role="radiogroup">
+            <label class="seg-opt"><input type="radio" name="anyStaff" value="0" checked><span>Com <%= b.staff_name.split(' ')[0] %></span></label>
+            <label class="seg-opt"><input type="radio" name="anyStaff" value="1"><span>Qualquer profissional</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="step is-static">
+          <legend class="step-title">Novo dia e hora</legend>
+          <div id="picker"></div>
+          <noscript>
+            <div class="nojs-when">
+              <label class="field"><span>Dia</span><input type="date" name="date"></label>
+              <label class="field"><span>Hora</span><input name="time" placeholder="HH:MM"></label>
+            </div>
+            <button class="btn btn-signal btn-lg btn-block">Confirmar alteração</button>
+          </noscript>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+  <div class="book-bar">
+    <div class="wrap book-bar-inner">
+      <span class="bar-sum" id="m-sum" aria-live="polite">Escolha o novo horário</span>
+      <button type="submit" form="move" class="btn btn-signal btn-lg" id="m-go" disabled>Confirmar <%- include('../partials/icon', { name: 'check' }) %></button>
+    </div>
+  </div>
+</main>
+<script src="/static/js/picker.js"></script>
+<script>
+(function () {
+  var form = document.getElementById('move'), go = document.getElementById('m-go'), sum = document.getElementById('m-sum');
+  var mk = function (n) { var i = document.createElement('input'); i.type = 'hidden'; i.name = n; form.appendChild(i); return i; };
+  var dIn = mk('date'), tIn = mk('time');
+  var any = function () { return form.querySelector('input[name="anyStaff"]:checked').value === '1'; };
+  var p = Picker({
+    root: document.getElementById('picker'),
+    params: function () { return { service: <%= b.service_id %>, staff: any() ? '' : <%= b.staff_id %>, token: <%- JSON.stringify(b.token) %> }; },
+    selected: { date: <%- JSON.stringify(b.date) %> },
+    onChange: function (v) {
+      dIn.value = v.date; tIn.value = v.time;
+      go.disabled = !(v.date && v.time);
+      sum.innerHTML = v.date && v.time ? 'Novo: <b>' + p.longDate(v.date) + ' · ' + v.time + '</b>' : 'Escolha o novo horário';
+    }
+  });
+  form.addEventListener('change', function (e) { if (e.target.name === 'anyStaff') p.reload(); });
+  form.addEventListener('submit', function () { go.disabled = true; go.firstChild.textContent = 'A alterar… '; });
+})();
+</script>
+<%- include('../partials/public-foot', { bottomBar: false }) %>

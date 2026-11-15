@@ -1,0 +1,53 @@
+<%- include('../partials/admin-head', { title: c.name }) %>
+<%
+  const tel = (c.phone || '').replace(/[^\d+]/g, '');
+  const wa = tel ? 'https://wa.me/' + (tel.startsWith('+') ? tel.slice(1) : (tel.length === 9 ? '351' + tel : tel)) : '';
+  const newHref = '/admin/marcacoes/nova?nome=' + encodeURIComponent(c.name) + '&email=' + encodeURIComponent(c.email) + '&tel=' + encodeURIComponent(c.phone || '');
+%>
+<header class="head">
+  <div>
+    <a class="crumb" href="/admin/clientes"><%- include('../partials/icon', { name: 'back', size: 16 }) %> Clientes</a>
+    <h1><%= c.name %></h1>
+    <p class="muted"><%= c.email %><%= c.phone ? ' · ' + c.phone : '' %></p>
+  </div>
+  <a class="btn btn-signal" href="<%= newHref %>"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> Nova marcação</a>
+</header>
+
+<div class="quick">
+  <% if (tel) { %><a class="btn btn-ghost" href="tel:<%= tel %>"><%- include('../partials/icon', { name: 'phone', size: 18 }) %> Ligar</a><% } %>
+  <% if (wa) { %><a class="btn btn-ghost" href="<%= wa %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'external', size: 18 }) %> WhatsApp</a><% } %>
+  <a class="btn btn-ghost" href="mailto:<%= c.email %>"><%- include('../partials/icon', { name: 'mail', size: 18 }) %> Email</a>
+</div>
+
+<nav class="tally" aria-label="Resumo do cliente">
+  <span><strong><%= c.visits %></strong> visitas</span>
+  <span><strong><%= c.upcoming %></strong> marcadas</span>
+  <span class="<%= c.no_shows ? 'is-warn' : '' %>"><strong><%= c.no_shows %></strong> faltas</span>
+  <span><strong><%= t.euros(c.spent) %></strong> em sessões concluídas</span>
+</nav>
+
+<div class="grid2 grid2-wide">
+  <section class="panel">
+    <h2>Histórico</h2>
+    <ol class="timeline">
+      <% bookings.forEach(b => { %>
+        <li class="tl-<%= b.status %> <%= b.date >= d && ['pending','confirmed'].includes(b.status) ? 'is-future' : '' %>">
+          <a href="/admin/marcacoes/<%= b.id %>" class="row-main">
+            <span class="when"><strong><%= t.minToTime(b.start_min) %></strong><small><%= t.formatDateShort(b.date) %> <%= b.date.slice(0, 4) %></small></span>
+            <span class="who"><strong><%= b.service_name %></strong><small><i class="dot" style="background:<%= b.staff_color %>"></i><%= b.staff_name %><%= b.notes ? ' · “' + b.notes + '”' : '' %></small></span>
+            <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ol>
+  </section>
+  <form method="post" class="panel">
+    <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="email" value="<%= c.email %>">
+    <h2>Notas do cliente</h2>
+    <p class="muted tiny">Só visíveis na equipa. Úteis para preferências, historial clínico resumido ou avisos.</p>
+    <textarea name="notes" rows="8" placeholder="Ex.: prefere o fim do dia; alergia a…"><%= notes %></textarea>
+    <p></p>
+    <button class="btn">Guardar notas</button>
+  </form>
+</div>
+<%- include('../partials/admin-foot') %>

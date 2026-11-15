@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Tokens partilhados (site + back office).
+   Para adaptar a um cliente: mude --signal / --signal-press / --on-signal
+   (confirme contraste 4.5:1 do texto sobre o sinal) e, se quiser, --board.
+   ========================================================================== */
+@font-face { font-family: 'Big Shoulders Display'; font-weight: 800; font-display: swap; src: url(/static/fonts/big-shoulders-display-latin-800-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Big Shoulders Display'; font-weight: 700; font-display: swap; src: url(/static/fonts/big-shoulders-display-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-display: swap; src: url(/static/fonts/barlow-condensed-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url(/static/fonts/barlow-condensed-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-display: swap; src: url(/static/fonts/barlow-condensed-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 400; font-display: swap; src: url(/static/fonts/barlow-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-display: swap; src: url(/static/fonts/barlow-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-display: swap; src: url(/static/fonts/barlow-latin-600-normal.woff2) format('woff2'); }
+
+:root {
+  /* tinta 1: painel */
+  --board: #12171d;
+  --board-raise: #1a2129;
+  --cell-top: #252e38;
+  --cell-bot: #1c232b;
+  --slat: rgba(242, 243, 238, .09);
+  --on-board: #f2f3ee;
+  --on-board-2: #a9b3bc;
+  /* tinta 2: esmalte */
+  --enamel: #f0efe9;
+  --enamel-2: #e4e2da;
+  --office: #ebe9e3;
+  --paper: #fcfbf7;
+  --ink: #12171d;
+  --ink-2: #46525d;
+  --rule: rgba(18, 23, 29, .14);
+  /* sinal (a cor da marca) */
+  --signal: #f5c518;
+  --signal-press: #e0b207;
+  --on-signal: #12171d;
+  --danger: #c2391f;
+
+  --display: 'Big Shoulders Display', 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --sans: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r: 8px;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-snap: cubic-bezier(.5, 0, .2, 1);
+}

@@ -1,0 +1,31 @@
+<%- include('../partials/admin-head', { title: 'Clientes' }) %>
+<header class="head">
+  <div><h1>Clientes</h1><p class="muted">Criados automaticamente a partir das marcações (identificados pelo email).</p></div>
+</header>
+<form class="filters filters-2 panel" method="get" role="search">
+  <label>Pesquisar<input name="q" value="<%= q %>" placeholder="Nome, email ou telefone" type="search"></label>
+  <label>Ordenar<select name="ordem" onchange="this.form.submit()">
+    <% [['recent', 'Atividade recente'], ['visits', 'Mais visitas'], ['name', 'Nome'], ['no_shows', 'Mais faltas']].forEach(([k, v]) => { %><option value="<%= k %>" <%= sort === k ? 'selected' : '' %>><%= v %></option><% }) %>
+  </select></label>
+  <button class="btn">Procurar</button>
+</form>
+<div class="panel table-wrap">
+  <% if (!rows.length) { %><p class="empty pad">Nenhum cliente encontrado.</p><% } else { %>
+  <table class="table table-clients">
+    <thead><tr><th>Cliente</th><th>Contacto</th><th>Visitas</th><th>Faltas</th><th>Última</th><th>Próxima</th></tr></thead>
+    <tbody>
+      <% rows.forEach(c => { const href = '/admin/clientes/ficha?email=' + encodeURIComponent(c.email); %>
+        <tr onclick="location.href='<%= href %>'">
+          <td><a href="<%= href %>"><strong><%= c.name %></strong></a></td>
+          <td><span class="muted"><%= c.phone %></span><br><small class="muted"><%= c.email %></small></td>
+          <td><%= c.visits %></td>
+          <td><% if (c.no_shows) { %><span class="badge badge-no_show"><%= c.no_shows %></span><% } else { %>—<% } %></td>
+          <td><%= c.last_visit ? t.formatDateShort(c.last_visit) : '—' %></td>
+          <td><% if (c.next_visit) { %><span class="badge badge-confirmed"><%= c.next_visit === d ? 'Hoje' : t.formatDateShort(c.next_visit) %></span><% } else { %>—<% } %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+<%- include('../partials/admin-foot') %>

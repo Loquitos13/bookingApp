@@ -8,11 +8,13 @@ Serve igualmente para cabeleireiros, barbearias, estética, nutrição, explica�
 **Site público**
 - Página informativa: apresentação, serviços com preço e duração, equipa, horário, contactos e formulário de mensagem.
 - Marcação online em 4 passos: serviço → profissional (ou "sem preferência") → calendário com dias/horas realmente livres → dados do cliente.
-- Página pessoal da marcação (link enviado por email) com opção de cancelar até X horas antes.
+- Página pessoal da marcação (link enviado por email): bilhete, adicionar ao calendário (.ics / Google), como chegar, partilhar, **mudar dia ou hora** e cancelar, até X horas antes.
 
 **Back office** (`/admin`)
 - Painel com indicadores (hoje, próximos 7 dias, por confirmar, faturação prevista do mês).
-- Agenda diária por profissional — clique num espaço livre para marcar.
+- Agenda em vistas **Dia / Semana / Mês**, filtro por profissional, e **arrastar uma marcação** para mudar hora, profissional ou dia (com "Desfazer"). Toque num espaço livre para marcar.
+- **Clientes**: lista criada a partir das marcações, ficha com histórico, visitas, faltas, notas internas e atalhos (ligar, WhatsApp, email); autocompletar ao criar marcações.
+- **App instalável** (PWA): o back office pode ser instalado no telemóvel, abre em ecrã inteiro e mostra a última agenda vista mesmo sem rede.
 - Lista de marcações com pesquisa/filtros, exportação CSV, ficha da marcação (alterar estado, reagendar, notas internas, histórico do cliente).
 - Marcações manuais (telefone/balcão), com opção de "encaixe" fora da disponibilidade.
 - Gestão de serviços, equipa (cor na agenda, serviços que presta), horário semanal com pausa de almoço, férias/feriados/bloqueios.
@@ -34,7 +36,7 @@ Na primeira execução é criada a base de dados `data/app.db` com **dados de de
 
 ## Adaptar a um cliente
 
-1. **Marca:** em `public/css/site.css` e `public/css/admin.css`, mude `--signal` (cor de destaque) e, se quiser, `--board` (cor do painel). O resto do sistema está em `DESIGN.md`.
+1. **Marca:** em `public/css/tokens.css` (um único ficheiro para site e back office), mude `--signal`, `--signal-press` e `--on-signal` (cor de destaque) e, se quiser, `--board` (cor do painel). Depois corra `npm run icons` para gerar os ícones da app com a inicial do negócio. O resto do sistema está em `DESIGN.md`.
 2. **Textos, contactos, regras:** Back office → Definições.
 3. **Serviços, equipa, horário, férias:** secções respetivas do back office.
 4. **Tirar os dados fictícios:** arranque a primeira vez com `DEMO=0` (base de dados vazia de marcações), ou desligue "modo demonstração" e apague `data/app.db` antes de entregar.

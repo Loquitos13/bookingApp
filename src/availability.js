@@ -49,7 +49,7 @@ const overlaps = (s, e, list) => list.some(([a, b]) => s < b && e > a);
  * Horários livres para um serviço numa data.
  * @returns {Array<{start:number,time:string,staff:number[]}>}
  */
-function getSlots({ serviceId, staffId = null, date, forAdmin = false }) {
+function getSlots({ serviceId, staffId = null, date, forAdmin = false, ignoreBookingId = null }) {
   const st = getSettings();
   const svc = db.prepare('SELECT * FROM services WHERE id = ?').get(serviceId);
   if (!svc || (!svc.active && !forAdmin)) return [];
@@ -67,7 +67,7 @@ function getSlots({ serviceId, staffId = null, date, forAdmin = false }) {
   // antecedência mínima (pode passar para o(s) dia(s) seguinte(s))
   const noticeAbs = now.min + +st.min_notice_hours * 60;
   const dayOffsetMin = ahead * 1440;
-  const busy = new Map(staff.map((s) => [s.id, busyIntervals(s.id, date)]));
+  const busy = new Map(staff.map((s) => [s.id, busyIntervals(s.id, date, { ignoreBookingId })]));
 
   const slots = [];
   for (const [ws, we] of workWindows(date)) {
@@ -82,11 +82,11 @@ function getSlots({ serviceId, staffId = null, date, forAdmin = false }) {
 }
 
 /** Próximos dias (até `days`) com pelo menos um horário livre — para o calendário público. */
-function availableDays({ serviceId, staffId = null, from, days = 42 }) {
+function availableDays({ serviceId, staffId = null, from, days = 42, ignoreBookingId = null }) {
   const out = [];
   for (let i = 0; i < days; i++) {
     const d = addDays(from, i);
-    if (getSlots({ serviceId, staffId, date: d }).length) out.push(d);
+    if (getSlots({ serviceId, staffId, date: d, ignoreBookingId }).length) out.push(d);
   }
   return out;
 }
@@ -128,6 +128,20 @@ function nextDepartures(limit = 4) {
 }
 
 class BookingError extends Error {}
+
+/** Reagenda uma marcação (cliente ou back office), revalidando a disponibilidade de forma atómica. */
+function rescheduleBooking(id, { date, start, staffId = null }, { forAdmin = false } = {}) {
+  return tx(() => {
+    const b = getBooking(id);
+    if (!b) throw new BookingError('Marcação não encontrada.');
+    const slot = getSlots({ serviceId: b.service_id, staffId, date, forAdmin, ignoreBookingId: b.id }).find((s) => s.start === start);
+    if (!slot) throw new BookingError('Esse horário acabou de ficar indisponível. Escolha outro.');
+    const newStaff = staffId && slot.staff.includes(+staffId) ? +staffId : slot.staff.includes(b.staff_id) ? b.staff_id : slot.staff[0];
+    db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(date, start, start + b.duration_min, newStaff, b.id);
+    return getBooking(b.id);
+  });
+}
 
 /** Cria uma marcação de forma atómica, revalidando a disponibilidade. */
 function createBooking(input, { source = 'online', force = false } = {}) {
@@ -192,5 +206,5 @@ function canCustomerCancel(b) {
 
 module.exports = {
   getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, staffForService, busyIntervals,
-  canCustomerCancel, BookingError, ACTIVE_STATUSES,
+  canCustomerCancel, rescheduleBooking, BookingError, ACTIVE_STATUSES,
 };

@@ -19,6 +19,7 @@
     <% } else { %>
       <h1 class="ticket-h">A sua marcação</h1>
     <% } %>
+    <% if (moved) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> Marcação alterada. Enviámos a confirmação por email.</p><% } %>
     <% if (cancelled && b.status === 'cancelled') { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> A marcação foi cancelada.</p><% } %>
     <% if (cancelled && b.status !== 'cancelled') { %><p class="notice notice-err" role="alert">Já não é possível cancelar online. Ligue para <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p><% } %>
 
@@ -53,6 +54,7 @@
 
     <div class="ticket-manage">
       <% if (canCancel) { %>
+        <a class="btn btn-signal" href="/marcacao/<%= b.token %>/reagendar"><%- include('../partials/icon', { name: 'calendar', size: 18 }) %> Mudar dia ou hora</a>
         <form method="post" action="/marcacao/<%= b.token %>/cancelar" id="cancel-form">
           <button type="button" class="link-btn link-danger" data-open="cancel-dialog">Cancelar esta marcação</button>
           <dialog id="cancel-dialog" class="sheet" aria-labelledby="cancel-title">

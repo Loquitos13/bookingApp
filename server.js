@@ -33,6 +33,38 @@ app.use((req, res, next) => {
 });
 app.use(loadSession);
 
+// App instalável do back office (PWA)
+app.get('/admin/manifest.webmanifest', (req, res) => {
+  const st = getSettings();
+  res.type('application/manifest+json').send(JSON.stringify({
+    name: `${st.business_name} · Back office`,
+    short_name: st.business_name.slice(0, 12),
+    description: 'Agenda e marcações',
+    lang: 'pt-PT',
+    start_url: '/admin',
+    scope: '/admin',
+    display: 'standalone',
+    background_color: '#12171d',
+    theme_color: '#12171d',
+    icons: [
+      { src: '/static/pwa/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/static/pwa/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/static/pwa/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    shortcuts: [
+      { name: 'Nova marcação', url: '/admin/marcacoes/nova' },
+      { name: 'Agenda', url: '/admin/agenda' },
+    ],
+  }));
+});
+// o service worker tem de ser servido a partir de /admin para controlar o back office
+app.get('/admin/sw.js', (req, res) => {
+  res.set('Service-Worker-Allowed', '/admin');
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'js', 'sw.js'));
+});
+app.get('/admin/offline', (req, res) => res.render('admin/offline'));
+
 app.use('/admin', require('./src/routes/admin'));
 app.use('/', require('./src/routes/public'));
 
