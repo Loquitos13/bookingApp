@@ -320,7 +320,8 @@ input[type=color] { padding: 3px; height: 44px; }
 .mday-dots i { width: 7px; height: 7px; border-radius: 50%; }
 .mday-pend { justify-self: start; padding: 0 6px; border-radius: 4px; background: var(--signal); font: 700 .75rem/1.5 var(--cond); text-transform: uppercase; }
 .mday-note { font: 600 .82rem var(--cond); text-transform: uppercase; color: var(--ink-2); }
-.mday.is-out { opacity: .45; }
+.mday.is-out { background: transparent; border-style: dashed; color: var(--ink-2); }
+.mday.is-out .mday-dots i { opacity: .5; }
 .mday.is-off { background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(18, 23, 29, .04) 6px 12px), var(--surface); }
 .mday.is-today { border: 2px solid var(--ink); }
 .mday.is-today .mday-n { color: var(--ink); text-decoration: underline; text-decoration-color: var(--signal); text-decoration-thickness: 4px; text-underline-offset: 3px; }
@@ -354,7 +355,9 @@ input[type=color] { padding: 3px; height: 44px; }
 
 .dot-lg { width: 16px; height: 16px; }
 .seg-row-admin { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 14px; }
-.sh-table[data-disabled] tbody { opacity: .45; pointer-events: none; }
+.sh-table[data-disabled] { display: none; }
+.sh-general { color: var(--ink-2); margin: 0 0 14px; }
+#sh-form:has(.sh-table:not([data-disabled])) .sh-general { display: none; }
 .copy-row { display: flex; gap: 8px; margin: 12px 0; }
 .copy-row input { font: 400 .9rem ui-monospace, SFMono-Regular, Menlo, monospace; }
 

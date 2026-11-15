@@ -15,7 +15,7 @@
   <% users.forEach(u => { %>
     <form method="post" action="/admin/utilizadores/<%= u.id %>" class="panel form-grid">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
-      <h3 class="span2"><%= u.name %><%= u.id === user.id ? ' (eu)' : '' %></h3>
+      <h2 class="span2"><%= u.name %><%= u.id === user.id ? ' (eu)' : '' %></h2>
       <p class="muted span2"><%= u.email %></p>
       <label>Nome<input name="name" value="<%= u.name %>"></label>
       <label>Perfil<select name="role"><% Object.entries(ROLE_LABEL).forEach(([k, l]) => { %><option value="<%= k %>" <%= u.role === k ? 'selected' : '' %>><%= l %></option><% }) %></select></label>
@@ -29,7 +29,7 @@
   <% }) %>
   <form method="post" action="/admin/utilizadores" class="panel form-grid new">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <h3 class="span2">Novo utilizador</h3>
+    <h2 class="span2">Novo utilizador</h2>
     <label>Nome<input name="name" required></label>
     <label>Email<input name="email" type="email" required></label>
     <label>Perfil<select name="role"><option value="reception">Receção</option><option value="staff">Profissional</option><option value="owner">Dono / gestor</option></select></label>

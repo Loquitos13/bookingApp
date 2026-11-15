@@ -20,10 +20,11 @@
   </style>
 </head>
 <body>
-  <header>
+  <header role="banner">
     <div><h1><%= site.business_name %></h1><div><%= t.formatDateLong(date) %><%= holiday ? ' · Feriado: ' + holiday : '' %></div></div>
     <button class="print" id="print">Imprimir</button>
   </header>
+  <main>
   <% if (!Object.keys(groups).length) { %><p>Sem marcações neste dia.</p><% } %>
   <% Object.entries(groups).forEach(([name, list]) => { %>
     <h2><%= name %> · <%= list.length %> marcações</h2>
@@ -42,6 +43,7 @@
       </tbody>
     </table>
   <% }) %>
+  </main>
   <script nonce="<%= nonce %>">document.getElementById('print').addEventListener('click', function () { window.print(); });</script>
 </body>
 </html>
