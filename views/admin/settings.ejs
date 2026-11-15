@@ -111,11 +111,8 @@
   <div class="span2"><button class="btn btn-signal">Guardar</button></div>
 </form>
 
-<form method="post" action="/admin/definicoes/password" class="panel form-grid" id="conta">
-  <input type="hidden" name="_csrf" value="<%= csrf %>">
-  <h2 class="span2">Alterar palavra-passe</h2>
-  <label>Palavra-passe atual<input type="password" name="current" required autocomplete="current-password"></label>
-  <label>Nova palavra-passe<input type="password" name="next" minlength="8" required autocomplete="new-password"></label>
-  <div class="span2"><button class="btn btn-ghost">Alterar</button></div>
-</form>
+<section class="panel" id="conta">
+  <h2>Conta e acessos</h2>
+  <div class="row-actions"><a class="btn btn-ghost" href="/admin/conta">Alterar a minha palavra-passe</a><a class="btn btn-ghost" href="/admin/utilizadores">Utilizadores e permissões</a></div>
+</section>
 <%- include('../partials/admin-foot') %>

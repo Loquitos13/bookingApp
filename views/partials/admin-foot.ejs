@@ -4,20 +4,24 @@
   const tabs = [['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/mensagens', 'Mensagens', 'inbox', unread]];
   const isAct = (href) => href === '/admin' ? (path === '/admin' || path === '/admin/') : path.startsWith(href);
   const more = [['/admin/clientes', 'Clientes'], ['/admin/estatisticas', 'Estatísticas'], ['/admin/servicos', 'Serviços'], ['/admin/equipa', 'Equipa'], ['/admin/horario', 'Horário'], ['/admin/bloqueios', 'Férias e bloqueios'], ['/admin/definicoes', 'Definições']];
-  const moreOn = more.some(([h]) => isAct(h));
+  const OWNER_ONLY = ['/admin/definicoes', '/admin/servicos', '/admin/equipa', '/admin/horario', '/admin/estatisticas'];
+  const allowed = (h) => role === 'owner' || (role === 'reception' ? !OWNER_ONLY.includes(h) : ['/admin', '/admin/agenda', '/admin/marcacoes'].includes(h));
+  const tabsV = tabs.filter(([h]) => allowed(h));
+  const moreV = more.filter(([h]) => allowed(h)).concat([['/admin/conta', 'A minha conta']]);
+  const moreOn = moreV.some(([h]) => isAct(h));
 %>
-<nav class="tabbar" aria-label="Navegação principal">
+<nav class="tabbar" aria-label="Navegação principal" style="grid-template-columns: repeat(<%= tabsV.length + 1 %>, 1fr)">
 <% if (!path.startsWith('/admin/marcacoes/nova')) { %>
 <a class="fab" href="/admin/marcacoes/nova" aria-label="Nova marcação"><%- include('icon', { name: 'plus', size: 26 }) %></a>
 <% } %>
 
-  <% tabs.forEach(([href, label, icon, n]) => { %>
+  <% tabsV.forEach(([href, label, icon, n]) => { %>
     <a href="<%= href %>" class="<%= isAct(href) ? 'active' : '' %>" <%- isAct(href) ? 'aria-current="page"' : '' %>><%- include('icon', { name: icon, size: 22 }) %><span><%= label %></span><% if (n) { %><b class="count"><%= n %></b><% } %></a>
   <% }) %>
   <details class="tab-more <%= moreOn ? 'active' : '' %>">
     <summary><%- include('icon', { name: 'more', size: 22 }) %><span>Mais</span></summary>
     <div class="more-sheet">
-      <% more.forEach(([href, label]) => { %><a href="<%= href %>" class="<%= isAct(href) ? 'active' : '' %>"><%= label %></a><% }) %>
+      <% moreV.forEach(([href, label]) => { %><a href="<%= href %>" class="<%= isAct(href) ? 'active' : '' %>"><%= label %></a><% }) %>
       <button type="button" class="linkbtn install-app" hidden>Instalar app no telemóvel</button>
       <a href="/" target="_blank" rel="noopener">Ver site</a>
       <form method="post" action="/admin/logout"><button class="linkbtn">Sair</button></form>

@@ -11,12 +11,12 @@ function loadSession(req, res, next) {
   if (token) {
     const row = db
       .prepare(
-        `SELECT s.token, s.csrf, s.expires_at, u.id, u.name, u.email FROM sessions s
+        `SELECT s.token, s.csrf, s.expires_at, u.id, u.name, u.email, u.role, u.staff_id FROM sessions s
          JOIN users u ON u.id = s.user_id WHERE s.token = ?`
       )
       .get(token);
     if (row && row.expires_at > Date.now()) {
-      req.user = { id: row.id, name: row.name, email: row.email };
+      req.user = { id: row.id, name: row.name, email: row.email, role: row.role || 'owner', staff_id: row.staff_id };
       req.session = { token: row.token, csrf: row.csrf };
     } else if (row) {
       db.prepare('DELETE FROM sessions WHERE token = ?').run(token);

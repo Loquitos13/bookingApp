@@ -21,6 +21,9 @@
     ['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/clientes', 'Clientes', 'users'], ['/admin/estatisticas', 'Estatísticas', 'grid'],
     ['/admin/servicos', 'Serviços', 'grid'], ['/admin/equipa', 'Equipa', 'user'], ['/admin/horario', 'Horário', 'clock'],
     ['/admin/bloqueios', 'Férias e bloqueios', 'close'], ['/admin/mensagens', 'Mensagens', 'inbox', unread], ['/admin/definicoes', 'Definições', 'more'] ];
+  const OWNER_ONLY = ['/admin/definicoes', '/admin/servicos', '/admin/equipa', '/admin/horario', '/admin/estatisticas'];
+  const STAFF_OK = ['/admin', '/admin/agenda', '/admin/marcacoes'];
+  const canSee = (href) => role === 'owner' || (role === 'reception' ? !OWNER_ONLY.includes(href) : STAFF_OK.includes(href));
   const isActive = (href) => href === '/admin' ? (path === '/admin' || path === '/admin/') : path.startsWith(href);
   const tabs = ['/admin', '/admin/agenda', '/admin/marcacoes', '/admin/mensagens'];
   const moreActive = !tabs.some(isActive);
@@ -30,14 +33,15 @@
   <aside class="side" aria-label="Navegação">
     <a class="side-brand" href="/admin"><% if (site.brand_logo) { %><img class="mark mark-img" src="<%= site.brand_logo %>" alt=""><% } else { %><span class="mark"><%= site.business_name.trim()[0] %></span><% } %><%= site.business_name %></a>
     <nav>
-      <% nav.forEach(([href, label, icon, n]) => { %>
+      <% nav.filter(([href]) => canSee(href)).forEach(([href, label, icon, n]) => { %>
         <a href="<%= href %>" class="<%= isActive(href) ? 'active' : '' %>" <%- isActive(href) ? 'aria-current="page"' : '' %>><%- include('icon', { name: icon, size: 18 }) %><span><%= label %></span><% if (n) { %><span class="count"><%= n %></span><% } %></a>
       <% }) %>
     </nav>
     <div class="side-foot">
       <button type="button" class="linkbtn install-app" hidden><%- include('icon', { name: 'plus', size: 16 }) %> Instalar app</button>
       <a href="/" target="_blank" rel="noopener"><%- include('icon', { name: 'external', size: 16 }) %> Ver site</a>
-      <form method="post" action="/admin/logout"><button class="linkbtn">Sair (<%= user.name %>)</button></form>
+      <a href="/admin/conta"><%- include('icon', { name: 'user', size: 16 }) %> <%= user.name %> · <%= ROLE_LABEL[role] %></a>
+      <form method="post" action="/admin/logout"><button class="linkbtn">Sair</button></form>
     </div>
   </aside>
   <main class="main" id="main">

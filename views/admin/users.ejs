@@ -1,0 +1,41 @@
+<%- include('../partials/admin-head', { title: 'Utilizadores' }) %>
+<header class="head"><div><h1>Utilizadores</h1><p class="muted">Quem pode entrar no back office e o que pode ver.</p></div></header>
+<% if (error) { %><p class="alert"><%= error %></p><% } %>
+<% if (created) { %><p class="flash">Feito: <%= created %>. Comunique-a à pessoa (também enviámos por email, se o email estiver configurado).</p><% } %>
+
+<section class="panel roles-help">
+  <dl class="dl">
+    <dt>Dono / gestor</dt><dd>Acesso a tudo, incluindo definições, serviços, equipa, estatísticas e utilizadores.</dd>
+    <dt>Receção</dt><dd>Agenda, marcações, clientes, mensagens e férias/bloqueios. Não altera o negócio nem vê estatísticas.</dd>
+    <dt>Profissional</dt><dd>Só a sua agenda e as suas marcações (pode criar, mudar de hora e marcar como concluída/falta).</dd>
+  </dl>
+</section>
+
+<div class="cards">
+  <% users.forEach(u => { %>
+    <form method="post" action="/admin/utilizadores/<%= u.id %>" class="panel form-grid">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <h3 class="span2"><%= u.name %><%= u.id === user.id ? ' (eu)' : '' %></h3>
+      <p class="muted span2"><%= u.email %></p>
+      <label>Nome<input name="name" value="<%= u.name %>"></label>
+      <label>Perfil<select name="role"><% Object.entries(ROLE_LABEL).forEach(([k, l]) => { %><option value="<%= k %>" <%= u.role === k ? 'selected' : '' %>><%= l %></option><% }) %></select></label>
+      <label class="span2">Profissional associado (para o perfil Profissional)<select name="staff_id"><option value="">—</option><% staff.forEach(s => { %><option value="<%= s.id %>" <%= u.staff_id === s.id ? 'selected' : '' %>><%= s.name %></option><% }) %></select></label>
+      <div class="span2 row-actions">
+        <button class="btn">Guardar</button>
+        <button class="btn btn-ghost" name="action" value="reset" data-confirm="Gerar nova palavra-passe temporária para <%= u.name %>?">Nova palavra-passe</button>
+        <% if (u.id !== user.id) { %><button class="linkbtn danger" name="action" value="delete" data-confirm="Remover o acesso de <%= u.name %>?">Remover</button><% } %>
+      </div>
+    </form>
+  <% }) %>
+  <form method="post" action="/admin/utilizadores" class="panel form-grid new">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h3 class="span2">Novo utilizador</h3>
+    <label>Nome<input name="name" required></label>
+    <label>Email<input name="email" type="email" required></label>
+    <label>Perfil<select name="role"><option value="reception">Receção</option><option value="staff">Profissional</option><option value="owner">Dono / gestor</option></select></label>
+    <label>Profissional associado<select name="staff_id"><option value="">—</option><% staff.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></label>
+    <p class="muted tiny span2">É gerada uma palavra-passe temporária, mostrada aqui e enviada por email.</p>
+    <div class="span2"><button class="btn btn-signal">Criar acesso</button></div>
+  </form>
+</div>
+<%- include('../partials/admin-foot') %>

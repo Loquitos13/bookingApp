@@ -29,10 +29,10 @@
   </div>
 </header>
 
-<nav class="chips" aria-label="Profissional">
+<% if (role !== 'staff') { %><nav class="chips" aria-label="Profissional">
   <a class="chip <%= !staffId ? 'on' : '' %>" href="<%= q({ staff: '' }) %>">Todos</a>
   <% allStaff.forEach(p => { %><a class="chip <%= staffId === p.id ? 'on' : '' %>" href="<%= q({ staff: p.id }) %>"><i class="dot" style="background:<%= p.color %>"></i><%= p.name.split(' ')[0] %></a><% }) %>
-</nav>
+</nav><% } %>
 
 <% if (!allStaff.length) { %><p class="empty panel">Adicione profissionais na secção Equipa.</p><% } else if (view === 'mes') { %>
   <%

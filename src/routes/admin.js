@@ -59,10 +59,43 @@ router.post('/logout', (req, res) => {
 
 router.use(requireAuth);
 
+// ---------- papéis ----------
+// dono: tudo · receção: sem definições do negócio, serviços, equipa, horário, utilizadores e estatísticas
+// profissional: só a sua agenda e as suas marcações
+const ROLE_LABEL = { owner: 'Dono / gestor', reception: 'Receção', staff: 'Profissional' };
+const OWNER_ONLY = ['/definicoes', '/servicos', '/pacotes', '/equipa', '/horario', '/utilizadores', '/estatisticas'];
+const STAFF_ALLOWED = ['/agenda', '/marcacoes', '/api/slots', '/api/days', '/api/reagendar', '/conta'];
+const ownStaff = (req) => (req.user.role === 'staff' ? +req.user.staff_id || -1 : null);
+router.use((req, res, next) => {
+  const role = req.user.role;
+  res.locals.role = role;
+  res.locals.ROLE_LABEL = ROLE_LABEL;
+  const p = req.path;
+  const deny = () => (req.method === 'GET' && !p.startsWith('/api') ? res.status(403).render('admin/forbidden') : res.status(403).json({ error: 'Sem permissão.' }));
+  if (role === 'reception' && OWNER_ONLY.some((x) => p === x || p.startsWith(x + '/'))) return deny();
+  if (role === 'staff') {
+    if (!(p === '/' || STAFF_ALLOWED.some((x) => p === x || p.startsWith(x + '/')))) return deny();
+    // o profissional só vê a sua coluna
+    if (['/agenda', '/marcacoes', '/agenda/imprimir', '/api/slots', '/api/days'].includes(p)) req.query.staff = String(ownStaff(req));
+  }
+  next();
+});
+router.param('id', (req, res, next, id) => {
+  const own = ownStaff(req);
+  if (own && req.baseUrl.endsWith('/admin') && req.path.startsWith('/marcacoes/')) {
+    const b = db.prepare('SELECT staff_id FROM bookings WHERE id = ?').get(+id);
+    if (b && b.staff_id !== own) return res.status(403).render('admin/forbidden');
+  }
+  next();
+});
+
 // ---------- Painel ----------
 router.get('/', (req, res) => {
   const d = today();
-  const q = (sql, ...p) => db.prepare(sql).get(...p).c;
+  const own = ownStaff(req);
+  const SF = own ? ` AND staff_id = ${own}` : '';
+  const BSF = own ? ` AND b.staff_id = ${own}` : '';
+  const q = (sql, ...p) => db.prepare(sql + SF).get(...p).c;
   const monthStart = d.slice(0, 8) + '01';
   const stats = {
     today: q(`SELECT COUNT(*) c FROM bookings WHERE date = ? AND status IN ${ACTIVE_STATUSES}`, d),
@@ -70,14 +103,14 @@ router.get('/', (req, res) => {
     pending: q("SELECT COUNT(*) c FROM bookings WHERE status = 'pending'"),
     month: db
       .prepare(`SELECT COALESCE(SUM(price_cents),0) c FROM bookings WHERE date BETWEEN ? AND ? AND status IN ('confirmed','completed')`)
-      .get(monthStart, monthStart.slice(0, 8) + '31').c,
+      .get(monthStart, monthStart.slice(0, 8) + '31').c * (own ? 0 : 1),
     online30: q("SELECT COUNT(*) c FROM bookings WHERE source = 'online' AND created_at >= datetime('now','-30 days')"),
   };
   const upcoming = db
     .prepare(
       `SELECT b.*, s.name service_name, st.name staff_name, st.color staff_color FROM bookings b
        JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
-       WHERE (b.date > ? OR (b.date = ? AND b.end_min >= ?)) AND b.status IN ('pending','confirmed')
+       WHERE (b.date > ? OR (b.date = ? AND b.end_min >= ?)) AND b.status IN ('pending','confirmed')${BSF}
        ORDER BY b.date, b.start_min LIMIT 12`
     )
     .all(d, d, nowIn(getSettings().timezone).min);
@@ -86,27 +119,27 @@ router.get('/', (req, res) => {
     .prepare(
       `SELECT b.*, s.name service_name, st.name staff_name, st.color staff_color FROM bookings b
        JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
-       WHERE b.date = ? AND b.status != 'cancelled' ORDER BY b.start_min, st.sort`
+       WHERE b.date = ? AND b.status != 'cancelled'${BSF} ORDER BY b.start_min, st.sort`
     )
     .all(d);
   const pendingList = db
     .prepare(
       `SELECT b.*, s.name service_name, st.name staff_name FROM bookings b
        JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
-       WHERE b.status = 'pending' AND b.date >= ? ORDER BY b.date, b.start_min LIMIT 8`
+       WHERE b.status = 'pending' AND b.date >= ?${BSF} ORDER BY b.date, b.start_min LIMIT 8`
     )
     .all(d);
   const recent = db
     .prepare(
       `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
-       WHERE b.source = 'online' ORDER BY b.created_at DESC LIMIT 6`
+       WHERE b.source = 'online'${BSF} ORDER BY b.created_at DESC LIMIT 6`
     )
     .all();
   const waitingList = db.prepare(
     `SELECT w.*, s.name service_name, st.name staff_name FROM waitlist w JOIN services s ON s.id = w.service_id
      LEFT JOIN staff st ON st.id = w.staff_id WHERE w.status IN ('waiting','notified') AND w.date >= ? ORDER BY w.date, w.created_at LIMIT 10`
   ).all(d);
-  res.render('admin/dashboard', { waitingList, stats, upcoming: upcoming.filter((b) => b.date !== d), recent, d, todayList, pendingList, nowMin });
+  res.render('admin/dashboard', { waitingList: own ? [] : waitingList, stats, upcoming: upcoming.filter((b) => b.date !== d), recent, d, todayList, pendingList, nowMin });
 });
 
 router.post('/lista-espera/:id/remover', (req, res) => {
@@ -256,6 +289,8 @@ router.get('/agenda/imprimir', (req, res) => {
 router.post('/api/reagendar', (req, res) => {
   const b = getBooking(+req.body.id);
   if (!b) return res.status(404).json({ error: 'Marcação não encontrada.' });
+  const own = ownStaff(req);
+  if (own && (b.staff_id !== own || (+req.body.staffId && +req.body.staffId !== own))) return res.status(403).json({ error: 'Só pode mover as suas marcações.' });
   const date = String(req.body.date || '');
   const start = +req.body.start;
   const staffId = +req.body.staffId || b.staff_id;
@@ -345,6 +380,7 @@ router.get('/api/days', (req, res) => {
 });
 
 router.post('/marcacoes', (req, res) => {
+  if (ownStaff(req)) req.body.staffId = String(ownStaff(req));
   const form = {
     serviceId: +req.body.serviceId, staffId: +req.body.staffId || null, date: clean(req.body.date, 10), time: clean(req.body.time, 5),
     name: clean(req.body.name, 120), email: clean(req.body.email, 160).toLowerCase(), phone: clean(req.body.phone, 30),
@@ -759,6 +795,54 @@ router.post('/mensagens/:id', (req, res) => {
   res.redirect('/admin/mensagens');
 });
 
+// ---------- Utilizadores (só dono) ----------
+router.get('/utilizadores', (req, res) => {
+  const users = db.prepare('SELECT u.id, u.name, u.email, u.role, u.staff_id, s.name staff_name FROM users u LEFT JOIN staff s ON s.id = u.staff_id ORDER BY u.role, u.name').all();
+  const staff = db.prepare('SELECT id, name FROM staff WHERE active = 1 ORDER BY sort, name').all();
+  res.render('admin/users', { users, staff, error: req.query.erro || null, created: req.query.criado || null });
+});
+router.post('/utilizadores', (req, res) => {
+  const name = clean(req.body.name, 120), email = clean(req.body.email, 160).toLowerCase();
+  const role = ROLE_LABEL[req.body.role] ? req.body.role : 'reception';
+  const staffId = role === 'staff' ? +req.body.staff_id || null : null;
+  const fail = (m) => res.redirect('/admin/utilizadores?erro=' + encodeURIComponent(m));
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Indique o nome e um email válido.');
+  if (role === 'staff' && !staffId) return fail('Escolha o profissional associado.');
+  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) return fail('Já existe um utilizador com esse email.');
+  const temp = require('node:crypto').randomBytes(6).toString('base64url');
+  db.prepare('INSERT INTO users(name, email, password_hash, role, staff_id) VALUES (?,?,?,?,?)').run(name, email, hashPassword(temp), role, staffId);
+  require('../mailer').send({ to: email, subject: `Acesso ao back office · ${getSettings().business_name}`, text: `Olá ${name},\n\nFoi criado um acesso para si.\n\nEndereço: ${(process.env.BASE_URL || '')}/admin\nEmail: ${email}\nPalavra-passe temporária: ${temp}\n\nAltere-a em "A minha conta" depois de entrar.` });
+  res.redirect('/admin/utilizadores?criado=' + encodeURIComponent(`${email} · palavra-passe temporária: ${temp}`));
+});
+router.post('/utilizadores/:uid', (req, res) => {
+  const uid = +req.params.uid;
+  const u = db.prepare('SELECT * FROM users WHERE id = ?').get(uid);
+  if (!u) return res.redirect('/admin/utilizadores');
+  const owners = db.prepare("SELECT COUNT(*) c FROM users WHERE role = 'owner'").get().c;
+  const fail = (m) => res.redirect('/admin/utilizadores?erro=' + encodeURIComponent(m));
+  if (req.body.action === 'delete') {
+    if (uid === req.user.id) return fail('Não pode remover a sua própria conta.');
+    if (u.role === 'owner' && owners <= 1) return fail('Tem de existir pelo menos um dono.');
+    db.prepare('DELETE FROM users WHERE id = ?').run(uid);
+    return back(res, '/admin/utilizadores', 'Utilizador removido.');
+  }
+  if (req.body.action === 'reset') {
+    const temp = require('node:crypto').randomBytes(6).toString('base64url');
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(temp), uid);
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(uid);
+    return res.redirect('/admin/utilizadores?criado=' + encodeURIComponent(`${u.email} · nova palavra-passe temporária: ${temp}`));
+  }
+  const role = ROLE_LABEL[req.body.role] ? req.body.role : u.role;
+  if (u.role === 'owner' && role !== 'owner' && owners <= 1) return fail('Tem de existir pelo menos um dono.');
+  const staffId = role === 'staff' ? +req.body.staff_id || null : null;
+  if (role === 'staff' && !staffId) return fail('Escolha o profissional associado.');
+  db.prepare('UPDATE users SET name = ?, role = ?, staff_id = ? WHERE id = ?').run(clean(req.body.name, 120) || u.name, role, staffId, uid);
+  back(res, '/admin/utilizadores', 'Utilizador guardado.');
+});
+
+// a minha conta (todos os papéis)
+router.get('/conta', (req, res) => res.render('admin/account', { error: req.query.erro || null }));
+
 // ---------- Definições ----------
 router.get('/definicoes', (req, res) => res.render('admin/settings', { error: req.query.erro || null }));
 router.post('/definicoes', (req, res) => {
@@ -810,13 +894,13 @@ router.post('/definicoes/logo', (req, res) => {
   });
 });
 
-router.post('/definicoes/password', (req, res) => {
+router.post('/conta/password', (req, res) => {
   const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-  if (!verifyPassword(req.body.current, u.password_hash)) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('Palavra-passe atual incorreta.'));
-  if (String(req.body.next || '').length < 8) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('A nova palavra-passe deve ter pelo menos 8 caracteres.'));
+  if (!verifyPassword(req.body.current, u.password_hash)) return res.redirect('/admin/conta?erro=' + encodeURIComponent('Palavra-passe atual incorreta.'));
+  if (String(req.body.next || '').length < 8) return res.redirect('/admin/conta?erro=' + encodeURIComponent('A nova palavra-passe deve ter pelo menos 8 caracteres.'));
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(req.body.next), u.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(u.id, req.session.token);
-  back(res, '/admin/definicoes', 'Palavra-passe alterada.');
+  back(res, '/admin/conta', 'Palavra-passe alterada.');
 });
 
 module.exports = router;

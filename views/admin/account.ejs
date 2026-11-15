@@ -1,0 +1,11 @@
+<%- include('../partials/admin-head', { title: 'A minha conta' }) %>
+<header class="head"><div><h1>A minha conta</h1><p class="muted"><%= user.name %> · <%= user.email %> · <%= ROLE_LABEL[role] %></p></div></header>
+<% if (error) { %><p class="alert"><%= error %></p><% } %>
+<form method="post" action="/admin/conta/password" class="panel form-grid">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h2 class="span2">Alterar palavra-passe</h2>
+  <label>Palavra-passe atual<input type="password" name="current" required autocomplete="current-password"></label>
+  <label>Nova palavra-passe (mín. 8 caracteres)<input type="password" name="next" minlength="8" required autocomplete="new-password"></label>
+  <div class="span2"><button class="btn btn-signal">Alterar</button></div>
+</form>
+<%- include('../partials/admin-foot') %>
