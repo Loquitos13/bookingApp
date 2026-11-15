@@ -25,5 +25,7 @@ html,body{margin:0;width:${size}px;height:${size}px;background:#12171d}
     await p.screenshot({ path: OUT + name });
   }
   await b.close();
+  // origem embutida nos PNG (proveniência), quando a skill Impeccable está disponível
+  try { const { execFileSync } = require('child_process'); const bin = process.env.IMPECCABLE_BIN; if (bin) for (const f of fs.readdirSync(OUT)) execFileSync(bin, ['embed-prompt', OUT + f, '--prompt', 'Origin: rendered by scripts/icons.js from authored HTML/CSS (enamel plate + split-flap cell with business initial).']); } catch (e) { /* opcional */ }
   console.log('Ícones gerados em', OUT, 'com a letra', letter);
 })();
