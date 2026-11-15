@@ -18,7 +18,7 @@
 <body>
 <%
   const nav = [
-    ['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/clientes', 'Clientes', 'users'],
+    ['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/clientes', 'Clientes', 'users'], ['/admin/estatisticas', 'Estatísticas', 'grid'],
     ['/admin/servicos', 'Serviços', 'grid'], ['/admin/equipa', 'Equipa', 'user'], ['/admin/horario', 'Horário', 'clock'],
     ['/admin/bloqueios', 'Férias e bloqueios', 'close'], ['/admin/mensagens', 'Mensagens', 'inbox', unread], ['/admin/definicoes', 'Definições', 'more'] ];
   const isActive = (href) => href === '/admin' ? (path === '/admin' || path === '/admin/') : path.startsWith(href);

@@ -61,7 +61,7 @@
           <li class="tt-row">
             <a href="/marcar?servico=<%= s.id %>">
               <span class="tt-name"><%= s.name %></span>
-              <span class="tt-desc"><%= s.description %></span>
+              <span class="tt-desc"><%= s.description %><% s.packages.forEach(p => { %><span class="tt-pack"><%= p.name %> · <%= t.euros(p.price_cents) %> <em>(<%= t.euros(Math.round(p.price_cents / p.sessions)) %>/<%= L('pack.session') %>)</em></span><% }) %></span>
               <span class="tt-meta"><span><%= s.duration_min %> min</span><span class="tt-price"><%= t.euros(s.price_cents) %></span></span>
               <span class="tt-go">Marcar <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></span>
             </a>

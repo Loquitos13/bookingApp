@@ -3,7 +3,7 @@
 <%
   const tabs = [['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/mensagens', 'Mensagens', 'inbox', unread]];
   const isAct = (href) => href === '/admin' ? (path === '/admin' || path === '/admin/') : path.startsWith(href);
-  const more = [['/admin/clientes', 'Clientes'], ['/admin/servicos', 'Serviços'], ['/admin/equipa', 'Equipa'], ['/admin/horario', 'Horário'], ['/admin/bloqueios', 'Férias e bloqueios'], ['/admin/definicoes', 'Definições']];
+  const more = [['/admin/clientes', 'Clientes'], ['/admin/estatisticas', 'Estatísticas'], ['/admin/servicos', 'Serviços'], ['/admin/equipa', 'Equipa'], ['/admin/horario', 'Horário'], ['/admin/bloqueios', 'Férias e bloqueios'], ['/admin/definicoes', 'Definições']];
   const moreOn = more.some(([h]) => isAct(h));
 %>
 <nav class="tabbar" aria-label="Navegação principal">

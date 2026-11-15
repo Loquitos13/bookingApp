@@ -1,0 +1,83 @@
+<%- include('../partials/admin-head', { title: 'Estatísticas' }) %>
+<%
+  const maxB = Math.max(1, ...buckets.map(b => b.n));
+  const maxS = Math.max(1, ...services.map(s => s.n));
+  const maxH = Math.max(1, ...hours.map(h => h.n));
+  const pct = (v) => v + '%';
+%>
+<header class="head">
+  <div>
+    <h1>Estatísticas</h1>
+    <p class="muted"><%= t.formatDateShort(from) %> – <%= t.formatDateShort(to) %> · marcações canceladas não contam, exceto na taxa de cancelamento</p>
+  </div>
+  <div class="seg seg-tight" role="group" aria-label="Período">
+    <% [[30, '30 dias'], [90, '90 dias'], [365, '12 meses']].forEach(([v, l]) => { %><a class="seg-btn <%= period === v ? 'on' : '' %>" href="?periodo=<%= v %>"><%= l %></a><% }) %>
+  </div>
+</header>
+
+<section class="kpi-strip" aria-label="Indicadores">
+  <div><span>Ocupação</span><strong><%= k.occupancy %>%</strong><small>do tempo de trabalho marcado</small></div>
+  <div><span>Marcações</span><strong><%= k.total %></strong><small><%= k.total ? Math.round(k.online / k.total * 100) : 0 %>% feitas pelo site</small></div>
+  <div><span>Faturado</span><strong><%= t.euros(k.revenue) %></strong><small>sessões concluídas · média <%= t.euros(k.avg) %></small></div>
+  <div class="<%= k.noShowRate >= 10 ? 'is-warn' : '' %>"><span>Faltas</span><strong><%= k.noShowRate %>%</strong><small><%= k.noShow %> faltas · <%= k.cancelRate %>% cancelaram</small></div>
+  <div><span>Clientes</span><strong><%= k.clients %></strong><small><%= k.newClients %> novos · <%= k.clients - k.newClients %> habituais</small></div>
+</section>
+
+<div class="grid2">
+  <section class="panel chart">
+    <h2><%= monthly ? 'Marcações por mês' : 'Marcações por semana' %></h2>
+    <div class="cols" role="img" aria-label="<%= buckets.map(b => b.label + ': ' + b.n).join(', ') %>">
+      <% buckets.forEach((b, i) => { const last = i === buckets.length - 1; %>
+        <div class="col <%= last ? 'is-now' : '' %>" tabindex="0" data-tip="<%= monthly ? '' : 'Semana de ' %><%= b.label %>: <%= b.n %> marcações">
+          <span class="col-v"><%= b.n === maxB || last ? b.n : '' %></span>
+          <span class="col-bar" style="height: <%= pct(Math.round(b.n / maxB * 100)) %>"></span>
+          <span class="col-l"><%= b.label %></span>
+        </div>
+      <% }) %>
+    </div>
+    <details class="tbl"><summary>Ver tabela</summary><table class="table"><tbody><% buckets.forEach(b => { %><tr><th><%= b.label %></th><td><%= b.n %></td></tr><% }) %></tbody></table></details>
+  </section>
+
+  <section class="panel chart">
+    <h2>Ocupação por profissional</h2>
+    <ul class="hbars">
+      <% occupancy.forEach(o => { %>
+        <li tabindex="0" data-tip="<%= o.name %>: <%= Math.round(o.booked / 60) %> h marcadas de <%= Math.round(o.avail / 60) %> h disponíveis (<%= o.n %> marcações)">
+          <span class="hb-l"><i class="dot" style="background:<%= o.color %>"></i><%= o.name %></span>
+          <span class="hb-track"><span class="hb-bar" style="width: <%= pct(Math.min(100, o.pct)) %>"></span></span>
+          <span class="hb-v"><%= o.pct %>%</span>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="muted tiny">Tempo marcado sobre o tempo de trabalho (sem pausas, férias, bloqueios e feriados).</p>
+  </section>
+
+  <section class="panel chart">
+    <h2>Serviços mais marcados</h2>
+    <ul class="hbars">
+      <% services.forEach(sv => { %>
+        <li tabindex="0" data-tip="<%= sv.name %>: <%= sv.n %> marcações · <%= t.euros(sv.rev) %> faturados">
+          <span class="hb-l"><%= sv.name %></span>
+          <span class="hb-track"><span class="hb-bar" style="width: <%= pct(Math.round(sv.n / maxS * 100)) %>"></span></span>
+          <span class="hb-v"><%= sv.n %></span>
+        </li>
+      <% }) %>
+    </ul>
+    <% if (!services.length) { %><p class="empty">Sem marcações neste período.</p><% } %>
+  </section>
+
+  <section class="panel chart">
+    <h2>Horas mais procuradas</h2>
+    <div class="cols cols-h" role="img" aria-label="<%= hours.map(h => h.h + 'h: ' + h.n).join(', ') %>">
+      <% hours.forEach(h => { %>
+        <div class="col <%= h.n === maxH ? 'is-now' : '' %>" tabindex="0" data-tip="<%= String(h.h).padStart(2, '0') %>:00–<%= String(h.h).padStart(2, '0') %>:59 · <%= h.n %> marcações">
+          <span class="col-v"><%= h.n === maxH ? h.n : '' %></span>
+          <span class="col-bar" style="height: <%= pct(Math.round(h.n / maxH * 100)) %>"></span>
+          <span class="col-l"><%= h.h %>h</span>
+        </div>
+      <% }) %>
+    </div>
+    <p class="muted tiny">Hora de início das marcações. Útil para decidir horários e equipa.</p>
+  </section>
+</div>
+<%- include('../partials/admin-foot') %>

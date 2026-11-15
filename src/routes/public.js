@@ -12,7 +12,12 @@ const router = express.Router();
 const HOUR = 60 * 60 * 1000;
 router.use('/api', rateLimit('api', 240, 60 * 1000));
 
-const activeServices = () => db.prepare('SELECT * FROM services WHERE active = 1 ORDER BY sort, name').all();
+const activeServices = () => {
+  const list = db.prepare('SELECT * FROM services WHERE active = 1 ORDER BY sort, name').all();
+  const packs = db.prepare('SELECT * FROM packages WHERE active = 1 ORDER BY sessions').all();
+  for (const sv of list) sv.packages = packs.filter((p) => p.service_id === sv.id);
+  return list;
+};
 const activeStaff = () => db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
 const staffServiceMap = () =>
   db.prepare('SELECT ss.staff_id, ss.service_id FROM staff_services ss JOIN staff s ON s.id = ss.staff_id WHERE s.active = 1').all();

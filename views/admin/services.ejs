@@ -28,4 +28,41 @@
     <div class="span2"><button class="btn">Adicionar serviço</button></div>
   </form>
 </div>
+<section class="panel" id="pacotes">
+  <h2>Pacotes de sessões</h2>
+  <p class="muted">Ex.: 10 sessões com desconto. Vendem-se no balcão e atribuem-se na ficha do cliente; cada marcação concluída desse serviço desconta uma sessão. Aparecem no site junto ao serviço.</p>
+  <div class="table-wrap">
+  <table class="table pk-table">
+    <thead><tr><th>Nome</th><th>Serviço</th><th>Sessões</th><th>Preço (€)</th><th>Validade (dias)</th><th>Ativo</th><th></th></tr></thead>
+    <tbody>
+      <% packages.forEach(p => { %>
+        <tr>
+          <td colspan="7">
+            <form method="post" action="/admin/pacotes/<%= p.id %>" class="pk-row">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <input name="name" value="<%= p.name %>" aria-label="Nome" required>
+              <select name="service_id" aria-label="Serviço"><% services.forEach(s => { %><option value="<%= s.id %>" <%= s.id === p.service_id ? 'selected' : '' %>><%= s.name %></option><% }) %></select>
+              <input type="number" name="sessions" min="1" max="100" value="<%= p.sessions %>" aria-label="Sessões">
+              <input name="price" inputmode="decimal" value="<%= (p.price_cents / 100).toFixed(2).replace('.', ',') %>" aria-label="Preço">
+              <input type="number" name="validity_days" min="1" value="<%= p.validity_days %>" aria-label="Validade em dias">
+              <label class="check"><input type="checkbox" name="active" value="1" <%= p.active ? 'checked' : '' %>> <span class="sr-only">Ativo</span></label>
+              <span class="row-actions"><button class="btn btn-sm">Guardar</button><button class="linkbtn danger" name="action" value="delete" data-confirm="Apagar este pacote?">Apagar</button><span class="muted tiny"><%= p.sold %> vendidos</span></span>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <form method="post" action="/admin/pacotes" class="pk-row pk-new">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input name="name" placeholder="Ex.: Pack 5 massagens" aria-label="Nome do novo pacote" required>
+    <select name="service_id" aria-label="Serviço"><% services.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select>
+    <input type="number" name="sessions" min="1" max="100" value="5" aria-label="Sessões">
+    <input name="price" inputmode="decimal" placeholder="Preço" aria-label="Preço">
+    <input type="number" name="validity_days" min="1" value="365" aria-label="Validade em dias">
+    <input type="hidden" name="active" value="1">
+    <button class="btn btn-sm">Adicionar pacote</button>
+  </form>
+</section>
 <%- include('../partials/admin-foot') %>

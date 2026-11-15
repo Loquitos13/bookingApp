@@ -114,6 +114,81 @@ router.post('/lista-espera/:id/remover', (req, res) => {
   back(res, '/admin', 'Removido da lista de espera.');
 });
 
+// ---------- Estatísticas ----------
+router.get('/estatisticas', (req, res) => {
+  const period = [30, 90, 365].includes(+req.query.periodo) ? +req.query.periodo : 30;
+  const to = today();
+  const from = addDays(to, -(period - 1));
+  const { workWindows } = require('../availability');
+  const rows = db.prepare(
+    `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
+     WHERE b.date BETWEEN ? AND ?`
+  ).all(from, to);
+  const live = rows.filter((b) => b.status !== 'cancelled');
+  const count = (st) => rows.filter((b) => b.status === st).length;
+  const completed = count('completed'), noShow = count('no_show'), cancelled = count('cancelled');
+  const revenue = rows.filter((b) => b.status === 'completed').reduce((a, b) => a + b.price_cents, 0);
+  const online = live.filter((b) => b.source === 'online').length;
+
+  // ocupação por profissional (minutos marcados / minutos de trabalho, já sem bloqueios e feriados)
+  const staff = db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
+  const blocks = db.prepare('SELECT * FROM blocks WHERE date_from <= ? AND date_to >= ?').all(to, from);
+  const occupancy = staff.map((p) => {
+    let avail = 0;
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      const bl = blocks.filter((x) => (!x.staff_id || x.staff_id === p.id) && x.date_from <= d && x.date_to >= d);
+      for (const [a, z] of workWindows(d, p.id)) {
+        let m = z - a;
+        for (const x of bl) { const s0 = x.start_min ?? 0, e0 = x.end_min ?? 1440; m -= Math.max(0, Math.min(z, e0) - Math.max(a, s0)); }
+        avail += Math.max(0, m);
+      }
+    }
+    const booked = live.filter((b) => b.staff_id === p.id).reduce((acc, b) => acc + (b.end_min - b.start_min), 0);
+    return { name: p.name, color: p.color, booked, avail, pct: avail ? Math.round((booked / avail) * 100) : 0, n: live.filter((b) => b.staff_id === p.id).length };
+  });
+  const totalAvail = occupancy.reduce((a, o) => a + o.avail, 0);
+  const totalBooked = occupancy.reduce((a, o) => a + o.booked, 0);
+
+  // série temporal: por semana (ou por mês no período de 1 ano)
+  const monthly = period === 365;
+  const buckets = [];
+  if (monthly) {
+    for (let i = 11; i >= 0; i--) { const dt = new Date(Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1 - i, 1)); buckets.push({ key: dt.toISOString().slice(0, 7), label: t0month(dt) }); }
+  } else {
+    let m = addDays(from, -((weekday(from) + 6) % 7));
+    while (m <= to) { buckets.push({ key: m, label: m.slice(8) + '/' + m.slice(5, 7) }); m = addDays(m, 7); }
+  }
+  for (const bk of buckets) bk.n = 0;
+  for (const b of live) {
+    const key = monthly ? b.date.slice(0, 7) : addDays(b.date, -((weekday(b.date) + 6) % 7));
+    const bk = buckets.find((x) => x.key === key);
+    if (bk) bk.n++;
+  }
+
+  const bySvc = {};
+  for (const b of live) { const o = (bySvc[b.service_name] ||= { name: b.service_name, n: 0, rev: 0 }); o.n++; if (b.status === 'completed') o.rev += b.price_cents; }
+  const services = Object.values(bySvc).sort((a, b) => b.n - a.n);
+  const hours = Array.from({ length: 24 }, (_, h) => ({ h, n: 0 }));
+  for (const b of live) hours[Math.floor(b.start_min / 60)].n++;
+  const hourRange = hours.filter((h) => h.n);
+  const hMin = hourRange.length ? hourRange[0].h : 9, hMax = hourRange.length ? hourRange[hourRange.length - 1].h : 18;
+
+  const emails = [...new Set(live.map((b) => b.customer_email.toLowerCase()).filter((e) => e.includes('@') && !e.endsWith('@removido.invalid')))];
+  const firstSeen = db.prepare('SELECT lower(customer_email) e, MIN(date) d FROM bookings GROUP BY lower(customer_email)').all();
+  const firstMap = Object.fromEntries(firstSeen.map((r) => [r.e, r.d]));
+  const newClients = emails.filter((e) => firstMap[e] >= from).length;
+
+  res.render('admin/stats', {
+    period, from, to, monthly,
+    k: { total: live.length, completed, noShow, cancelled, revenue, online, noShowRate: completed + noShow ? Math.round((noShow / (completed + noShow)) * 100) : 0,
+      cancelRate: rows.length ? Math.round((cancelled / rows.length) * 100) : 0, occupancy: totalAvail ? Math.round((totalBooked / totalAvail) * 100) : 0,
+      clients: emails.length, newClients, avg: completed ? Math.round(revenue / completed) : 0 },
+    occupancy, buckets, services, hours: hours.filter((h) => h.h >= hMin && h.h <= hMax),
+  });
+});
+const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function t0month(dt) { return MONTHS_SHORT[dt.getUTCMonth()]; }
+
 // ---------- Agenda (vista diária por profissional) ----------
 router.get('/agenda', (req, res) => {
   const date = isDate(req.query.data) ? req.query.data : today();
@@ -283,6 +358,28 @@ router.post('/marcacoes', (req, res) => {
     try {
       const b = createBooking({ ...form, start, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
       if (form.notify && form.email) notifyNewBooking(b);
+      // repetição: semanal / de 2 em 2 semanas, com o mesmo profissional
+      const every = { semanal: 7, quinzenal: 14 }[req.body.repeat];
+      const times = Math.max(1, Math.min(26, +req.body.repeat_count || 1));
+      if (every && times > 1) {
+        const series = require('node:crypto').randomBytes(8).toString('hex');
+        db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, b.id);
+        const skipped = [];
+        let made = 1;
+        for (let i = 1; i < times; i++) {
+          const d = addDays(form.date, every * i);
+          try {
+            const nb = createBooking({ ...form, date: d, start, staffId: b.staff_id, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
+            db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, nb.id);
+            made++;
+          } catch (e) {
+            if (!(e instanceof BookingError)) throw e;
+            skipped.push(d);
+          }
+        }
+        const msg = `Criadas ${made} marcações em série.` + (skipped.length ? ` Sem vaga (não criadas): ${skipped.map((d) => d.slice(8) + '/' + d.slice(5, 7)).join(', ')}.` : '');
+        return back(res, `/admin/marcacoes/${b.id}`, msg);
+      }
       return back(res, `/admin/marcacoes/${b.id}`, 'Marcação criada.');
     } catch (e) {
       if (!(e instanceof BookingError)) throw e;
@@ -301,7 +398,8 @@ router.get('/marcacoes/:id', (req, res, next) => {
        WHERE b.customer_email = ? AND b.id != ? ORDER BY b.date DESC LIMIT 10`
     )
     .all(b.customer_email, b.id);
-  res.render('admin/booking', { b, history, ...formData(), error: req.query.erro || null });
+  const series = b.series_id ? db.prepare('SELECT id, date, start_min, status FROM bookings WHERE series_id = ? ORDER BY date').all(b.series_id) : [];
+  res.render('admin/booking', { series, b, history, ...formData(), error: req.query.erro || null });
 });
 
 router.post('/marcacoes/:id', (req, res, next) => {
@@ -311,6 +409,7 @@ router.post('/marcacoes/:id', (req, res, next) => {
 
   if (action === 'status' && STATUS[req.body.status]) {
     db.prepare("UPDATE bookings SET status = ?, updated_at = datetime('now') WHERE id = ?").run(req.body.status, b.id);
+    require('../packages').onStatusChange(b, req.body.status);
     if (req.body.notify === '1') notifyStatusChange(getBooking(b.id));
     const ret = String(req.body.back || '');
     if (ret.startsWith('/admin') && !ret.startsWith('//')) return back(res, ret, `${b.customer_name}: ${STATUS[req.body.status].toLowerCase()}.`);
@@ -350,6 +449,11 @@ router.post('/marcacoes/:id', (req, res, next) => {
     }
     db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?").run(date, start, end, staffId, b.id);
     return back(res, `/admin/marcacoes/${b.id}`, 'Marcação reagendada.');
+  }
+
+  if (action === 'cancel_series' && b.series_id) {
+    const r = db.prepare("UPDATE bookings SET status = 'cancelled', updated_at = datetime('now') WHERE series_id = ? AND date >= ? AND status IN ('pending','confirmed')").run(b.series_id, b.date);
+    return back(res, `/admin/marcacoes/${b.id}`, `${r.changes} marcações da série canceladas (esta e as seguintes).`);
   }
 
   if (action === 'delete') {
@@ -395,7 +499,9 @@ router.get('/clientes/ficha', (req, res, next) => {
      WHERE lower(b.customer_email) = ? ORDER BY b.date DESC, b.start_min DESC`
   ).all(email);
   const notes = (db.prepare('SELECT notes FROM client_notes WHERE email = ?').get(email) || {}).notes || '';
-  res.render('admin/client', { c, bookings, notes, d });
+  const cpacks = db.prepare('SELECT cp.*, p.name, s.name service_name FROM client_packages cp JOIN packages p ON p.id = cp.package_id JOIN services s ON s.id = p.service_id WHERE cp.email = ? ORDER BY cp.purchased_at DESC').all(email);
+  const packages = db.prepare('SELECT p.*, s.name service_name FROM packages p JOIN services s ON s.id = p.service_id WHERE p.active = 1 ORDER BY s.sort').all();
+  res.render('admin/client', { c, bookings, notes, d, cpacks, packages });
 });
 
 router.post('/clientes/ficha', (req, res) => {
@@ -455,7 +561,47 @@ router.get('/servicos', (req, res) => {
   const services = db
     .prepare('SELECT s.*, (SELECT COUNT(*) FROM bookings b WHERE b.service_id = s.id) uses FROM services s ORDER BY sort, name')
     .all();
-  res.render('admin/services', { services });
+  const packages = db.prepare('SELECT p.*, s.name service_name, (SELECT COUNT(*) FROM client_packages cp WHERE cp.package_id = p.id) sold FROM packages p JOIN services s ON s.id = p.service_id ORDER BY s.sort, p.sessions').all();
+  res.render('admin/services', { services, packages });
+});
+
+// pacotes de sessões
+function packageFromBody(b) {
+  return [clean(b.name, 120), +b.service_id, Math.max(1, Math.min(100, +b.sessions || 1)), Math.round((parseFloat(String(b.price).replace(',', '.')) || 0) * 100), Math.max(1, Math.min(1825, +b.validity_days || 365)), b.active ? 1 : 0];
+}
+router.post('/pacotes', (req, res) => {
+  const v = packageFromBody(req.body);
+  if (!v[0] || !v[1]) return back(res, '/admin/servicos#pacotes', 'Indique o nome e o serviço do pacote.');
+  db.prepare('INSERT INTO packages(name, service_id, sessions, price_cents, validity_days, active) VALUES (?,?,?,?,?,?)').run(...v);
+  back(res, '/admin/servicos#pacotes', 'Pacote criado.');
+});
+router.post('/pacotes/:id', (req, res) => {
+  const id = +req.params.id;
+  if (req.body.action === 'delete') {
+    const sold = db.prepare('SELECT COUNT(*) c FROM client_packages WHERE package_id = ?').get(id).c;
+    if (sold) db.prepare('UPDATE packages SET active = 0 WHERE id = ?').run(id);
+    else db.prepare('DELETE FROM packages WHERE id = ?').run(id);
+    return back(res, '/admin/servicos#pacotes', sold ? 'Pacote desativado (já foi vendido).' : 'Pacote apagado.');
+  }
+  db.prepare('UPDATE packages SET name = ?, service_id = ?, sessions = ?, price_cents = ?, validity_days = ?, active = ? WHERE id = ?').run(...packageFromBody(req.body), id);
+  back(res, '/admin/servicos#pacotes', 'Pacote guardado.');
+});
+router.post('/clientes/pacote', (req, res) => {
+  const email = clean(req.body.email, 160).toLowerCase();
+  const back2 = '/admin/clientes/ficha?email=' + encodeURIComponent(email);
+  if (req.body.action === 'remove') {
+    db.prepare('DELETE FROM client_packages WHERE id = ? AND email = ?').run(+req.body.id, email);
+    return back(res, back2, 'Pacote removido.');
+  }
+  if (req.body.action === 'adjust') {
+    db.prepare('UPDATE client_packages SET sessions_used = MAX(0, MIN(sessions_total, sessions_used + ?)) WHERE id = ? AND email = ?').run(+req.body.delta || 0, +req.body.id, email);
+    return back(res, back2, 'Sessões ajustadas.');
+  }
+  const p = db.prepare('SELECT * FROM packages WHERE id = ?').get(+req.body.package_id);
+  if (!p) return back(res, back2, 'Escolha um pacote.');
+  db.prepare("INSERT INTO client_packages(email, package_id, sessions_total, price_cents, expires_at, notes) VALUES (?,?,?,?, date('now', ?), ?)")
+    .run(email, p.id, p.sessions, p.price_cents, `+${p.validity_days} days`, clean(req.body.notes, 300));
+  back(res, back2, `Pacote "${p.name}" atribuído.`);
 });
 
 function serviceFromBody(body) {

@@ -19,6 +19,12 @@
   <label>Email<input name="email" type="email" value="<%= form.email && form.email !== '—' ? form.email : '' %>"></label>
   <label class="span2">Notas do cliente<textarea name="notes" rows="2"><%= form.notes || '' %></textarea></label>
   <label class="span2">Notas internas<textarea name="internal_notes" rows="2"><%= form.internalNotes || '' %></textarea></label>
+  <fieldset class="span2 repeat">
+    <legend>Repetir</legend>
+    <label>Frequência<select name="repeat"><option value="">Não repetir</option><option value="semanal">Todas as semanas</option><option value="quinzenal">De 2 em 2 semanas</option></select></label>
+    <label>Número de marcações (incluindo esta)<input type="number" name="repeat_count" min="1" max="26" value="1"></label>
+    <p class="muted tiny">Ex.: plano de tratamento de 8 sessões. Mesmo dia da semana, mesma hora e mesmo profissional; os dias sem vaga são indicados no fim.</p>
+  </fieldset>
   <label class="check"><input type="checkbox" name="notify" value="1" <%= form.notify ? 'checked' : '' %>> Enviar email de confirmação ao cliente</label>
   <label class="check"><input type="checkbox" name="force" value="1" <%= form.force ? 'checked' : '' %>> Ignorar disponibilidade (encaixe)</label>
   <div class="span2"><button class="btn">Criar marcação</button></div>

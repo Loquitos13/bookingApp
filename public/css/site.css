@@ -447,3 +447,6 @@ dialog.sheet p { color: var(--ink-2); }
 
 /* pagamento */
 .pay-box { display: grid; gap: 10px; justify-items: start; padding: 18px; margin: 20px 0; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); }
+
+.tt-pack { display: block; margin-top: 6px; font: 600 1rem var(--cond); text-transform: uppercase; letter-spacing: .03em; color: var(--ink); }
+.tt-pack em { font-style: normal; color: var(--ink-2); text-transform: none; letter-spacing: 0; font-family: var(--sans); font-weight: 400; font-size: .9rem; }

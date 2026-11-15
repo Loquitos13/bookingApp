@@ -50,6 +50,35 @@
     <button class="btn">Guardar notas</button>
   </form>
 </div>
+<section class="panel" id="pacotes">
+  <h2>Pacotes</h2>
+  <% if (!cpacks.length) { %><p class="empty">Sem pacotes.</p><% } %>
+  <ul class="list">
+    <% cpacks.forEach(cp => { const left = cp.sessions_total - cp.sessions_used; const expired = cp.expires_at && cp.expires_at < d; %>
+      <li class="row">
+        <span class="row-main">
+          <span class="pk-meter" aria-hidden="true"><% for (let i = 0; i < cp.sessions_total; i++) { %><i class="<%= i < cp.sessions_used ? 'used' : '' %>"></i><% } %></span>
+          <span class="who"><strong><%= cp.name %> · <%= left %> de <%= cp.sessions_total %> por usar</strong><small><%= cp.service_name %> · comprado <%= t.formatDateShort(cp.purchased_at) %><%= cp.expires_at ? (expired ? ' · expirou ' : ' · válido até ') + t.formatDateShort(cp.expires_at) + ' ' + cp.expires_at.slice(0, 4) : '' %><%= cp.notes ? ' · ' + cp.notes : '' %></small></span>
+        </span>
+        <form method="post" action="/admin/clientes/pacote" class="row-actions">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="email" value="<%= c.email %>"><input type="hidden" name="id" value="<%= cp.id %>">
+          <input type="hidden" name="delta" value="1">
+          <button class="btn btn-ghost btn-sm" name="action" value="adjust" title="Descontar uma sessão manualmente">−1 sessão</button>
+          <button class="linkbtn danger" name="action" value="remove" data-confirm="Remover este pacote do cliente?">Remover</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+  <% if (packages.length) { %>
+  <form method="post" action="/admin/clientes/pacote" class="pk-assign">
+    <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="email" value="<%= c.email %>">
+    <label>Atribuir pacote<select name="package_id"><% packages.forEach(p => { %><option value="<%= p.id %>"><%= p.name %> · <%= p.service_name %> · <%= t.euros(p.price_cents) %></option><% }) %></select></label>
+    <label>Nota (ex.: pago em numerário)<input name="notes" maxlength="300"></label>
+    <button class="btn">Atribuir</button>
+  </form>
+  <% } %>
+</section>
+
 <details class="panel danger-panel">
   <summary><h2>Dados pessoais (RGPD)</h2></summary>
   <p class="muted">A pedido do cliente: exportar tudo o que guardamos, ou apagar os dados pessoais. Ao apagar, as marcações ficam anónimas (contam nas estatísticas, sem nome nem contactos). Não é reversível.</p>

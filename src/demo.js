@@ -47,15 +47,15 @@ function seedDemo() {
 
   tx(() => {
     db.exec('DELETE FROM bookings; DELETE FROM messages; DELETE FROM blocks;');
-    for (let off = -12; off <= 21; off++) {
+    for (let off = -84; off <= 21; off++) {
       const date = addDays(today, off);
       const h = hours[weekday(date)];
       if (!h || h.closed || require('./holidays').holidayName(date)) continue;
       const windows = h.break_start != null ? [[h.open_min, h.break_start], [h.break_end, h.close_min]] : [[h.open_min, h.close_min]];
       // ocupação: mais cheia nos próximos dias, a esvaziar ao longo das semanas
-      const fill = off < 0 ? 0.55 : off <= 3 ? 0.45 : off <= 10 ? 0.3 : 0.15;
+      const fill = off < 0 ? 0.62 + 0.1 * Math.sin(off / 5) : off <= 3 ? 0.5 : off <= 10 ? 0.32 : 0.15;
       const busy = {};
-      const attempts = Math.round(18 * fill);
+      const attempts = Math.round(24 * fill);
       for (let n = 0; n < attempts; n++) {
         const svc = pick(services);
         const staffIds = links.filter((l) => l.service_id === svc.id).map((l) => l.staff_id);
@@ -113,6 +113,10 @@ function seedDemo() {
     const cn = db.prepare('INSERT INTO client_notes(email, notes) VALUES (?, ?)');
     cn.run(CLIENTS[0].email, 'Cliente habitual. Prefere o fim do dia. (exemplo)');
     cn.run(CLIENTS[1].email, 'Recuperação de entorse no tornozelo esquerdo. (exemplo)');
+    db.exec('DELETE FROM client_packages;');
+    const pk = db.prepare('SELECT * FROM packages WHERE active = 1 LIMIT 1').get();
+    if (pk) db.prepare("INSERT INTO client_packages(email, package_id, sessions_total, sessions_used, price_cents, purchased_at, expires_at, notes) VALUES (?,?,?,?,?, date('now','-20 days'), date('now', ?), 'Pago em numerário (exemplo)')")
+      .run(CLIENTS[0].email, pk.id, pk.sessions, 3, pk.price_cents, `+${pk.validity_days - 20} days`);
 
     const msg = db.prepare("INSERT INTO messages(name, email, phone, message, read, created_at) VALUES (?,?,?,?,?, datetime('now', ?))");
     msg.run('Helena Vaz', 'helena.vaz@exemplo.pt', '', 'Bom dia, aceitam o seguro de saúde da minha empresa? Obrigada.', 0, '-3 hours');

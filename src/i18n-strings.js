@@ -36,3 +36,4 @@ def('pay.processing', 'Pagamento em processamento (Multibanco). Confirmamos assi
 def('pay.done', 'Pagamento de {amount} recebido. Obrigado!', 'Payment of {amount} received. Thank you!');
 def('pay.checking', 'A confirmar o pagamento… atualize a página daqui a uns segundos.', 'Confirming your payment… refresh in a few seconds.');
 def('pay.paidShort', '{amount} pago', '{amount} paid');
+def('pack.session', 'sessão', 'session');
