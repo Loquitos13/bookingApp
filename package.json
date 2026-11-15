@@ -1,13 +1,14 @@
 {
   "name": "bookingapp",
   "version": "1.0.0",
-  "description": "Site informativo com marcações online e back office",
+  "description": "Site informativo com marca\u00e7\u00f5es online e back office",
   "main": "server.js",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
     "dev": "node --watch --disable-warning=ExperimentalWarning server.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "icons": "node --disable-warning=ExperimentalWarning scripts/icons.js"
+    "icons": "node --disable-warning=ExperimentalWarning scripts/icons.js",
+    "backup": "node --disable-warning=ExperimentalWarning -e \"process.env.DEMO='0';console.log('C\u00f3pia criada:', require('./src/scheduler').backup({ force: true }))\""
   },
   "repository": {
     "type": "git",

@@ -74,8 +74,28 @@
   window.addEventListener('popstate', (e) => { if (e.state && e.state.step) go(e.state.step, { push: false, back: e.state.step < step }); });
   $$('.route-stop').forEach((b) => b.addEventListener('click', () => { const n = +b.dataset.goto; if (n !== step) go(n, { back: n < step }); }));
 
+  /* ---------- lista de espera (passo 3) ---------- */
+  const wl = $('#waitlist'), wlForm = $('#wl-form'), wlOpen = $('#wl-open');
+  function syncWaitlist() {
+    if (!wl) return;
+    const show = step === 3 && !!service() && !!fDate.value;
+    wl.hidden = !show;
+    if (!show) return;
+    wlForm.serviceId.value = val('serviceId');
+    wlForm.staffId.value = val('staffId');
+    wlForm.date.value = fDate.value;
+    $$('[data-value="wl-date"]').forEach((el) => (el.textContent = longDate(fDate.value)));
+  }
+  wlOpen && wlOpen.addEventListener('click', () => {
+    wlForm.hidden = false;
+    wlOpen.setAttribute('aria-expanded', 'true');
+    syncWaitlist();
+    wlForm.name.focus();
+  });
+
   /* ---------- resumo (barra, rota, talão) ---------- */
   function update() {
+    syncWaitlist();
     const svc = service(), p = staff();
     const when = fDate.value && fTime.value ? `${relDay(fDate.value)} · ${fTime.value}` : '';
     const set = (key, text) => $$(`[data-value="${key}"]`).forEach((el) => (el.textContent = text));

@@ -102,7 +102,16 @@ router.get('/', (req, res) => {
        WHERE b.source = 'online' ORDER BY b.created_at DESC LIMIT 6`
     )
     .all();
-  res.render('admin/dashboard', { stats, upcoming: upcoming.filter((b) => b.date !== d), recent, d, todayList, pendingList, nowMin });
+  const waitingList = db.prepare(
+    `SELECT w.*, s.name service_name, st.name staff_name FROM waitlist w JOIN services s ON s.id = w.service_id
+     LEFT JOIN staff st ON st.id = w.staff_id WHERE w.status IN ('waiting','notified') AND w.date >= ? ORDER BY w.date, w.created_at LIMIT 10`
+  ).all(d);
+  res.render('admin/dashboard', { waitingList, stats, upcoming: upcoming.filter((b) => b.date !== d), recent, d, todayList, pendingList, nowMin });
+});
+
+router.post('/lista-espera/:id/remover', (req, res) => {
+  db.prepare("UPDATE waitlist SET status = 'removed' WHERE id = ?").run(+req.params.id);
+  back(res, '/admin', 'Removido da lista de espera.');
 });
 
 // ---------- Agenda (vista diária por profissional) ----------

@@ -99,6 +99,22 @@
           <button class="btn btn-signal btn-lg btn-block submit-nojs">Confirmar marcação</button>
         </fieldset>
       </form>
+
+      <section class="waitlist" id="waitlist" hidden aria-labelledby="wl-title">
+        <p class="wl-cta"><%= L('wl.cta') %> <button type="button" class="link-btn" id="wl-open" aria-expanded="false" aria-controls="wl-form"><%= L('wl.open') %></button></p>
+        <form method="post" action="/lista-espera" id="wl-form" class="wl-form" hidden>
+          <h2 id="wl-title"><%= L('wl.title') %> · <span data-value="wl-date"></span></h2>
+          <p class="muted"><%= L('wl.lead') %></p>
+          <input type="hidden" name="serviceId"><input type="hidden" name="staffId"><input type="hidden" name="date">
+          <div class="fields">
+            <label class="field"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name"></label>
+            <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email"></label>
+            <label class="field"><span>Telemóvel <em>opcional</em></span><input name="phone" type="tel" autocomplete="tel"></label>
+          </div>
+          <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="btn btn-ink"><%= L('wl.submit') %></button>
+        </form>
+      </section>
     </div>
 
     <aside class="book-aside" aria-label="Resumo">

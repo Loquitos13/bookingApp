@@ -43,12 +43,12 @@ function notifyNewBooking(b) {
   const st = getSettings();
   const manage = `${baseUrl()}/marcacao/${b.token}`;
   const state = b.status === 'pending' ? 'Recebemos o seu pedido de marcação — vamos confirmá-lo em breve.' : 'A sua marcação está confirmada.';
-  send({
+  module.exports.send({
     to: b.customer_email,
     subject: `${st.business_name}: marcação ${b.status === 'pending' ? 'recebida' : 'confirmada'} (${b.ref})`,
     text: `Olá ${b.customer_name},\n\n${state}\n\n${bookingSummary(b)}\n\nMorada: ${st.address}\n\nPara ver ou cancelar: ${manage}\n\nAté breve,\n${st.business_name}`,
   });
-  send({
+  module.exports.send({
     to: process.env.NOTIFY_EMAIL || st.email,
     subject: `Nova marcação ${b.ref} — ${b.customer_name}`,
     text: `${bookingSummary(b)}\n\nCliente: ${b.customer_name}\nEmail: ${b.customer_email}\nTelefone: ${b.customer_phone}\nNotas: ${b.notes || '—'}\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
@@ -62,7 +62,7 @@ function notifyStatusChange(b) {
     cancelled: 'A sua marcação foi cancelada. Se quiser, pode fazer uma nova marcação no nosso site.',
   };
   if (!msgs[b.status]) return;
-  send({
+  module.exports.send({
     to: b.customer_email,
     subject: `${st.business_name}: marcação ${b.status === 'confirmed' ? 'confirmada' : 'cancelada'} (${b.ref})`,
     text: `Olá ${b.customer_name},\n\n${msgs[b.status]}\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
@@ -72,17 +72,88 @@ function notifyStatusChange(b) {
 function notifyRescheduled(b, before, { byBusiness = false } = {}) {
   const st = getSettings();
   const was = `${formatDateLong(before.date)} às ${minToTime(before.start)}`;
-  send({
+  module.exports.send({
     to: b.customer_email,
     subject: `${st.business_name}: marcação alterada (${b.ref})`,
     text: `Olá ${b.customer_name},\n\nA sua marcação foi alterada (antes: ${was}).\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
   });
   if (byBusiness) return;
-  send({
+  module.exports.send({
     to: process.env.NOTIFY_EMAIL || st.email,
     subject: `Marcação ${b.ref} reagendada pelo cliente`,
     text: `${b.customer_name} mudou de ${was} para ${formatDateLong(b.date)} às ${minToTime(b.start_min)} (${b.staff_name}).\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
   });
 }
 
-module.exports = { send, notifyNewBooking, notifyStatusChange, notifyRescheduled };
+/* ---------- SMS / WhatsApp (Twilio, opcional) ---------- */
+const smsReady = () => !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
+function normalizePhone(p) {
+  const d = String(p || '').replace(/[^\d+]/g, '');
+  if (!d) return null;
+  if (d.startsWith('+')) return d;
+  if (d.startsWith('00')) return '+' + d.slice(2);
+  if (d.length === 9) return '+351' + d; // número português sem indicativo
+  return null;
+}
+async function sendSms(phone, body) {
+  const to = normalizePhone(phone);
+  if (!to) return false;
+  if (!smsReady()) { console.log(`\n[sms:simulado] Para: ${to}\n${body}\n`); return false; }
+  const from = process.env.TWILIO_FROM; // ex.: +351910000000 ou whatsapp:+14155238886
+  const wa = from.startsWith('whatsapp:');
+  try {
+    const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`, {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64') },
+      body: new URLSearchParams({ To: wa ? `whatsapp:${to}` : to, From: from, Body: body }),
+    });
+    if (!r.ok) console.error('[sms] falhou:', r.status, await r.text());
+    return r.ok;
+  } catch (e) { console.error('[sms] falhou:', e.message); return false; }
+}
+
+function sendReminder(b) {
+  const st = getSettings();
+  const en = b.lang === 'en';
+  const when = `${formatDateLong(b.date)} às ${minToTime(b.start_min)}`;
+  module.exports.send({
+    to: b.customer_email,
+    subject: en ? `Reminder: ${b.service_name} at ${st.business_name}` : `Lembrete: ${b.service_name} · ${st.business_name}`,
+    text: en
+      ? `Hello ${b.customer_name},\n\nA reminder of your appointment:\n\n${bookingSummary(b)}\n\nAddress: ${st.address}\n\nNeed to change or cancel? ${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`
+      : `Olá ${b.customer_name},\n\nLembramos a sua marcação:\n\n${bookingSummary(b)}\n\nMorada: ${st.address}\n\nPrecisa de mudar ou cancelar? ${baseUrl()}/marcacao/${b.token}\n\nAté breve,\n${st.business_name}`,
+  });
+  if (st.reminder_sms === '1') {
+    sendSms(b.customer_phone, en
+      ? `${st.business_name}: reminder ${b.service_name}, ${b.date} ${minToTime(b.start_min)}. Change/cancel: ${baseUrl()}/marcacao/${b.token}`
+      : `${st.business_name}: lembrete ${b.service_name}, ${when}. Mudar/cancelar: ${baseUrl()}/marcacao/${b.token}`);
+  }
+}
+
+function sendReviewRequest(b) {
+  const st = getSettings();
+  const en = b.lang === 'en';
+  module.exports.send({
+    to: b.customer_email,
+    subject: en ? `How was your visit to ${st.business_name}?` : `Como correu a sua visita à ${st.business_name}?`,
+    text: en
+      ? `Hello ${b.customer_name},\n\nThank you for coming. If you have a minute, a short review helps others find us:\n\n${st.review_url}\n\n${st.business_name}`
+      : `Olá ${b.customer_name},\n\nObrigado pela visita. Se tiver um minuto, uma avaliação curta ajuda outras pessoas a encontrar-nos:\n\n${st.review_url}\n\nObrigado!\n${st.business_name}`,
+  });
+}
+
+function sendWaitlistOpening(w, serviceName) {
+  const st = getSettings();
+  const en = w.lang === 'en';
+  const link = `${baseUrl()}/marcar?servico=${w.service_id}${w.staff_id ? '&profissional=' + w.staff_id : ''}&dia=${w.date}`;
+  module.exports.send({
+    to: w.email,
+    subject: en ? `A slot opened up on ${w.date} · ${st.business_name}` : `Vagou um horário a ${formatDateLong(w.date)} · ${st.business_name}`,
+    text: en
+      ? `Hello ${w.name},\n\nGood news: a slot for ${serviceName} on ${w.date} is now available. It's first come, first served:\n\n${link}\n\n${st.business_name}`
+      : `Olá ${w.name},\n\nBoas notícias: vagou um horário para ${serviceName} a ${formatDateLong(w.date)}. É por ordem de chegada:\n\n${link}\n\nPara sair da lista de espera: ${baseUrl()}/lista-espera/${w.token}/sair\n\n${st.business_name}`,
+  });
+  if (st.reminder_sms === '1') sendSms(w.phone, `${st.business_name}: ${en ? 'a slot opened up on' : 'vagou um horário a'} ${w.date}. ${link}`);
+}
+
+module.exports = { send, sendSms, normalizePhone, notifyNewBooking, notifyStatusChange, notifyRescheduled, sendReminder, sendReviewRequest, sendWaitlistOpening };

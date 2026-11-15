@@ -70,6 +70,7 @@ app.get('/admin/sw.js', (req, res) => {
 });
 app.get('/admin/offline', (req, res) => res.render('admin/offline'));
 
+app.get('/health', (req, res) => res.json({ ok: true }));
 app.use('/admin', require('./src/routes/admin'));
 app.use('/', require('./src/routes/public'));
 
@@ -81,6 +82,7 @@ app.use((err, req, res, _next) => {
 
 const PORT = +process.env.PORT || 3000;
 if (require.main === module) {
+  require('./src/scheduler').start();
   app.listen(PORT, () => console.log(`Site:        http://localhost:${PORT}\nBack office: http://localhost:${PORT}/admin`));
 }
 module.exports = app;

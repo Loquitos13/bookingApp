@@ -1,0 +1,32 @@
+# Uma instalação por cliente: copie este ficheiro, mude o nome do serviço/volume e as variáveis.
+services:
+  marcacoes:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - dados:/data
+    environment:
+      BASE_URL: "https://www.exemplo.pt"
+      ADMIN_EMAIL: "admin@exemplo.pt"
+      ADMIN_PASSWORD: "mude-esta-palavra-passe"
+      DEMO: "0"
+      # Email (opcional)
+      # SMTP_HOST: ""
+      # SMTP_PORT: "587"
+      # SMTP_USER: ""
+      # SMTP_PASS: ""
+      # MAIL_FROM: "Negócio <geral@exemplo.pt>"
+      # SMS / WhatsApp (opcional)
+      # TWILIO_ACCOUNT_SID: ""
+      # TWILIO_AUTH_TOKEN: ""
+      # TWILIO_FROM: "+351910000000"
+      # Pagamentos (opcional)
+      # STRIPE_SECRET_KEY: ""
+      # STRIPE_WEBHOOK_SECRET: ""
+      # Anti-spam (opcional)
+      # TURNSTILE_SITE_KEY: ""
+      # TURNSTILE_SECRET_KEY: ""
+volumes:
+  dados:

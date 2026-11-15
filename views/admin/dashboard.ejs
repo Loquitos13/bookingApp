@@ -56,6 +56,27 @@
   </ol>
 </section>
 
+<% if (waitingList.length) { %>
+<section class="panel" aria-labelledby="wl">
+  <div class="panel-head"><h2 id="wl">Lista de espera</h2><span class="muted tiny">Avisados por email quando vagar um horário</span></div>
+  <ul class="list">
+    <% waitingList.forEach(w => { %>
+      <li class="row">
+        <span class="row-main">
+          <span class="when"><strong><%= t.formatDateShort(w.date) %></strong><small><%= w.status === 'notified' ? 'avisado' : 'à espera' %></small></span>
+          <span class="who"><strong><%= w.name %></strong><small><%= w.service_name %><%= w.staff_name ? ' · ' + w.staff_name : '' %> · <%= w.phone || w.email %></small></span>
+        </span>
+        <form method="post" action="/admin/lista-espera/<%= w.id %>/remover" class="row-actions">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <a class="btn btn-ghost btn-sm" href="/admin/marcacoes/nova?data=<%= w.date %>&nome=<%= encodeURIComponent(w.name) %>&email=<%= encodeURIComponent(w.email) %>&tel=<%= encodeURIComponent(w.phone || '') %>">Marcar</a>
+          <button class="btn btn-ghost btn-sm">Remover</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+<% } %>
+
 <div class="grid2">
   <section class="panel">
     <div class="panel-head"><h2>Próximos dias</h2><a href="/admin/marcacoes">Todas</a></div>

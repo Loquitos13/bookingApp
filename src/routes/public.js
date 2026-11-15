@@ -3,7 +3,7 @@ const express = require('express');
 const { db, getSettings } = require('../db');
 const { getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, canCustomerCancel, rescheduleBooking, BookingError } = require('../availability');
 const { notifyNewBooking, notifyStatusChange, notifyRescheduled, send } = require('../mailer');
-const { isDate, nowIn, timeToMin, minToTime, weekday } = require('../time');
+const { isDate, nowIn, timeToMin, minToTime, weekday, formatDateLong } = require('../time');
 
 const { rateLimit, verifyTurnstile } = require('../security-mw');
 
@@ -271,6 +271,34 @@ router.get('/cal/:token.ics', rateLimit('cal', 60, HOUR), (req, res, next) => {
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Cache-Control', 'private, max-age=300');
   res.send(lines.join('\r\n'));
+});
+
+// ---- lista de espera ----
+router.post('/lista-espera', rateLimit('waitlist', 10, HOUR), async (req, res) => {
+  if (req.body.website) return res.redirect('/');
+  const serviceId = +req.body.serviceId;
+  const staffId = +req.body.staffId || null;
+  const date = clean(req.body.date, 10);
+  const name = clean(req.body.name, 120);
+  const email = clean(req.body.email, 160).toLowerCase();
+  const phone = clean(req.body.phone, 30);
+  const L = res.locals.L;
+  const svc = db.prepare('SELECT * FROM services WHERE id = ? AND active = 1').get(serviceId);
+  if (!svc || !isDate(date) || date < nowIn(getSettings().timezone).date || name.length < 2 || !EMAIL_RE.test(email)) {
+    return res.status(422).render('public/message', { code: '422', title: L('wl.bad.title'), text: L('wl.bad.text') });
+  }
+  if (!(await verifyTurnstile(req))) return res.status(422).render('public/message', { code: '422', title: L('wl.bad.title'), text: L('wl.bad.text') });
+  const dup = db.prepare("SELECT 1 FROM waitlist WHERE lower(email) = ? AND service_id = ? AND date = ? AND status = 'waiting'").get(email, serviceId, date);
+  if (!dup) {
+    db.prepare('INSERT INTO waitlist(token, service_id, staff_id, date, name, email, phone, lang) VALUES (?,?,?,?,?,?,?,?)')
+      .run(require('../security').randomToken(), serviceId, staffId, date, name, email, phone, req.lang || 'pt');
+  }
+  res.render('public/message', { code: 'OK', title: L('wl.ok.title'), text: L('wl.ok.text', { service: svc.name, date: formatDateLong(date) }) });
+});
+router.get('/lista-espera/:token/sair', (req, res, next) => {
+  const r = db.prepare("UPDATE waitlist SET status = 'removed' WHERE token = ?").run(String(req.params.token));
+  if (!r.changes) return next();
+  res.render('public/message', { code: 'OK', title: res.locals.L('wl.out.title'), text: res.locals.L('wl.out.text') });
 });
 
 router.get('/privacidade', (req, res) => res.render('public/privacy'));
