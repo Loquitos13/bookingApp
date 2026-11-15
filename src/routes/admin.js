@@ -2,7 +2,11 @@
 const express = require('express');
 const { db, getSettings, setSetting, DEFAULT_SETTINGS } = require('../db');
 const { login, logout, requireAuth } = require('../auth');
-const { getSlots, createBooking, getBooking, busyIntervals, BookingError, ACTIVE_STATUSES } = require('../availability');
+const { getSlots, availableDays, createBooking, getBooking, busyIntervals, rescheduleBooking, dayHours, BookingError, ACTIVE_STATUSES } = require('../availability');
+const { holidayName } = require('../holidays');
+const { ensureStaffTokens } = require('../db');
+const path = require('node:path');
+const fs = require('node:fs');
 const { notifyStatusChange, notifyNewBooking } = require('../mailer');
 const { hashPassword, verifyPassword } = require('../security');
 const { isDate, nowIn, addDays, timeToMin, weekday } = require('../time');
@@ -131,9 +135,13 @@ router.get('/agenda', (req, res) => {
     : view === 'semana'
       ? [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addDays(monday, i); return { key: d, date: d, staffId, label: d, isDay: true }; })
       : [];
+  const autoHol = getSettings().auto_holidays === '1';
+  const holidays = {};
+  for (let d = rangeFrom; d <= rangeTo; d = addDays(d, 1)) { const n = autoHol && holidayName(d); if (n) holidays[d] = n; }
+  for (const c of columns) { c.h = holidays[c.date] ? { closed: 1 } : dayHours(c.date, c.staffId); c.holiday = holidays[c.date] || null; }
   let from = 24 * 60, to = 0;
   for (const c of columns) {
-    const h = hoursBy[weekday(c.date)];
+    const h = dayHours(c.date, c.staffId);
     if (h && !h.closed) { from = Math.min(from, h.open_min); to = Math.max(to, h.close_min); }
   }
   for (const bk of bookings) { from = Math.min(from, bk.start_min); to = Math.max(to, bk.end_min); }
@@ -142,9 +150,22 @@ router.get('/agenda', (req, res) => {
   to = Math.ceil(to / 60) * 60;
 
   res.render('admin/agenda', {
-    view, date, monday, staff, allStaff, staffId, columns, bookings, blocks, hoursBy, from, to, today: today(),
+    view, date, monday, staff, allStaff, staffId, columns, bookings, blocks, hoursBy, holidays, from, to, today: today(),
     rangeFrom, step: +getSettings().slot_step || 15,
   });
+});
+
+// folha do dia para imprimir
+router.get('/agenda/imprimir', (req, res) => {
+  const date = isDate(req.query.data) ? req.query.data : today();
+  const staffId = +req.query.staff || null;
+  const rows = db.prepare(
+    `SELECT b.*, s.name service_name, st.name staff_name FROM bookings b JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
+     WHERE b.date = ? AND b.status IN ('pending','confirmed','completed') ${staffId ? 'AND b.staff_id = ' + staffId : ''} ORDER BY st.sort, st.name, b.start_min`
+  ).all(date);
+  const groups = {};
+  for (const r of rows) (groups[r.staff_name] = groups[r.staff_name] || []).push(r);
+  res.render('admin/print-day', { date, groups, holiday: holidayName(date) });
 });
 
 // arrastar para reagendar (agenda): valida conflitos, a não ser que force=true (desfazer)
@@ -231,7 +252,12 @@ router.get('/marcacoes/nova', (req, res) => {
 
 router.get('/api/slots', (req, res) => {
   if (!isDate(req.query.date)) return res.json({ slots: [] });
-  res.json({ slots: getSlots({ serviceId: +req.query.service, staffId: +req.query.staff || null, date: req.query.date, forAdmin: true }).map(({ start, time }) => ({ start, time })) });
+  res.json({ slots: getSlots({ serviceId: +req.query.service, staffId: +req.query.staff || null, date: req.query.date, forAdmin: true, ignoreBookingId: +req.query.ignore || null }).map(({ start, time }) => ({ start, time })) });
+});
+router.get('/api/days', (req, res) => {
+  const t0 = today();
+  const days = 120;
+  res.json({ today: t0, maxDays: days, days: availableDays({ serviceId: +req.query.service, staffId: +req.query.staff || null, from: t0, days: days + 1, ignoreBookingId: +req.query.ignore || null, forAdmin: true }) });
 });
 
 router.post('/marcacoes', (req, res) => {
@@ -287,6 +313,20 @@ router.post('/marcacoes/:id', (req, res, next) => {
       `UPDATE bookings SET customer_name = ?, customer_email = ?, customer_phone = ?, notes = ?, internal_notes = ?, updated_at = datetime('now') WHERE id = ?`
     ).run(clean(req.body.name, 120) || b.customer_name, clean(req.body.email, 160), clean(req.body.phone, 30), clean(req.body.notes, 1000), clean(req.body.internal_notes, 2000), b.id);
     return back(res, `/admin/marcacoes/${b.id}`, 'Dados guardados.');
+  }
+
+  if (action === 'move') {
+    const date = clean(req.body.date, 10);
+    const start = timeToMin(req.body.time);
+    if (!isDate(date) || start == null) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('Escolha o dia e a hora.'));
+    try {
+      const nb = rescheduleBooking(b.id, { date, start, staffId: +req.body.staffId || null }, { forAdmin: true });
+      if (req.body.notify === '1') require('../mailer').notifyRescheduled(nb, { date: b.date, start: b.start_min }, { byBusiness: true });
+      return back(res, `/admin/marcacoes/${b.id}`, 'Marcação reagendada.');
+    } catch (e) {
+      if (!(e instanceof BookingError)) throw e;
+      return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent(e.message));
+    }
   }
 
   if (action === 'reschedule') {
@@ -463,6 +503,7 @@ router.post('/equipa', (req, res) => {
       .run(name, clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0).lastInsertRowid
   );
   saveStaffServices(id, req.body);
+  ensureStaffTokens();
   back(res, '/admin/equipa', 'Profissional adicionado.');
 });
 router.post('/equipa/:id', (req, res) => {
@@ -480,6 +521,36 @@ router.post('/equipa/:id', (req, res) => {
     .run(clean(req.body.name, 120), clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0, id);
   saveStaffServices(id, req.body);
   back(res, '/admin/equipa', 'Profissional guardado.');
+});
+
+// horário próprio e calendário pessoal de um profissional
+router.get('/equipa/:id/horario', (req, res, next) => {
+  const p = db.prepare('SELECT * FROM staff WHERE id = ?').get(+req.params.id);
+  if (!p) return next();
+  ensureStaffTokens();
+  const general = db.prepare('SELECT * FROM hours ORDER BY weekday').all();
+  const own = db.prepare('SELECT * FROM staff_hours WHERE staff_id = ? ORDER BY weekday').all(p.id);
+  const base = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  res.render('admin/staff-hours', { p: db.prepare('SELECT * FROM staff WHERE id = ?').get(p.id), general, own, feed: `${base}/cal/${db.prepare('SELECT ics_token FROM staff WHERE id = ?').get(p.id).ics_token}.ics` });
+});
+router.post('/equipa/:id/horario', (req, res) => {
+  const id = +req.params.id;
+  db.prepare('DELETE FROM staff_hours WHERE staff_id = ?').run(id);
+  if (req.body.custom === '1') {
+    const ins = db.prepare('INSERT INTO staff_hours(staff_id, weekday, closed, open_min, close_min, break_start, break_end) VALUES (?,?,?,?,?,?,?)');
+    for (let d = 0; d < 7; d++) {
+      const o = timeToMin(req.body[`open_${d}`]) ?? 540;
+      const c = timeToMin(req.body[`close_${d}`]) ?? 1140;
+      const bs = timeToMin(req.body[`bstart_${d}`]);
+      const be = timeToMin(req.body[`bend_${d}`]);
+      ins.run(id, d, req.body[`closed_${d}`] ? 1 : 0, o, Math.max(c, o + 15), bs, bs != null ? be : null);
+    }
+  }
+  back(res, `/admin/equipa/${id}/horario`, req.body.custom === '1' ? 'Horário próprio guardado.' : 'Passa a usar o horário geral.');
+});
+router.post('/equipa/:id/calendario', (req, res) => {
+  db.prepare('UPDATE staff SET ics_token = ? WHERE id = ?').run(require('node:crypto').randomBytes(18).toString('hex'), +req.params.id);
+  back(res, `/admin/equipa/${+req.params.id}/horario`, 'Novo link criado. O anterior deixou de funcionar.');
 });
 
 // ---------- Horário ----------
@@ -536,19 +607,54 @@ router.post('/mensagens/:id', (req, res) => {
 // ---------- Definições ----------
 router.get('/definicoes', (req, res) => res.render('admin/settings', { error: req.query.erro || null }));
 router.post('/definicoes', (req, res) => {
-  const numeric = { slot_step: [5, 120], min_notice_hours: [0, 720], max_days_ahead: [1, 365], buffer_min: [0, 120], cancel_hours: [0, 720] };
+  const numeric = {
+    slot_step: [5, 120], min_notice_hours: [0, 720], max_days_ahead: [1, 365], buffer_min: [0, 120], cancel_hours: [0, 720],
+    reminder_hours: [0, 168], review_delay_hours: [0, 168], max_online_per_email: [1, 50], deposit_value: [0, 100000], payment_timeout_min: [10, 1440],
+  };
+  const checkboxes = ['auto_confirm', 'demo_mode', 'auto_holidays', 'reminder_sms', 'lang_en'];
+  const urls = ['review_url', 'complaints_url'];
+  const section = String(req.body._section || '');
   for (const key of Object.keys(DEFAULT_SETTINGS)) {
-    if (key === 'auto_confirm' || key === 'demo_mode') { setSetting(key, req.body[key] ? '1' : '0'); continue; }
+    if (key === 'brand_logo') continue;
+    if (checkboxes.includes(key)) { if (section && req.body[`has_${key}`]) setSetting(key, req.body[key] ? '1' : '0'); continue; }
     if (!(key in req.body)) continue;
-    let v = clean(req.body[key], 1000);
+    let v = clean(req.body[key], 2000);
     if (numeric[key]) v = String(Math.max(numeric[key][0], Math.min(numeric[key][1], parseInt(v, 10) || 0)));
-    if (key === 'timezone') {
-      try { new Intl.DateTimeFormat('en', { timeZone: v }); } catch { continue; }
-    }
+    if (key === 'timezone') { try { new Intl.DateTimeFormat('en', { timeZone: v }); } catch { continue; } }
+    if (key === 'brand_signal' && !/^#[0-9a-f]{6}$/i.test(v)) continue;
+    if (key === 'deposit_mode' && !['off', 'percent', 'fixed', 'full'].includes(v)) continue;
+    if (urls.includes(key) && v && !/^https?:\/\//i.test(v)) continue;
     setSetting(key, v);
   }
-  back(res, '/admin/definicoes', 'Definições guardadas.');
+  back(res, '/admin/definicoes' + (section ? '#' + section : ''), 'Definições guardadas.');
 });
+
+// logótipo (PNG, JPEG ou WebP até 1 MB; SVG não é aceite por segurança)
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1024 * 1024, files: 1 } });
+const UPLOADS = path.join(path.dirname(process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'app.db')), 'uploads');
+router.post('/definicoes/logo', (req, res) => {
+  upload.single('logo')(req, res, (err) => {
+    if (req.body?._csrf !== req.session.csrf) return res.status(403).send('Pedido inválido (CSRF).');
+    if (err) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('O ficheiro é demasiado grande (máx. 1 MB).') + '#marca');
+    const old = getSettings().brand_logo;
+    if (req.body.remove === '1' || !req.file) {
+      if (old && old.startsWith('/uploads/')) fs.rm(path.join(UPLOADS, path.basename(old)), () => {});
+      setSetting('brand_logo', '');
+      return back(res, '/admin/definicoes#marca', 'Logótipo removido.');
+    }
+    const sig = req.file.buffer.subarray(0, 12);
+    const ext = sig[0] === 0x89 && sig[1] === 0x50 ? 'png' : sig[0] === 0xff && sig[1] === 0xd8 ? 'jpg' : sig.toString('ascii', 8, 12) === 'WEBP' ? 'webp' : null;
+    if (!ext) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('Use uma imagem PNG, JPEG ou WebP.') + '#marca');
+    fs.mkdirSync(UPLOADS, { recursive: true });
+    const name = `logo-${Date.now()}.${ext}`;
+    fs.writeFileSync(path.join(UPLOADS, name), req.file.buffer);
+    if (old && old.startsWith('/uploads/')) fs.rm(path.join(UPLOADS, path.basename(old)), () => {});
+    setSetting('brand_logo', `/uploads/${name}`);
+    back(res, '/admin/definicoes#marca', 'Logótipo atualizado.');
+  });
+});
+
 router.post('/definicoes/password', (req, res) => {
   const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!verifyPassword(req.body.current, u.password_hash)) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('Palavra-passe atual incorreta.'));

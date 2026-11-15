@@ -24,6 +24,7 @@
     <a class="btn btn-ghost btn-icon" href="<%= q({ data: prev }) %>" aria-label="Anterior"><%- include('../partials/icon', { name: 'back', size: 18 }) %></a>
     <a class="btn btn-ghost" href="<%= q({ data: today }) %>">Hoje</a>
     <a class="btn btn-ghost btn-icon" href="<%= q({ data: next }) %>" aria-label="Seguinte"><%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
+    <% if (view === 'dia') { %><a class="btn btn-ghost btn-icon" href="/admin/agenda/imprimir?data=<%= date %><%= staffId ? '&staff=' + staffId : '' %>" target="_blank" aria-label="Imprimir folha do dia" title="Imprimir folha do dia"><%- include('../partials/icon', { name: 'list', size: 18 }) %></a><% } %>
     <form method="get" class="date-jump"><input type="hidden" name="vista" value="<%= view %>"><% if (staffId) { %><input type="hidden" name="staff" value="<%= staffId %>"><% } %><input type="date" name="data" value="<%= date %>" data-autosubmit aria-label="Ir para data"></form>
   </div>
 </header>
@@ -40,14 +41,14 @@
   %>
   <div class="month">
     <% ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].forEach(w => { %><span class="month-wd"><%= w %></span><% }) %>
-    <% for (let i = 0; i < 42; i++) { const d = t.addDays(rangeFrom, i); const list = byDay[d] || []; const h = hoursBy[t.weekday(d)]; const off = !h || h.closed; const blocked = blocks.some(b => !b.staff_id && b.start_min == null && b.date_from <= d && b.date_to >= d); const pend = list.filter(b => b.status === 'pending').length; %>
+    <% for (let i = 0; i < 42; i++) { const d = t.addDays(rangeFrom, i); const list = byDay[d] || []; const h = hoursBy[t.weekday(d)]; const off = !h || h.closed; const blocked = !!holidays[d] || blocks.some(b => !b.staff_id && b.start_min == null && b.date_from <= d && b.date_to >= d); const pend = list.filter(b => b.status === 'pending').length; %>
       <a class="mday <%= d.slice(0, 7) !== date.slice(0, 7) ? 'is-out' : '' %> <%= d === today ? 'is-today' : '' %> <%= off || blocked ? 'is-off' : '' %>" href="<%= q({ vista: 'dia', data: d }) %>" aria-label="<%= t.formatDateLong(d) %>: <%= list.length %> marcações">
         <span class="mday-n"><%= +d.slice(8) %></span>
         <% if (list.length) { %>
           <span class="mday-count"><%= list.length %></span>
           <span class="mday-dots"><% list.slice(0, 8).forEach(b => { %><i style="background:<%= b.staff_color %>"></i><% }) %></span>
           <% if (pend) { %><span class="mday-pend"><%= pend %> por confirmar</span><% } %>
-        <% } else if (blocked) { %><span class="mday-note">Fechado</span><% } %>
+        <% } else if (blocked) { %><span class="mday-note"><%= holidays[d] || 'Fechado' %></span><% } %>
       </a>
     <% } %>
   </div>
@@ -65,7 +66,7 @@
       <% for (let m = from; m < to; m += 60) { %><span style="top: <%= (m - from) * PPM %>px"><%= t.minToTime(m) %></span><% } %>
     </div>
     <% columns.forEach((c, ci) => {
-      const h = hoursBy[t.weekday(c.date)];
+      const h = c.h;
       const colBookings = bookings.filter(b => b.date === c.date && (!c.staffId || b.staff_id === c.staffId));
       // faixas para marcações sobrepostas (vista semana com todos os profissionais)
       // agrupa em blocos de sobreposição: só esses partilham a largura
@@ -84,7 +85,8 @@
         <% } %>
         <%
           const closed = [];
-          if (!h || h.closed) closed.push([from, to, 'Encerrado']);
+          if (c.holiday) closed.push([from, to, 'Feriado · ' + c.holiday]);
+          else if (!h || h.closed) closed.push([from, to, c.staffId ? 'Não trabalha' : 'Encerrado']);
           else {
             closed.push([from, h.open_min], [h.close_min, to]);
             if (h.break_start != null) closed.push([h.break_start, h.break_end, 'Pausa']);
@@ -96,7 +98,7 @@
         <% }) %>
         <% if (c.date === today && nowM > from && nowM < to) { %><div class="ag-now" style="top: <%= (nowM - from) * PPM %>px" aria-hidden="true"></div><% } %>
         <% colBookings.forEach(b => { %>
-          <a class="ag-bk st-<%= b.status %>" href="/admin/marcacoes/<%= b.id %>" data-id="<%= b.id %>" data-start="<%= b.start_min %>" data-dur="<%= b.end_min - b.start_min %>" data-staff="<%= b.staff_id %>"
+          <a class="ag-bk st-<%= b.status %>" title="<%= t.minToTime(b.start_min) %>–<%= t.minToTime(b.end_min) %> · <%= b.customer_name %> · <%= b.service_name %> · <%= b.staff_name %>" href="/admin/marcacoes/<%= b.id %>" data-id="<%= b.id %>" data-start="<%= b.start_min %>" data-dur="<%= b.end_min - b.start_min %>" data-staff="<%= b.staff_id %>"
              style="top: <%= (b.start_min - from) * PPM %>px; height: <%= (b.end_min - b.start_min) * PPM - 2 %>px; --c: <%= b.staff_color %>; left: calc(<%= b._lane * 100 / b._n %>% + 3px); width: calc(<%= 100 / b._n %>% - 6px)">
             <strong><span class="ag-t"><%= t.minToTime(b.start_min) %></span> <%= b.customer_name %></strong>
             <small><% if (view === 'semana' && !staffId) { %><i class="dot" style="background:<%= b.staff_color %>"></i><% } %><%= b.service_name %><%= b.status === 'pending' ? ' · por confirmar' : '' %></small>

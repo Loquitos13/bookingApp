@@ -23,7 +23,9 @@
   <link rel="preload" href="/static/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/css/tokens.css">
+  <% if (brandCss) { %><style><%- brandCss %></style><% } %>
   <link rel="stylesheet" href="/static/css/site.css">
+  <link rel="stylesheet" href="/static/css/picker.css">
   <script nonce="<%= nonce %>">document.documentElement.classList.add('js')</script>
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
@@ -31,7 +33,7 @@
 <header class="topbar">
   <div class="wrap topbar-inner">
     <a class="mark" href="/" aria-label="<%= site.business_name %> — início">
-      <span class="mark-plate" aria-hidden="true"><%= site.business_name.trim()[0] %></span>
+      <% if (site.brand_logo) { %><img class="mark-logo" src="<%= site.brand_logo %>" alt="" width="32" height="32"><% } else { %><span class="mark-plate" aria-hidden="true"><%= site.business_name.trim()[0] %></span><% } %>
       <span class="mark-name"><%= site.business_name %></span>
     </a>
     <nav class="topnav" aria-label="Principal">

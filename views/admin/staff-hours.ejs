@@ -1,0 +1,50 @@
+<%- include('../partials/admin-head', { title: 'Horário · ' + p.name }) %>
+<% const custom = own.length > 0; const rows = custom ? own : general; %>
+<header class="head">
+  <div>
+    <a class="crumb" href="/admin/equipa"><%- include('../partials/icon', { name: 'back', size: 16 }) %> Equipa</a>
+    <h1><i class="dot dot-lg" style="background:<%= p.color %>"></i><%= p.name %></h1>
+    <p class="muted">Horário de trabalho e calendário pessoal.</p>
+  </div>
+</header>
+
+<form method="post" class="panel" id="sh-form">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h2>Horário</h2>
+  <div class="seg-row-admin" role="radiogroup" aria-label="Tipo de horário">
+    <label class="check"><input type="radio" name="custom" value="0" <%= custom ? '' : 'checked' %>> Usa o horário geral do negócio</label>
+    <label class="check"><input type="radio" name="custom" value="1" <%= custom ? 'checked' : '' %>> Tem horário próprio</label>
+  </div>
+  <table class="table hours-table sh-table" <%= custom ? '' : 'data-disabled' %>>
+    <thead><tr><th>Dia</th><th>Trabalha</th><th>Entra</th><th>Sai</th><th>Pausa de</th><th>até</th></tr></thead>
+    <tbody>
+      <% [1,2,3,4,5,6,0].forEach(d => { const h = rows.find(x => x.weekday === d) || { closed: 1, open_min: 540, close_min: 1140 }; %>
+        <tr>
+          <th><%= t.WEEKDAYS[d] %></th>
+          <td><label class="switch"><input type="checkbox" <%= h.closed ? '' : 'checked' %> data-closed-toggle="closed_<%= d %>" aria-label="Trabalha à <%= t.WEEKDAYS[d] %>"><span></span></label>
+              <input type="hidden" name="closed_<%= d %>" value="<%= h.closed ? '1' : '' %>"></td>
+          <td><input type="time" name="open_<%= d %>" value="<%= t.minToTime(h.open_min) %>" step="900"></td>
+          <td><input type="time" name="close_<%= d %>" value="<%= t.minToTime(h.close_min) %>" step="900"></td>
+          <td><input type="time" name="bstart_<%= d %>" value="<%= h.break_start != null ? t.minToTime(h.break_start) : '' %>" step="900"></td>
+          <td><input type="time" name="bend_<%= d %>" value="<%= h.break_end != null ? t.minToTime(h.break_end) : '' %>" step="900"></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <button class="btn">Guardar horário</button>
+</form>
+
+<section class="panel">
+  <h2>Calendário pessoal</h2>
+  <p class="muted">Subscreva este link no Google Calendar ("Outros calendários → A partir do URL"), no iPhone ("Definições → Calendário → Contas → Adicionar calendário subscrito") ou no Outlook. As marcações de <%= p.name.split(' ')[0] %> aparecem e atualizam-se sozinhas.</p>
+  <div class="copy-row">
+    <input value="<%= feed %>" readonly aria-label="Link do calendário">
+    <button type="button" class="btn btn-ghost" data-copy="<%= feed %>">Copiar</button>
+  </div>
+  <form method="post" action="/admin/equipa/<%= p.id %>/calendario" data-confirm="Criar um novo link? O atual deixa de funcionar.">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <button class="linkbtn">Gerar novo link (se o atual foi partilhado por engano)</button>
+  </form>
+  <p class="muted tiny">O link é privado: quem o tiver vê nomes e horas das marcações. Não inclui telefones nem emails.</p>
+</section>
+<%- include('../partials/admin-foot') %>

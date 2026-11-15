@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8"><meta name="robots" content="noindex">
+  <title>Folha do dia · <%= date %></title>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <style>
+    body { margin: 0; padding: 32px; font: 400 12pt/1.4 var(--sans); color: #000; background: #fff; }
+    header { display: flex; justify-content: space-between; align-items: end; border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+    h1 { font: 800 28pt/1 var(--display); text-transform: uppercase; margin: 0; }
+    h2 { font: 700 15pt var(--cond); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 6px; break-after: avoid; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #999; vertical-align: top; }
+    th { font: 700 9pt var(--cond); text-transform: uppercase; letter-spacing: .08em; }
+    td.t { font: 700 13pt var(--cond); white-space: nowrap; width: 90px; }
+    td.ok { width: 40px; } .box { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #000; }
+    .muted { color: #444; font-size: 10pt; }
+    .print { font: 700 11pt var(--cond); text-transform: uppercase; padding: 8px 16px; border: 2px solid #000; background: #fff; cursor: pointer; }
+    @media print { .print { display: none; } body { padding: 0; } @page { margin: 14mm; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1><%= site.business_name %></h1><div><%= t.formatDateLong(date) %><%= holiday ? ' · Feriado: ' + holiday : '' %></div></div>
+    <button class="print" id="print">Imprimir</button>
+  </header>
+  <% if (!Object.keys(groups).length) { %><p>Sem marcações neste dia.</p><% } %>
+  <% Object.entries(groups).forEach(([name, list]) => { %>
+    <h2><%= name %> · <%= list.length %> marcações</h2>
+    <table>
+      <thead><tr><th>Hora</th><th>Cliente</th><th>Serviço</th><th>Notas</th><th>Veio</th></tr></thead>
+      <tbody>
+        <% list.forEach(b => { %>
+          <tr>
+            <td class="t"><%= t.minToTime(b.start_min) %>–<%= t.minToTime(b.end_min) %></td>
+            <td><strong><%= b.customer_name %></strong><br><span class="muted"><%= b.customer_phone %></span></td>
+            <td><%= b.service_name %><%= b.status === 'pending' ? ' (por confirmar)' : '' %></td>
+            <td class="muted"><%= b.notes %><%= b.internal_notes ? (b.notes ? ' · ' : '') + b.internal_notes : '' %></td>
+            <td class="ok"><span class="box"></span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% }) %>
+  <script nonce="<%= nonce %>">document.getElementById('print').addEventListener('click', function () { window.print(); });</script>
+</body>
+</html>

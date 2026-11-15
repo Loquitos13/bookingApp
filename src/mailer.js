@@ -69,7 +69,7 @@ function notifyStatusChange(b) {
   });
 }
 
-function notifyRescheduled(b, before) {
+function notifyRescheduled(b, before, { byBusiness = false } = {}) {
   const st = getSettings();
   const was = `${formatDateLong(before.date)} às ${minToTime(before.start)}`;
   send({
@@ -77,6 +77,7 @@ function notifyRescheduled(b, before) {
     subject: `${st.business_name}: marcação alterada (${b.ref})`,
     text: `Olá ${b.customer_name},\n\nA sua marcação foi alterada (antes: ${was}).\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
   });
+  if (byBusiness) return;
   send({
     to: process.env.NOTIFY_EMAIL || st.email,
     subject: `Marcação ${b.ref} reagendada pelo cliente`,

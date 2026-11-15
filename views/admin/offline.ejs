@@ -4,7 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex">
   <meta name="theme-color" content="#12171d">
   <title>Sem ligação · Back office</title>
-  <link rel="stylesheet" href="/static/css/tokens.css"><link rel="stylesheet" href="/static/css/admin.css">
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <% if (brandCss) { %><style><%- brandCss %></style><% } %><link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body class="login-body">
   <div class="login">

@@ -14,9 +14,23 @@ function staffForService(serviceId) {
     .all(serviceId);
 }
 
-/** Janelas de trabalho [início, fim] num dia, já sem a pausa de almoço. */
-function workWindows(date) {
-  const h = db.prepare('SELECT * FROM hours WHERE weekday = ?').get(weekday(date));
+const { holidayName } = require('./holidays');
+
+/** Horário de um dia: o do profissional (se tiver horário próprio) ou o geral do negócio. */
+function dayHours(date, staffId = null) {
+  const wd = weekday(date);
+  if (staffId) {
+    const sh = db.prepare('SELECT * FROM staff_hours WHERE staff_id = ? AND weekday = ?').get(staffId, wd);
+    if (sh) return sh;
+  }
+  return db.prepare('SELECT * FROM hours WHERE weekday = ?').get(wd);
+}
+const isHolidayClosed = (date) => getSettings().auto_holidays === '1' && !!holidayName(date);
+
+/** Janelas de trabalho [início, fim] num dia (sem pausa de almoço), por profissional quando aplicável. */
+function workWindows(date, staffId = null) {
+  if (isHolidayClosed(date)) return [];
+  const h = dayHours(date, staffId);
   if (!h || h.closed) return [];
   const { open_min: o, close_min: c, break_start: bs, break_end: be } = h;
   if (bs != null && be != null && bs > o && be < c && be > bs) return [[o, bs], [be, c]];
@@ -69,24 +83,26 @@ function getSlots({ serviceId, staffId = null, date, forAdmin = false, ignoreBoo
   const dayOffsetMin = ahead * 1440;
   const busy = new Map(staff.map((s) => [s.id, busyIntervals(s.id, date, { ignoreBookingId })]));
 
-  const slots = [];
-  for (const [ws, we] of workWindows(date)) {
-    for (let t = ws; t + svc.duration_min <= we; t += step) {
-      if (!forAdmin && dayOffsetMin + t < noticeAbs) continue;
-      const end = t + svc.duration_min;
-      const free = staff.filter((s) => !overlaps(t, end + buffer, busy.get(s.id))).map((s) => s.id);
-      if (free.length) slots.push({ start: t, time: minToTime(t), staff: free });
+  const byStart = new Map();
+  for (const s of staff) {
+    for (const [ws, we] of workWindows(date, s.id)) {
+      for (let t = ws; t + svc.duration_min <= we; t += step) {
+        if (!forAdmin && dayOffsetMin + t < noticeAbs) continue;
+        if (overlaps(t, t + svc.duration_min + buffer, busy.get(s.id))) continue;
+        if (!byStart.has(t)) byStart.set(t, []);
+        byStart.get(t).push(s.id);
+      }
     }
   }
-  return slots;
+  return [...byStart.entries()].sort((a, b) => a[0] - b[0]).map(([t, ids]) => ({ start: t, time: minToTime(t), staff: ids }));
 }
 
 /** Próximos dias (até `days`) com pelo menos um horário livre — para o calendário público. */
-function availableDays({ serviceId, staffId = null, from, days = 42, ignoreBookingId = null }) {
+function availableDays({ serviceId, staffId = null, from, days = 42, ignoreBookingId = null, forAdmin = false }) {
   const out = [];
   for (let i = 0; i < days; i++) {
     const d = addDays(from, i);
-    if (getSlots({ serviceId, staffId, date: d, ignoreBookingId }).length) out.push(d);
+    if (getSlots({ serviceId, staffId, date: d, ignoreBookingId, forAdmin }).length) out.push(d);
   }
   return out;
 }
@@ -205,6 +221,7 @@ function canCustomerCancel(b) {
 }
 
 module.exports = {
+  workWindows, dayHours, isHolidayClosed,
   getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBooking, staffForService, busyIntervals,
   canCustomerCancel, rescheduleBooking, BookingError, ACTIVE_STATUSES,
 };

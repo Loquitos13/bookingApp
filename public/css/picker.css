@@ -1,0 +1,38 @@
+/* Seletor de dia + hora (site e back office). Usa tokens.css. */
+/* dias e horários */
+.days-wrap { position: relative; margin: 0 calc(var(--gutter) * -1); }
+.days { position: relative; }
+.days-month { padding: 0 var(--gutter) 8px; font: 700 1rem var(--cond); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2); min-height: 1.6em; }
+.days { display: flex; gap: 8px; overflow-x: auto; padding: 2px var(--gutter) 14px; scroll-snap-type: x proximity; scroll-padding: 0 var(--gutter); overscroll-behavior-x: contain; scrollbar-width: none; }
+.days::-webkit-scrollbar { display: none; }
+.day { flex: none; scroll-snap-align: start; display: grid; justify-items: center; gap: 2px; width: 62px; padding: 10px 0 9px; border: 2px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); cursor: pointer; transition: background-color .15s, border-color .15s, color .15s, transform .1s; font: inherit; }
+.day:active:not(:disabled) { transform: scale(.95); }
+.day:hover:not(:disabled) { border-color: var(--ink); }
+.day-wd { font: 700 .8125rem var(--cond); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
+.day-n { font: 800 1.75rem/1 var(--display); }
+.day-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: .55; }
+.day:disabled { cursor: default; background: transparent; border-color: transparent; color: rgba(18, 23, 29, .3); }
+.day:disabled .day-wd { color: inherit; }
+.day:disabled .day-dot { opacity: 0; }
+.day[aria-checked="true"] { background: var(--board); border-color: var(--board); color: var(--on-board); }
+.day[aria-checked="true"] .day-wd { color: var(--on-board-2); }
+.day[aria-checked="true"] .day-dot { background: var(--signal); opacity: 1; }
+.day-month { flex: none; align-self: center; writing-mode: vertical-rl; transform: rotate(180deg); font: 700 .8125rem var(--cond); text-transform: uppercase; letter-spacing: .12em; color: var(--ink-2); padding: 0 2px; }
+
+.slots { margin-top: 18px; min-height: 120px; }
+.slot-group + .slot-group { margin-top: 22px; }
+.slot-label { display: block; margin-bottom: 10px; font: 700 .9375rem var(--cond); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2); }
+.slot-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.slot { min-height: 52px; border: 0; border-radius: 6px; background: linear-gradient(var(--cell-top) 0 50%, var(--cell-bot) 50% 100%); color: var(--on-board); font: 700 1.375rem/1 var(--cond); font-variant-numeric: tabular-nums; letter-spacing: .02em; cursor: pointer; position: relative; transition: transform .1s var(--ease-out), background .15s; box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.slot:hover { background: linear-gradient(#2e3844 0 50%, #232b34 50% 100%); }
+.slot:active { transform: scale(.95); }
+.slot[aria-checked="true"] { background: var(--signal); color: var(--on-signal); }
+.slot:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.slot.is-in { animation: slot-in .22s var(--ease-out) backwards; }
+@keyframes slot-in { from { opacity: 0; transform: translateY(6px); } }
+.slots-empty { padding: 18px; border: 2px dashed var(--rule); border-radius: var(--r); color: var(--ink-2); }
+.slots-empty button { margin-top: 10px; }
+.skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.skel span { height: 52px; border-radius: 6px; background: linear-gradient(90deg, var(--enamel-2) 0 40%, #f4f6f2 50%, var(--enamel-2) 60% 100%) 0 0 / 300% 100%; animation: shimmer 1.2s linear infinite; }
+@keyframes shimmer { to { background-position: -150% 0; } }
+

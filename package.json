@@ -1,7 +1,7 @@
 {
   "name": "bookingapp",
   "version": "1.0.0",
-  "description": "Site informativo com marca\u00e7\u00f5es online e back office",
+  "description": "Site informativo com marcações online e back office",
   "main": "server.js",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
@@ -21,6 +21,7 @@
   "dependencies": {
     "ejs": "^7.0.2",
     "express": "^4.22.3",
+    "multer": "^1.4.5-lts.1",
     "nodemailer": "^10.5.0"
   },
   "engines": {

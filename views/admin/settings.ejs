@@ -1,9 +1,19 @@
 <%- include('../partials/admin-head', { title: 'Definições' }) %>
+<%
+  const stripeOn = !!process.env.STRIPE_SECRET_KEY;
+  const smsOn = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
+  const cb = (key, label) => `<input type="hidden" name="has_${key}" value="1"><label class="check span2"><input type="checkbox" name="${key}" value="1" ${site[key] === '1' ? 'checked' : ''}> ${label}</label>`;
+%>
 <header class="head"><h1>Definições</h1></header>
 <% if (error) { %><p class="alert"><%= error %></p><% } %>
-<form method="post" class="panel form-grid">
-  <input type="hidden" name="_csrf" value="<%= csrf %>">
-  <h3 class="span2">Negócio e site</h3>
+
+<nav class="chips settings-nav" aria-label="Secções">
+  <% [['negocio', 'Negócio'], ['marca', 'Marca'], ['regras', 'Regras'], ['automatismos', 'Lembretes'], ['pagamentos', 'Pagamentos'], ['idiomas', 'Idiomas'], ['legal', 'Legal'], ['conta', 'Conta']].forEach(([id, l]) => { %><a class="chip" href="#<%= id %>"><%= l %></a><% }) %>
+</nav>
+
+<form method="post" class="panel form-grid" id="negocio">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="negocio">
+  <h2 class="span2">Negócio e site</h2>
   <label>Nome<input name="business_name" value="<%= site.business_name %>" required></label>
   <label>Subtítulo<input name="business_subtitle" value="<%= site.business_subtitle %>"></label>
   <label class="span2">Frase principal (título da página inicial)<input name="tagline" value="<%= site.tagline %>"></label>
@@ -11,22 +21,99 @@
   <label>Telefone<input name="phone" value="<%= site.phone %>"></label>
   <label>Email<input name="email" type="email" value="<%= site.email %>"></label>
   <label class="span2">Morada<input name="address" value="<%= site.address %>"></label>
+  <%- cb('demo_mode', 'Modo demonstração (mostra o aviso "conteúdo fictício" no site e no back office)') %>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
+</form>
 
-  <h3 class="span2">Regras de marcação</h3>
+<section class="panel" id="marca">
+  <h2>Marca</h2>
+  <div class="brand-grid">
+    <form method="post" class="form-grid one">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="marca">
+      <label>Cor de destaque<span class="color-row"><input type="color" name="brand_signal" value="<%= site.brand_signal %>" id="brand-color"><code id="brand-hex"><%= site.brand_signal %></code></span></label>
+      <p class="muted tiny">Usada nos botões, no painel de vagas e nos destaques. O texto por cima ajusta-se automaticamente (preto ou branco) para manter a leitura.</p>
+      <div><button class="btn btn-signal">Guardar cor</button></div>
+    </form>
+    <div class="brand-preview" id="brand-preview" aria-hidden="true">
+      <span class="bp-btn">Marcar</span>
+      <span class="bp-flap"><i>1</i><i>0</i><b>:</b><i>3</i><i>0</i></span>
+      <span class="bp-day">Hoje</span>
+    </div>
+  </div>
+  <form method="post" action="/admin/definicoes/logo" enctype="multipart/form-data" class="logo-form">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="logo-now"><% if (site.brand_logo) { %><img src="<%= site.brand_logo %>" alt="Logótipo atual"><% } else { %><span class="mark"><%= site.business_name.trim()[0] %></span><% } %></div>
+    <label>Logótipo (PNG, JPEG ou WebP, até 1 MB; idealmente quadrado)<input type="file" name="logo" accept="image/png,image/jpeg,image/webp"></label>
+    <div class="row-actions">
+      <button class="btn">Carregar logótipo</button>
+      <% if (site.brand_logo) { %><button class="linkbtn danger" name="remove" value="1">Remover logótipo</button><% } %>
+    </div>
+  </form>
+  <p class="muted tiny">Os ícones da app e a imagem de partilha nas redes usam a inicial e a cor: depois de mudar a marca, corra <code>npm run icons</code> no servidor.</p>
+</section>
+
+<form method="post" class="panel form-grid" id="regras">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="regras">
+  <h2 class="span2">Regras de marcação</h2>
   <label>Intervalo entre horários (min)<input type="number" name="slot_step" min="5" max="120" step="5" value="<%= site.slot_step %>"></label>
   <label>Pausa entre marcações (min)<input type="number" name="buffer_min" min="0" max="120" value="<%= site.buffer_min %>"></label>
   <label>Antecedência mínima (horas)<input type="number" name="min_notice_hours" min="0" value="<%= site.min_notice_hours %>"></label>
   <label>Marcar com até (dias de antecedência)<input type="number" name="max_days_ahead" min="1" max="365" value="<%= site.max_days_ahead %>"></label>
-  <label>Cancelamento online até (horas antes)<input type="number" name="cancel_hours" min="0" value="<%= site.cancel_hours %>"></label>
+  <label>Cancelar ou mudar online até (horas antes)<input type="number" name="cancel_hours" min="0" value="<%= site.cancel_hours %>"></label>
+  <label>Máx. de marcações futuras por pessoa (online)<input type="number" name="max_online_per_email" min="1" max="50" value="<%= site.max_online_per_email %>"></label>
   <label>Fuso horário<input name="timezone" value="<%= site.timezone %>"></label>
-  <label class="check span2"><input type="checkbox" name="auto_confirm" value="1" <%= site.auto_confirm === '1' ? 'checked' : '' %>> Confirmar automaticamente as marcações feitas no site (desligado = ficam "Pendentes" até aprovar)</label>
-  <label class="check span2"><input type="checkbox" name="demo_mode" value="1" <%= site.demo_mode === '1' ? 'checked' : '' %>> Modo demonstração (mostra o aviso "conteúdo fictício" no site e no back office)</label>
-  <div class="span2"><button class="btn btn-signal">Guardar definições</button></div>
+  <span></span>
+  <%- cb('auto_confirm', 'Confirmar automaticamente as marcações feitas no site (desligado = ficam "Por confirmar" até aprovar)') %>
+  <%- cb('auto_holidays', 'Fechar automaticamente nos feriados nacionais') %>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
 </form>
 
-<form method="post" action="/admin/definicoes/password" class="panel form-grid">
+<form method="post" class="panel form-grid" id="automatismos">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="automatismos">
+  <h2 class="span2">Lembretes e avaliações</h2>
+  <label>Enviar lembrete (horas antes; 0 = não enviar)<input type="number" name="reminder_hours" min="0" max="168" value="<%= site.reminder_hours %>"></label>
+  <span></span>
+  <%- cb('reminder_sms', 'Enviar também por SMS/WhatsApp' + (smsOn ? '' : ' (requer configurar o Twilio no servidor: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM)')) %>
+  <label class="span2">Link para avaliar no Google (opcional)<input name="review_url" type="url" value="<%= site.review_url %>" placeholder="https://g.page/r/…/review"></label>
+  <label>Pedir avaliação (horas depois da consulta concluída)<input type="number" name="review_delay_hours" min="0" max="168" value="<%= site.review_delay_hours %>"></label>
+  <p class="muted tiny span2">O pedido de avaliação só é enviado a marcações marcadas como "Concluída" e uma única vez por cliente a cada 6 meses.</p>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
+</form>
+
+<form method="post" class="panel form-grid" id="pagamentos">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="pagamentos">
+  <h2 class="span2">Pagamento online (sinal)</h2>
+  <% if (!stripeOn) { %><p class="alert span2">Para ativar, configure no servidor <code>STRIPE_SECRET_KEY</code> e <code>STRIPE_WEBHOOK_SECRET</code> (conta Stripe com cartão, MB WAY e Multibanco ativos).</p><% } %>
+  <label>Pedir pagamento<select name="deposit_mode">
+    <% [['off', 'Não pedir'], ['percent', 'Sinal em % do preço'], ['fixed', 'Sinal de valor fixo (€)'], ['full', 'Valor total']].forEach(([k, l]) => { %><option value="<%= k %>" <%= site.deposit_mode === k ? 'selected' : '' %>><%= l %></option><% }) %>
+  </select></label>
+  <label>Valor (% ou €)<input type="number" name="deposit_value" min="0" step="1" value="<%= site.deposit_value %>"></label>
+  <label>Tempo para pagar (min) antes de libertar o horário<input type="number" name="payment_timeout_min" min="10" max="1440" value="<%= site.payment_timeout_min %>"></label>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
+</form>
+
+<form method="post" class="panel form-grid" id="idiomas">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="idiomas">
+  <h2 class="span2">Idiomas</h2>
+  <%- cb('lang_en', 'Site também em inglês (botão "English" no rodapé)') %>
+  <label class="span2">Frase principal em inglês<input name="tagline_en" value="<%= site.tagline_en %>" placeholder="<%= site.tagline %>"></label>
+  <label class="span2">Texto de apresentação em inglês<textarea name="intro_en" rows="3" placeholder="<%= site.intro %>"><%= site.intro_en %></textarea></label>
+  <p class="muted tiny span2">Os nomes e descrições dos serviços aparecem como estão escritos.</p>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
+</form>
+
+<form method="post" class="panel form-grid" id="legal">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="_section" value="legal">
+  <h2 class="span2">Legal</h2>
+  <label class="span2">Responsável pelo tratamento de dados (nome legal da empresa e NIF)<input name="privacy_controller" value="<%= site.privacy_controller %>" placeholder="Ex.: Equilíbrio, Lda. · NIF 500 000 000"></label>
+  <label class="span2">Link do Livro de Reclamações<input name="complaints_url" type="url" value="<%= site.complaints_url %>"></label>
+  <p class="muted tiny span2">A política de privacidade está em <a href="/privacidade" target="_blank">/privacidade</a>. Reveja-a com o seu caso concreto.</p>
+  <div class="span2"><button class="btn btn-signal">Guardar</button></div>
+</form>
+
+<form method="post" action="/admin/definicoes/password" class="panel form-grid" id="conta">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
-  <h3 class="span2">Alterar palavra-passe</h3>
+  <h2 class="span2">Alterar palavra-passe</h2>
   <label>Palavra-passe atual<input type="password" name="current" required autocomplete="current-password"></label>
   <label>Nova palavra-passe<input type="password" name="next" minlength="8" required autocomplete="new-password"></label>
   <div class="span2"><button class="btn btn-ghost">Alterar</button></div>

@@ -22,9 +22,12 @@ app.disable('x-powered-by');
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
+const UPLOADS = path.join(path.dirname(process.env.DB_PATH || path.join(__dirname, 'data', 'app.db')), 'uploads');
+app.use('/uploads', express.static(UPLOADS, { maxAge: '7d', setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));
 
 app.use((req, res, next) => {
   res.locals.site = getSettings();
+  res.locals.brandCss = require('./src/brand').brandVars(res.locals.site.brand_signal);
   res.locals.baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
   res.locals.canonical = res.locals.baseUrl + req.path;
   res.locals.t = time;

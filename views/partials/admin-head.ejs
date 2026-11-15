@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="/static/css/tokens.css">
+  <% if (brandCss) { %><style><%- brandCss %></style><% } %>
   <link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body>
@@ -27,7 +28,7 @@
 <a class="skip" href="#main">Saltar para o conteúdo</a>
 <div class="shell">
   <aside class="side" aria-label="Navegação">
-    <a class="side-brand" href="/admin"><span class="mark"><%= site.business_name.trim()[0] %></span><%= site.business_name %></a>
+    <a class="side-brand" href="/admin"><% if (site.brand_logo) { %><img class="mark mark-img" src="<%= site.brand_logo %>" alt=""><% } else { %><span class="mark"><%= site.business_name.trim()[0] %></span><% } %><%= site.business_name %></a>
     <nav>
       <% nav.forEach(([href, label, icon, n]) => { %>
         <a href="<%= href %>" class="<%= isActive(href) ? 'active' : '' %>" <%- isActive(href) ? 'aria-current="page"' : '' %>><%- include('icon', { name: icon, size: 18 }) %><span><%= label %></span><% if (n) { %><span class="count"><%= n %></span><% } %></a>

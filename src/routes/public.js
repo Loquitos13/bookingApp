@@ -246,6 +246,33 @@ router.post('/marcacao/:token/cancelar', rateLimit('manage', 20, HOUR), (req, re
   res.redirect(`/marcacao/${b.token}?cancelada=1`);
 });
 
+// calendário pessoal de um profissional (subscrição .ics privada)
+router.get('/cal/:token.ics', rateLimit('cal', 60, HOUR), (req, res, next) => {
+  const p = db.prepare('SELECT * FROM staff WHERE ics_token = ?').get(String(req.params.token));
+  if (!p) return next();
+  const st = getSettings();
+  const today = nowIn(st.timezone).date;
+  const rows = db.prepare(
+    `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
+     WHERE b.staff_id = ? AND b.status IN ('pending','confirmed','completed') AND b.date BETWEEN date(?, '-30 days') AND date(?, '+180 days')`
+  ).all(p.id, today, today);
+  const stamp = (date, min) => `${date.replace(/-/g, '')}T${minToTime(min).replace(':', '')}00`;
+  const esc = (v) => String(v).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//bookingapp//PT', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    `X-WR-CALNAME:${esc(`${st.business_name} · ${p.name}`)}`, `X-WR-TIMEZONE:${st.timezone}`, 'REFRESH-INTERVAL;VALUE=DURATION:PT15M', 'X-PUBLISHED-TTL:PT15M'];
+  for (const b of rows) {
+    lines.push('BEGIN:VEVENT', `UID:${b.ref}@bookingapp`, `DTSTAMP:${now}`,
+      `DTSTART;TZID=${st.timezone}:${stamp(b.date, b.start_min)}`, `DTEND;TZID=${st.timezone}:${stamp(b.date, b.end_min)}`,
+      `SUMMARY:${esc(`${b.service_name} · ${b.customer_name}${b.status === 'pending' ? ' (por confirmar)' : ''}`)}`,
+      `DESCRIPTION:${esc(`Ref. ${b.ref}${b.notes ? ' · ' + b.notes : ''}`)}`, `STATUS:${b.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED'}`, 'END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  res.set('Content-Type', 'text/calendar; charset=utf-8');
+  res.set('Cache-Control', 'private, max-age=300');
+  res.send(lines.join('\r\n'));
+});
+
 router.get('/privacidade', (req, res) => res.render('public/privacy'));
 
 const baseUrlOf = (req) => (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');

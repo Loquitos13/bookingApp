@@ -52,7 +52,9 @@ function logout(req, res) {
 
 function requireAuth(req, res, next) {
   if (!req.user) return res.redirect('/admin/login?next=' + encodeURIComponent(req.originalUrl));
-  if (req.method === 'POST' && req.body?._csrf !== req.session.csrf) {
+  // só o upload do logótipo (multipart) verifica o CSRF na própria rota, depois de o ficheiro ser lido
+  const upload = req.path === '/definicoes/logo' && req.is('multipart/form-data');
+  if (req.method === 'POST' && !upload && req.body?._csrf !== req.session.csrf) {
     return res.status(403).send('Pedido inválido (CSRF). Volte atrás e recarregue a página.');
   }
   next();

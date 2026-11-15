@@ -50,7 +50,7 @@ function seedDemo() {
     for (let off = -12; off <= 21; off++) {
       const date = addDays(today, off);
       const h = hours[weekday(date)];
-      if (!h || h.closed) continue;
+      if (!h || h.closed || require('./holidays').holidayName(date)) continue;
       const windows = h.break_start != null ? [[h.open_min, h.break_start], [h.break_end, h.close_min]] : [[h.open_min, h.close_min]];
       // ocupação: mais cheia nos próximos dias, a esvaziar ao longo das semanas
       const fill = off < 0 ? 0.55 : off <= 3 ? 0.45 : off <= 10 ? 0.3 : 0.15;
@@ -86,7 +86,7 @@ function seedDemo() {
     // um dia quase cheio para um profissional: a demo mostra o aviso "Última vaga" no painel
     const busiest = db.prepare('SELECT id FROM staff WHERE active = 1 ORDER BY sort LIMIT 1 OFFSET 1').get();
     let fullDay = addDays(today, 1);
-    while (!hours[weekday(fullDay)] || hours[weekday(fullDay)].closed) fullDay = addDays(fullDay, 1);
+    while (!hours[weekday(fullDay)] || hours[weekday(fullDay)].closed || require('./holidays').holidayName(fullDay)) fullDay = addDays(fullDay, 1);
     if (busiest) {
       const h = hours[weekday(fullDay)];
       const mine = services.filter((sv) => links.some((l) => l.staff_id === busiest.id && l.service_id === sv.id));

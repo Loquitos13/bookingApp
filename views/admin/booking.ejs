@@ -35,16 +35,48 @@
 
   <section class="panel">
     <h3>Reagendar</h3>
-    <form method="post" class="form-grid">
-      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="reschedule">
-      <label>Data<input type="date" name="date" value="<%= b.date %>" required></label>
-      <label>Hora<input name="time" value="<%= t.minToTime(b.start_min) %>" pattern="\d{1,2}:\d{2}" required></label>
-      <label class="span2">Profissional<select name="staffId">
+    <link rel="stylesheet" href="/static/css/picker.css">
+    <form method="post" id="move-form" class="move">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="move">
+      <label>Profissional<select name="staffId" id="move-staff">
+        <option value="">Qualquer disponível</option>
         <% staff.forEach(p => { %><option value="<%= p.id %>" <%= p.id === b.staff_id ? 'selected' : '' %>><%= p.name %></option><% }) %>
       </select></label>
-      <label class="check span2"><input type="checkbox" name="force" value="1"> Ignorar conflitos</label>
-      <div class="span2"><button class="btn btn-ghost">Reagendar</button></div>
+      <div id="move-picker" class="move-picker"></div>
+      <input type="hidden" name="date" id="move-date"><input type="hidden" name="time" id="move-time">
+      <label class="check"><input type="checkbox" name="notify" value="1" checked> Avisar o cliente por email</label>
+      <button class="btn" id="move-go" disabled>Reagendar</button>
     </form>
+    <details class="manual">
+      <summary>Encaixe manual (ignorar disponibilidade)</summary>
+      <form method="post" class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="reschedule">
+        <label>Data<input type="date" name="date" value="<%= b.date %>" required></label>
+        <label>Hora<input name="time" value="<%= t.minToTime(b.start_min) %>" pattern="\d{1,2}:\d{2}" required></label>
+        <label class="span2">Profissional<select name="staffId">
+          <% staff.forEach(p => { %><option value="<%= p.id %>" <%= p.id === b.staff_id ? 'selected' : '' %>><%= p.name %></option><% }) %>
+        </select></label>
+        <label class="check span2"><input type="checkbox" name="force" value="1" checked> Ignorar conflitos</label>
+        <div class="span2"><button class="btn btn-ghost">Gravar</button></div>
+      </form>
+    </details>
+    <script src="/static/js/picker.js"></script>
+    <script nonce="<%= nonce %>">
+      (function () {
+        var staff = document.getElementById('move-staff'), go = document.getElementById('move-go');
+        var p = Picker({
+          root: document.getElementById('move-picker'), base: '/admin/api',
+          params: function () { return { service: <%= b.service_id %>, staff: staff.value, ignore: <%= b.id %> }; },
+          selected: { date: <%- JSON.stringify(b.date) %> },
+          onChange: function (v) {
+            document.getElementById('move-date').value = v.date; document.getElementById('move-time').value = v.time;
+            go.disabled = !(v.date && v.time);
+            go.textContent = v.date && v.time ? 'Reagendar para ' + p.longDate(v.date) + ' · ' + v.time : 'Reagendar';
+          }
+        });
+        staff.addEventListener('change', function () { p.reload(); });
+      })();
+    </script>
 
     <h3>Dados e notas</h3>
     <form method="post" class="form-grid">
