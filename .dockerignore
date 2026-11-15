@@ -4,3 +4,5 @@ data
 .impeccable
 *.log
 .env
+.claude
+skills-lock.json
