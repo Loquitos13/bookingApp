@@ -15,7 +15,7 @@
       <dt>Data</dt><dd><%= t.formatDateLong(b.date) %></dd>
       <dt>Hora</dt><dd><%= t.minToTime(b.start_min) %> – <%= t.minToTime(b.end_min) %></dd>
       <dt>Profissional</dt><dd><span class="dot" style="background:<%= b.staff_color %>"></span><%= b.staff_name %></dd>
-      <dt>Preço</dt><dd><%= t.euros(b.price_cents) %></dd>
+      <dt>Preço</dt><dd><%= t.euros(b.price_cents) %><% if (b.payment_status !== 'none') { %> · <span class="badge <%= b.payment_status === 'paid' ? 'badge-confirmed' : b.payment_status === 'expired' ? 'badge-cancelled' : 'badge-pending' %>"><%= { pending: 'Sinal por pagar', processing: 'Pagamento em curso', paid: 'Sinal pago', expired: 'Pagamento expirou' }[b.payment_status] %> · <%= t.euros(b.deposit_cents) %></span><% } %></dd>
       <dt>Telefone</dt><dd><a href="tel:<%= b.customer_phone %>"><%= b.customer_phone %></a></dd>
       <dt>Email</dt><dd><a href="mailto:<%= b.customer_email %>"><%= b.customer_email %></a></dd>
       <dt>Notas</dt><dd><%= b.notes || '—' %></dd>

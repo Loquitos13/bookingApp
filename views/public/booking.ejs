@@ -19,6 +19,20 @@
     <% } else { %>
       <h1 class="ticket-h">A sua marcação</h1>
     <% } %>
+    <% if (b.payment_status === 'pending' && b.status !== 'cancelled') { %>
+      <div class="pay-box" role="status">
+        <p><strong><%= L('pay.needed', { amount: t.euros(b.deposit_cents) }) %></strong> <%= L('pay.hold', { min: site.payment_timeout_min }) %></p>
+        <% if (payState === 'erro') { %><p class="muted"><%= L('pay.error') %></p><% } %>
+        <form method="post" action="/marcacao/<%= b.token %>/pagar"><button class="btn btn-signal btn-lg"><%= L('pay.cta', { amount: t.euros(b.deposit_cents) }) %></button></form>
+        <p class="muted tiny"><%= L('pay.methods') %></p>
+      </div>
+    <% } else if (b.payment_status === 'processing') { %>
+      <p class="notice notice-ok" role="status"><%= L('pay.processing') %></p>
+    <% } else if (b.payment_status === 'paid' && payState === '1') { %>
+      <p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> <%= L('pay.done', { amount: t.euros(b.deposit_cents) }) %></p>
+    <% } else if (payState === '1') { %>
+      <p class="notice notice-ok" role="status"><%= L('pay.checking') %></p>
+    <% } %>
     <% if (moved) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> Marcação alterada. Enviámos a confirmação por email.</p><% } %>
     <% if (cancelled && b.status === 'cancelled') { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> A marcação foi cancelada.</p><% } %>
     <% if (cancelled && b.status !== 'cancelled') { %><p class="notice notice-err" role="alert">Já não é possível cancelar online. Ligue para <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p><% } %>
@@ -34,7 +48,7 @@
           <div><dt>Serviço</dt><dd><%= b.service_name %></dd></div>
           <div><dt>Com</dt><dd><%= b.staff_name %></dd></div>
           <div><dt>Duração</dt><dd><%= b.duration_min %> min · até <%= t.minToTime(b.end_min) %></dd></div>
-          <div><dt>Preço</dt><dd><%= t.euros(b.price_cents) %></dd></div>
+          <div><dt>Preço</dt><dd><%= t.euros(b.price_cents) %><%= b.payment_status === 'paid' ? ' · ' + L('pay.paidShort', { amount: t.euros(b.deposit_cents) }) : '' %></dd></div>
         </dl>
       </div>
       <div class="ticket-stub">

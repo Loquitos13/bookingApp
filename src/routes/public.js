@@ -7,6 +7,7 @@ const { isDate, nowIn, timeToMin, minToTime, weekday, formatDateLong } = require
 
 const { rateLimit, verifyTurnstile } = require('../security-mw');
 
+const payments = require('../payments');
 const router = express.Router();
 const HOUR = 60 * 60 * 1000;
 router.use('/api', rateLimit('api', 240, 60 * 1000));
@@ -165,7 +166,18 @@ router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
   }
 
   try {
-    const b = createBooking({ ...form, start: timeToMin(form.time), staffId: form.staffId || null });
+    const b = createBooking({ ...form, start: timeToMin(form.time), staffId: form.staffId || null, lang: req.lang });
+    const deposit = payments.enabled() ? payments.depositFor(b.price_cents) : 0;
+    if (deposit) {
+      // a marcação fica reservada (pendente) até o pagamento ser confirmado pela Stripe
+      db.prepare("UPDATE bookings SET status = 'pending', payment_status = 'pending', deposit_cents = ? WHERE id = ?").run(deposit, b.id);
+      try {
+        return res.redirect(303, await payments.createCheckout(getBooking(b.id), res.locals.baseUrl));
+      } catch (e) {
+        console.error('[pagamentos]', e.message);
+        return res.redirect(`/marcacao/${b.token}?nova=1&pago=erro`);
+      }
+    }
     notifyNewBooking(b);
     res.redirect(`/marcacao/${b.token}?nova=1`);
   } catch (e) {
@@ -179,7 +191,7 @@ router.get('/marcacao/:token', (req, res, next) => {
   const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
   if (!row) return next();
   const b = getBooking(row.id);
-  res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1', moved: req.query.reagendada === '1' });
+  res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1', moved: req.query.reagendada === '1', payState: String(req.query.pago || '') });
 });
 
 router.get('/marcacao/:token.ics', (req, res, next) => {
@@ -199,6 +211,15 @@ router.get('/marcacao/:token.ics', (req, res, next) => {
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Content-Disposition', `attachment; filename="marcacao-${b.ref}.ics"`);
   res.send(ics);
+});
+
+router.post('/marcacao/:token/pagar', rateLimit('pay', 10, HOUR), async (req, res, next) => {
+  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(req.params.token));
+  if (!row) return next();
+  const b = getBooking(row.id);
+  if (b.payment_status !== 'pending' || b.status === 'cancelled' || !process.env.STRIPE_SECRET_KEY) return res.redirect(`/marcacao/${b.token}`);
+  try { res.redirect(303, await payments.createCheckout(b, res.locals.baseUrl)); }
+  catch (e) { console.error('[pagamentos]', e.message); res.redirect(`/marcacao/${b.token}?pago=erro`); }
 });
 
 function bookingByToken(token) {

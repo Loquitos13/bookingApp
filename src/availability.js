@@ -190,12 +190,12 @@ function createBooking(input, { source = 'online', force = false } = {}) {
     const info = db
       .prepare(
         `INSERT INTO bookings(ref, token, service_id, staff_id, date, start_min, end_min, price_cents,
-          customer_name, customer_email, customer_phone, notes, internal_notes, status, source)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+          customer_name, customer_email, customer_phone, notes, internal_notes, status, source, lang)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       )
       .run(
         ref, token, svc.id, staffId, input.date, input.start, input.start + svc.duration_min, svc.price_cents,
-        input.name, input.email, input.phone, input.notes || '', input.internalNotes || '', status, source
+        input.name, input.email, input.phone, input.notes || '', input.internalNotes || '', status, source, input.lang === 'en' ? 'en' : 'pt'
       );
     return getBooking(Number(info.lastInsertRowid));
   });

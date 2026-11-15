@@ -444,3 +444,6 @@ dialog.sheet p { color: var(--ink-2); }
 .wl-form h2 { font: 700 1.375rem/1.1 var(--cond); text-transform: uppercase; }
 .wl-form h2 span { color: var(--ink-2); }
 .wl-form .btn { justify-self: start; }
+
+/* pagamento */
+.pay-box { display: grid; gap: 10px; justify-items: start; padding: 18px; margin: 20px 0; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); }

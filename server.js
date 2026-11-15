@@ -19,6 +19,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
+// webhook da Stripe: precisa do corpo em bruto para verificar a assinatura (antes dos outros parsers)
+app.post('/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }), (req, res) => {
+  const payments = require('./src/payments');
+  const raw = req.body.toString('utf8');
+  if (!payments.verifySignature(raw, req.get('stripe-signature'), process.env.STRIPE_WEBHOOK_SECRET)) return res.status(400).send('assinatura inválida');
+  let event;
+  try { event = JSON.parse(raw); } catch { return res.status(400).send('json inválido'); }
+  const paidId = payments.applyEvent(event);
+  if (paidId) {
+    const { getBooking } = require('./src/availability');
+    require('./src/mailer').notifyNewBooking(getBooking(paidId));
+  }
+  res.json({ received: true });
+});
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
