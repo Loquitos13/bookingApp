@@ -156,6 +156,7 @@
         <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" inputmode="email"></label>
         <label class="field"><span>Telemóvel <em>opcional</em></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
         <label class="field field-wide"><span>Mensagem</span><textarea name="message" rows="4" required maxlength="3000"></textarea></label>
+        <% if (turnstileKey) { %><div class="cf-turnstile field-wide" data-sitekey="<%= turnstileKey %>" data-language="pt"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
         <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button class="btn btn-ink">Enviar mensagem</button>
       </form>

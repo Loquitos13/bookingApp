@@ -24,7 +24,7 @@
     <a class="btn btn-ghost btn-icon" href="<%= q({ data: prev }) %>" aria-label="Anterior"><%- include('../partials/icon', { name: 'back', size: 18 }) %></a>
     <a class="btn btn-ghost" href="<%= q({ data: today }) %>">Hoje</a>
     <a class="btn btn-ghost btn-icon" href="<%= q({ data: next }) %>" aria-label="Seguinte"><%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
-    <form method="get" class="date-jump"><input type="hidden" name="vista" value="<%= view %>"><% if (staffId) { %><input type="hidden" name="staff" value="<%= staffId %>"><% } %><input type="date" name="data" value="<%= date %>" onchange="this.form.submit()" aria-label="Ir para data"></form>
+    <form method="get" class="date-jump"><input type="hidden" name="vista" value="<%= view %>"><% if (staffId) { %><input type="hidden" name="staff" value="<%= staffId %>"><% } %><input type="date" name="data" value="<%= date %>" data-autosubmit aria-label="Ir para data"></form>
   </div>
 </header>
 

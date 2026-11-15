@@ -14,7 +14,7 @@
         <input type="hidden" name="_csrf" value="<%= csrf %>">
         <a class="btn btn-ghost" href="mailto:<%= m.email %>?subject=<%= encodeURIComponent('Re: ' + site.business_name) %>">Responder</a>
         <button class="btn btn-ghost" name="action" value="toggle"><%= m.read ? 'Marcar como não lida' : 'Marcar como lida' %></button>
-        <button class="linkbtn danger" name="action" value="delete" onclick="return confirm('Apagar mensagem?')">Apagar</button>
+        <button class="linkbtn danger" name="action" value="delete" data-confirm="Apagar mensagem?">Apagar</button>
       </form>
     </article>
   <% }) %>

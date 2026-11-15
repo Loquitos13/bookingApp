@@ -8,7 +8,7 @@
       <% [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
         <tr>
           <th><%= t.WEEKDAYS[d] %></th>
-          <td><label class="switch"><input type="checkbox" <%= h.closed ? '' : 'checked' %> onchange="this.closest('tr').querySelector('[name=closed_<%= d %>]').value = this.checked ? '' : '1'"><span></span></label>
+          <td><label class="switch"><input type="checkbox" <%= h.closed ? '' : 'checked' %> data-closed-toggle="closed_<%= d %>"><span></span></label>
               <input type="hidden" name="closed_<%= d %>" value="<%= h.closed ? '1' : '' %>"></td>
           <td><input type="time" name="open_<%= d %>" value="<%= t.minToTime(h.open_min) %>" step="900"></td>
           <td><input type="time" name="close_<%= d %>" value="<%= t.minToTime(h.close_min) %>" step="900"></td>

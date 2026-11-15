@@ -23,7 +23,7 @@
   <label class="check"><input type="checkbox" name="force" value="1" <%= form.force ? 'checked' : '' %>> Ignorar disponibilidade (encaixe)</label>
   <div class="span2"><button class="btn">Criar marcação</button></div>
 </form>
-<script>
+<script nonce="<%= nonce %>">
 (function () {
   const f = document.getElementById('new-booking');
   const list = document.getElementById('slot-list'), hint = document.getElementById('slot-hint');

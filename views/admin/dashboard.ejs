@@ -30,7 +30,7 @@
         <form method="post" action="/admin/marcacoes/<%= b.id %>" class="row-actions">
           <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="status"><input type="hidden" name="notify" value="1"><input type="hidden" name="back" value="/admin">
           <button class="btn btn-ink btn-sm" name="status" value="confirmed"><%- include('../partials/icon', { name: 'check', size: 16 }) %> Confirmar</button>
-          <button class="btn btn-ghost btn-sm" name="status" value="cancelled" onclick="return confirm('Recusar o pedido de <%= b.customer_name.replace(/'/g, '') %>?')">Recusar</button>
+          <button class="btn btn-ghost btn-sm" name="status" value="cancelled" data-confirm="Recusar o pedido de <%= b.customer_name %>?">Recusar</button>
         </form>
       </li>
     <% }) %>

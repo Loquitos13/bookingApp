@@ -72,7 +72,7 @@
   <% } %>
 </section>
 
-<form method="post" onsubmit="return confirm('Apagar definitivamente esta marcação? (Para manter histórico, prefira Cancelar.)')" class="danger-zone">
+<form method="post" data-confirm="Apagar definitivamente esta marcação? (Para manter histórico, prefira Cancelar.)" class="danger-zone">
   <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="delete">
   <button class="linkbtn danger">Apagar marcação</button>
 </form>

@@ -19,7 +19,7 @@
     <button class="btn btn-signal">Entrar</button>
     <% if (site.demo_mode === '1') { %><p class="muted tiny">Demonstração: admin@exemplo.pt / admin123</p><% } %>
   </form>
-  <script>
+  <script nonce="<%= nonce %>">
     // depois de sair, apaga as páginas guardadas pela app
     if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('logout');
   </script>

@@ -23,19 +23,6 @@
     </div>
   </details>
 </nav>
-<script>
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin' }).catch(function () {});
-  var installEvt = null;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault(); installEvt = e;
-    document.querySelectorAll('.install-app').forEach(function (b) { b.hidden = false; });
-  });
-  document.querySelectorAll('.install-app').forEach(function (b) {
-    b.addEventListener('click', function () { if (!installEvt) return; installEvt.prompt(); installEvt.userChoice.finally(function () { installEvt = null; document.querySelectorAll('.install-app').forEach(function (x) { x.hidden = true; }); }); });
-  });
-  document.querySelectorAll('.tab-more').forEach(function (d) {
-    document.addEventListener('click', function (e) { if (d.open && !d.contains(e.target)) d.open = false; });
-  });
-</script>
+<script src="/static/js/admin.js" defer></script>
 </body>
 </html>

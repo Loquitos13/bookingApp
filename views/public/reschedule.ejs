@@ -43,7 +43,7 @@
   </div>
 </main>
 <script src="/static/js/picker.js"></script>
-<script>
+<script nonce="<%= nonce %>">
 (function () {
   var form = document.getElementById('move'), go = document.getElementById('m-go'), sum = document.getElementById('m-sum');
   var mk = function (n) { var i = document.createElement('input'); i.type = 'hidden'; i.name = n; form.appendChild(i); return i; };

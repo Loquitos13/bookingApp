@@ -94,6 +94,7 @@
             </div>
             <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span>Aceito que os meus dados sejam usados para gerir esta marcação.</span></label>
           </div>
+          <% if (turnstileKey) { %><div class="cf-turnstile field-wide" data-sitekey="<%= turnstileKey %>" data-language="pt"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button class="btn btn-signal btn-lg btn-block submit-nojs">Confirmar marcação</button>
         </fieldset>

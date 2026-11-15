@@ -5,7 +5,11 @@ const { getSlots, availableDays, firstSlot, nextDepartures, createBooking, getBo
 const { notifyNewBooking, notifyStatusChange, notifyRescheduled, send } = require('../mailer');
 const { isDate, nowIn, timeToMin, minToTime, weekday } = require('../time');
 
+const { rateLimit, verifyTurnstile } = require('../security-mw');
+
 const router = express.Router();
+const HOUR = 60 * 60 * 1000;
+router.use('/api', rateLimit('api', 240, 60 * 1000));
 
 const activeServices = () => db.prepare('SELECT * FROM services WHERE active = 1 ORDER BY sort, name').all();
 const activeStaff = () => db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
@@ -102,7 +106,7 @@ router.get('/api/slots', (req, res) => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 
-router.post('/marcar', (req, res) => {
+router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
   const form = {
     serviceId: +req.body.serviceId || '',
     staffId: +req.body.staffId || '',
@@ -122,6 +126,14 @@ router.post('/marcar', (req, res) => {
   if (!EMAIL_RE.test(form.email)) errors.push('Indique um email válido.');
   if (form.phone.replace(/\D/g, '').length < 9) errors.push('Indique um telefone válido.');
   if (!req.body.consent) errors.push('É necessário aceitar o tratamento dos dados para a marcação.');
+  if (!errors.length && !(await verifyTurnstile(req))) errors.push('Não foi possível confirmar que não é um robô. Tente novamente.');
+  if (!errors.length) {
+    // limite de marcações futuras por pessoa (evita encher a agenda)
+    const max = +getSettings().max_online_per_email || 4;
+    const n = db.prepare(`SELECT COUNT(*) c FROM bookings WHERE lower(customer_email) = ? AND source = 'online' AND status IN ('pending','confirmed') AND date >= ?`)
+      .get(form.email, nowIn(getSettings().timezone).date).c;
+    if (n >= max) errors.push(`Já tem ${n} marcações futuras. Para marcar mais, contacte-nos por telefone.`);
+  }
   if (errors.length) {
     res.status(422);
     return renderBooking(res, { error: errors.join(' '), form });
@@ -176,7 +188,7 @@ router.get('/marcacao/:token/reagendar', (req, res, next) => {
   res.render('public/reschedule', { b, error: req.query.erro || null });
 });
 
-router.post('/marcacao/:token/reagendar', (req, res, next) => {
+router.post('/marcacao/:token/reagendar', rateLimit('manage', 20, HOUR), (req, res, next) => {
   const b = bookingByToken(req.params.token);
   if (!b) return next();
   if (!canCustomerCancel(b)) return res.redirect(`/marcacao/${b.token}`);
@@ -196,7 +208,7 @@ router.post('/marcacao/:token/reagendar', (req, res, next) => {
   }
 });
 
-router.post('/marcacao/:token/cancelar', (req, res, next) => {
+router.post('/marcacao/:token/cancelar', rateLimit('manage', 20, HOUR), (req, res, next) => {
   const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
   if (!row) return next();
   const b = getBooking(row.id);
@@ -209,8 +221,9 @@ router.post('/marcacao/:token/cancelar', (req, res, next) => {
   res.redirect(`/marcacao/${b.token}?cancelada=1`);
 });
 
-router.post('/contacto', (req, res) => {
+router.post('/contacto', rateLimit('contact', 5, HOUR), async (req, res) => {
   if (req.body.website) return res.redirect('/');
+  if (!(await verifyTurnstile(req))) return res.redirect('/?enviado=0#contacto');
   const name = clean(req.body.name, 120);
   const email = clean(req.body.email, 160);
   const message = clean(req.body.message, 3000);

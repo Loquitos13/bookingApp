@@ -24,7 +24,7 @@
     <thead><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Origem</th><th>Estado</th></tr></thead>
     <tbody>
       <% rows.forEach(b => { %>
-        <tr onclick="location.href='/admin/marcacoes/<%= b.id %>'">
+        <tr data-href="/admin/marcacoes/<%= b.id %>">
           <td><%= t.formatDateShort(b.date) %></td>
           <td><%= t.minToTime(b.start_min) %></td>
           <td><a href="/admin/marcacoes/<%= b.id %>"><strong><%= b.customer_name %></strong></a><br><small class="muted"><%= b.customer_phone %></small></td>

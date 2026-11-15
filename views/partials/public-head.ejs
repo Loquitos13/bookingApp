@@ -10,7 +10,7 @@
   <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/css/tokens.css">
   <link rel="stylesheet" href="/static/css/site.css">
-  <script>document.documentElement.classList.add('js')</script>
+  <script nonce="<%= nonce %>">document.documentElement.classList.add('js')</script>
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
 <a class="skip" href="#conteudo">Saltar para o conteúdo</a>

@@ -4,7 +4,7 @@
 </header>
 <form class="filters filters-2 panel" method="get" role="search">
   <label>Pesquisar<input name="q" value="<%= q %>" placeholder="Nome, email ou telefone" type="search"></label>
-  <label>Ordenar<select name="ordem" onchange="this.form.submit()">
+  <label>Ordenar<select name="ordem" data-autosubmit>
     <% [['recent', 'Atividade recente'], ['visits', 'Mais visitas'], ['name', 'Nome'], ['no_shows', 'Mais faltas']].forEach(([k, v]) => { %><option value="<%= k %>" <%= sort === k ? 'selected' : '' %>><%= v %></option><% }) %>
   </select></label>
   <button class="btn">Procurar</button>
@@ -15,7 +15,7 @@
     <thead><tr><th>Cliente</th><th>Contacto</th><th>Visitas</th><th>Faltas</th><th>Última</th><th>Próxima</th></tr></thead>
     <tbody>
       <% rows.forEach(c => { const href = '/admin/clientes/ficha?email=' + encodeURIComponent(c.email); %>
-        <tr onclick="location.href='<%= href %>'">
+        <tr data-href="<%= href %>">
           <td><a href="<%= href %>"><strong><%= c.name %></strong></a></td>
           <td><span class="muted"><%= c.phone %></span><br><small class="muted"><%= c.email %></small></td>
           <td><%= c.visits %></td>

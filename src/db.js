@@ -121,7 +121,97 @@ const DEFAULT_SETTINGS = {
   cancel_hours: '24',
   auto_confirm: '1',
   demo_mode: process.env.DEMO === '0' ? '0' : '1',
+  // marca
+  brand_signal: '#f5c518',
+  brand_logo: '',
+  // regras e automatismos
+  auto_holidays: '1',
+  reminder_hours: '24',
+  reminder_sms: '0',
+  review_url: '',
+  review_delay_hours: '3',
+  max_online_per_email: '4',
+  // sinal / pagamento online
+  deposit_mode: 'off', // off | percent | fixed | full
+  deposit_value: '0',
+  payment_timeout_min: '30',
+  // legal
+  complaints_url: 'https://www.livroreclamacoes.pt',
+  privacy_controller: '',
+  // idiomas
+  lang_en: '1',
+  intro_en: '',
+  tagline_en: '',
 };
+
+// ---- migrações aditivas (instalações existentes recebem as novas colunas/tabelas) ----
+function addColumn(table, col, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+}
+db.exec(`
+CREATE TABLE IF NOT EXISTS staff_hours (
+  staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+  weekday INTEGER NOT NULL,
+  closed INTEGER NOT NULL DEFAULT 0,
+  open_min INTEGER NOT NULL DEFAULT 540,
+  close_min INTEGER NOT NULL DEFAULT 1140,
+  break_start INTEGER,
+  break_end INTEGER,
+  PRIMARY KEY (staff_id, weekday)
+);
+CREATE TABLE IF NOT EXISTS waitlist (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token TEXT NOT NULL UNIQUE,
+  service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  staff_id INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+  date TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT DEFAULT '',
+  lang TEXT DEFAULT 'pt',
+  status TEXT NOT NULL DEFAULT 'waiting', -- waiting | notified | booked | removed
+  notified_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS packages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  sessions INTEGER NOT NULL,
+  price_cents INTEGER NOT NULL DEFAULT 0,
+  validity_days INTEGER NOT NULL DEFAULT 365,
+  active INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS client_packages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  package_id INTEGER NOT NULL REFERENCES packages(id),
+  sessions_total INTEGER NOT NULL,
+  sessions_used INTEGER NOT NULL DEFAULT 0,
+  price_cents INTEGER NOT NULL DEFAULT 0,
+  purchased_at TEXT NOT NULL DEFAULT (date('now')),
+  expires_at TEXT,
+  notes TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_cp_email ON client_packages(email);
+`);
+addColumn('staff', 'ics_token', 'TEXT');
+addColumn('bookings', 'reminder_sent_at', 'TEXT');
+addColumn('bookings', 'review_sent_at', 'TEXT');
+addColumn('bookings', 'payment_status', "TEXT NOT NULL DEFAULT 'none'"); // none | pending | paid | expired
+addColumn('bookings', 'deposit_cents', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('bookings', 'payment_ref', 'TEXT');
+addColumn('bookings', 'series_id', 'TEXT');
+addColumn('bookings', 'client_package_id', 'INTEGER');
+addColumn('bookings', 'lang', "TEXT NOT NULL DEFAULT 'pt'");
+addColumn('users', 'role', "TEXT NOT NULL DEFAULT 'owner'"); // owner | reception | staff
+addColumn('users', 'staff_id', 'INTEGER REFERENCES staff(id) ON DELETE SET NULL');
+function ensureStaffTokens() {
+  for (const s of db.prepare('SELECT id FROM staff WHERE ics_token IS NULL').all()) {
+    db.prepare('UPDATE staff SET ics_token = ? WHERE id = ?').run(require('node:crypto').randomBytes(18).toString('hex'), s.id);
+  }
+}
 
 function seed() {
   const has = db.prepare('SELECT COUNT(*) c FROM settings').get().c;
@@ -175,6 +265,11 @@ function seed() {
   console.log(`[seed] Utilizador de back office criado: ${email} / ${pass}  (altere a palavra-passe!)`);
 }
 seed();
+ensureStaffTokens();
+if (!db.prepare('SELECT COUNT(*) c FROM packages').get().c) {
+  const sv = db.prepare('SELECT id, price_cents FROM services ORDER BY sort LIMIT 1 OFFSET 1').get();
+  if (sv) db.prepare('INSERT INTO packages(name, service_id, sessions, price_cents, validity_days) VALUES (?,?,?,?,?)').run('Pack 10 sessões', sv.id, 10, Math.round(sv.price_cents * 10 * 0.85), 365);
+}
 
 function getSettings() {
   const out = { ...DEFAULT_SETTINGS };
@@ -199,4 +294,4 @@ function tx(fn) {
   }
 }
 
-module.exports = { db, getSettings, setSetting, tx, DEFAULT_SETTINGS };
+module.exports = { db, getSettings, setSetting, tx, DEFAULT_SETTINGS, ensureStaffTokens };
