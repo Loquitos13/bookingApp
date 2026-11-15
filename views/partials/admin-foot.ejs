@@ -6,10 +6,11 @@
   const more = [['/admin/clientes', 'Clientes'], ['/admin/servicos', 'Serviços'], ['/admin/equipa', 'Equipa'], ['/admin/horario', 'Horário'], ['/admin/bloqueios', 'Férias e bloqueios'], ['/admin/definicoes', 'Definições']];
   const moreOn = more.some(([h]) => isAct(h));
 %>
+<nav class="tabbar" aria-label="Navegação principal">
 <% if (!path.startsWith('/admin/marcacoes/nova')) { %>
 <a class="fab" href="/admin/marcacoes/nova" aria-label="Nova marcação"><%- include('icon', { name: 'plus', size: 26 }) %></a>
 <% } %>
-<nav class="tabbar" aria-label="Navegação principal">
+
   <% tabs.forEach(([href, label, icon, n]) => { %>
     <a href="<%= href %>" class="<%= isAct(href) ? 'active' : '' %>" <%- isAct(href) ? 'aria-current="page"' : '' %>><%- include('icon', { name: icon, size: 22 }) %><span><%= label %></span><% if (n) { %><b class="count"><%= n %></b><% } %></a>
   <% }) %>

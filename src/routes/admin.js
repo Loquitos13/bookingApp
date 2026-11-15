@@ -322,7 +322,7 @@ const CLIENT_SQL = `
     MAX(CASE WHEN b.status = 'completed' THEN b.date END) last_visit,
     MIN(CASE WHEN b.status IN ('pending','confirmed') AND b.date >= ? THEN b.date END) next_visit,
     COALESCE(SUM(CASE WHEN b.status = 'completed' THEN b.price_cents END), 0) spent
-  FROM bookings b WHERE b.customer_email LIKE '%@%'`;
+  FROM bookings b WHERE b.customer_email LIKE '%@%' AND b.customer_email NOT LIKE '%@removido.invalid'`;
 
 router.get('/clientes', (req, res) => {
   const q = clean(req.query.q, 80);
@@ -354,6 +354,41 @@ router.post('/clientes/ficha', (req, res) => {
   db.prepare(`INSERT INTO client_notes(email, notes) VALUES (?, ?) ON CONFLICT(email) DO UPDATE SET notes = excluded.notes, updated_at = datetime('now')`)
     .run(email, clean(req.body.notes, 4000));
   back(res, '/admin/clientes/ficha?email=' + encodeURIComponent(email), 'Notas guardadas.');
+});
+
+// RGPD: exportar todos os dados de um cliente (direito de acesso/portabilidade)
+router.get('/clientes/exportar', (req, res) => {
+  const email = clean(req.query.email, 160).toLowerCase();
+  const bookings = db.prepare(
+    `SELECT b.ref, b.date, b.start_min, b.end_min, s.name service, st.name staff, b.customer_name, b.customer_email, b.customer_phone,
+            b.notes, b.status, b.source, b.price_cents, b.created_at FROM bookings b
+     JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id WHERE lower(b.customer_email) = ? ORDER BY b.date`
+  ).all(email);
+  const data = {
+    exported_at: new Date().toISOString(),
+    controller: getSettings().privacy_controller || getSettings().business_name,
+    email,
+    bookings,
+    notes: (db.prepare('SELECT notes FROM client_notes WHERE email = ?').get(email) || {}).notes || '',
+    packages: db.prepare('SELECT p.name, cp.sessions_total, cp.sessions_used, cp.purchased_at, cp.expires_at FROM client_packages cp JOIN packages p ON p.id = cp.package_id WHERE cp.email = ?').all(email),
+    waitlist: db.prepare('SELECT date, name, phone, status, created_at FROM waitlist WHERE lower(email) = ?').all(email),
+    messages: db.prepare('SELECT name, phone, message, created_at FROM messages WHERE lower(email) = ?').all(email),
+  };
+  res.set('Content-Disposition', `attachment; filename="dados-${email.replace(/[^a-z0-9]/g, '_')}.json"`);
+  res.json(data);
+});
+
+// RGPD: apagar dados pessoais (anonimiza as marcações para manter a contabilidade e estatísticas)
+router.post('/clientes/apagar', (req, res) => {
+  const email = clean(req.body.email, 160).toLowerCase();
+  if (!email || req.body.confirm !== email) return back(res, '/admin/clientes/ficha?email=' + encodeURIComponent(email), 'Para apagar, escreva o email do cliente para confirmar.');
+  const anon = `anonimo-${require('node:crypto').randomBytes(4).toString('hex')}@removido.invalid`;
+  db.prepare(`UPDATE bookings SET customer_name = 'Cliente removido', customer_email = ?, customer_phone = '', notes = '', internal_notes = '' WHERE lower(customer_email) = ?`).run(anon, email);
+  db.prepare('DELETE FROM client_notes WHERE email = ?').run(email);
+  db.prepare('DELETE FROM client_packages WHERE email = ?').run(email);
+  db.prepare('DELETE FROM waitlist WHERE lower(email) = ?').run(email);
+  db.prepare('DELETE FROM messages WHERE lower(email) = ?').run(email);
+  back(res, '/admin/clientes', 'Dados pessoais do cliente apagados (marcações anonimizadas).');
 });
 
 // autocompletar clientes no formulário de nova marcação

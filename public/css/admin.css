@@ -330,3 +330,13 @@ input[type=color] { padding: 3px; height: 44px; }
   .mday-count { font-size: .85rem; }
   .date-jump { display: none; }
 }
+
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover { background: #a52f18; }
+.danger-panel summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.danger-panel summary::-webkit-details-marker { display: none; }
+.danger-panel summary h2 { margin: 0; }
+.danger-panel summary::after { content: '+'; font: 700 1.5rem var(--cond); }
+.danger-panel[open] summary::after { content: '–'; }
+.danger-panel[open] summary { margin-bottom: 12px; }
+.erase { margin-top: 16px; align-items: end; }

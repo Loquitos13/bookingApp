@@ -25,11 +25,14 @@ app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: '1h'
 
 app.use((req, res, next) => {
   res.locals.site = getSettings();
+  res.locals.baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  res.locals.canonical = res.locals.baseUrl + req.path;
   res.locals.t = time;
   res.locals.path = req.path;
   next();
 });
 app.use(securityHeaders);
+app.use(require('./src/i18n').middleware);
 app.use(loadSession);
 
 // App instalável do back office (PWA)

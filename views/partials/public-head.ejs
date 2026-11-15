@@ -1,10 +1,24 @@
 <!doctype html>
-<html lang="pt-PT">
+<html lang="<%= lang === 'en' ? 'en' : 'pt-PT' %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %><%= site.business_name %> — <%= site.business_subtitle %></title>
-  <meta name="description" content="<%= site.tagline %>">
+  <% const desc = (lang === 'en' && site.tagline_en) || site.tagline; const pageTitle = (typeof title !== 'undefined' ? title + ' · ' : '') + site.business_name + ' — ' + site.business_subtitle; %>
+  <meta name="description" content="<%= desc %>">
+  <link rel="canonical" href="<%= canonical %>">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= site.business_name %>">
+  <meta property="og:title" content="<%= pageTitle %>">
+  <meta property="og:description" content="<%= desc %>">
+  <meta property="og:url" content="<%= canonical %>">
+  <meta property="og:image" content="<%= baseUrl %>/static/og.png">
+  <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+  <meta property="og:locale" content="<%= lang === 'en' ? 'en_GB' : 'pt_PT' %>">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/static/pwa/icon-192.png" type="image/png">
+  <% if (site.lang_en === '1') { %><link rel="alternate" hreflang="pt" href="<%= canonical %>?lang=pt"><link rel="alternate" hreflang="en" href="<%= canonical %>?lang=en"><% } %>
+  <% if (typeof jsonLd !== 'undefined') { %><script type="application/ld+json" nonce="<%= nonce %>"><%- JSON.stringify(jsonLd).replace(/</g, '\\u003c') %></script><% } %>
   <meta name="theme-color" content="#12171d">
   <link rel="preload" href="/static/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>

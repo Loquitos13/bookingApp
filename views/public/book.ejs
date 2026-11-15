@@ -92,7 +92,7 @@
               <button type="button" class="link-btn" id="add-note" aria-expanded="<%= form.notes ? 'true' : 'false' %>" aria-controls="note"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> Acrescentar uma nota</button>
               <label id="note" class="field" <%= form.notes ? '' : 'hidden' %>><span>Nota para a equipa <em>opcional</em></span><textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: o motivo da consulta"><%= form.notes || '' %></textarea></label>
             </div>
-            <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span>Aceito que os meus dados sejam usados para gerir esta marcação.</span></label>
+            <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span>Aceito que os meus dados sejam usados para gerir esta marcação (<a href="/privacidade" target="_blank">política de privacidade</a>).</span></label>
           </div>
           <% if (turnstileKey) { %><div class="cf-turnstile field-wide" data-sitekey="<%= turnstileKey %>" data-language="pt"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">

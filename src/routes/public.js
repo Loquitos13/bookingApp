@@ -19,8 +19,33 @@ const staffServiceMap = () =>
 router.get('/', (req, res) => {
   const hours = db.prepare('SELECT * FROM hours ORDER BY weekday').all();
   const now = nowIn(getSettings().timezone);
+  const services = activeServices();
+  const st = getSettings();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const spec = [];
+  for (const h of hours) {
+    if (h.closed) continue;
+    const parts = h.break_start != null ? [[h.open_min, h.break_start], [h.break_end, h.close_min]] : [[h.open_min, h.close_min]];
+    for (const [a, b] of parts) spec.push({ '@type': 'OpeningHoursSpecification', dayOfWeek: dayNames[h.weekday], opens: minToTime(a), closes: minToTime(b) });
+  }
+  const base = res.locals.baseUrl;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: st.business_name,
+    description: st.tagline,
+    url: base + '/',
+    telephone: st.phone,
+    email: st.email,
+    address: { '@type': 'PostalAddress', streetAddress: st.address, addressCountry: 'PT' },
+    image: base + '/static/og.png',
+    openingHoursSpecification: spec,
+    potentialAction: { '@type': 'ReserveAction', target: base + '/marcar' },
+    makesOffer: services.map((sv) => ({ '@type': 'Offer', price: (sv.price_cents / 100).toFixed(2), priceCurrency: 'EUR', itemOffered: { '@type': 'Service', name: sv.name, description: sv.description } })),
+  };
   res.render('public/home', {
-    services: activeServices(),
+    jsonLd,
+    services,
     staff: activeStaff(),
     hours,
     departures: nextDepartures(4),
@@ -219,6 +244,21 @@ router.post('/marcacao/:token/cancelar', rateLimit('manage', 20, HOUR), (req, re
     send({ to: process.env.NOTIFY_EMAIL || getSettings().email, subject: `Marcação ${b.ref} cancelada pelo cliente`, text: `${b.customer_name} cancelou ${b.service_name} em ${b.date}.` });
   }
   res.redirect(`/marcacao/${b.token}?cancelada=1`);
+});
+
+router.get('/privacidade', (req, res) => res.render('public/privacy'));
+
+const baseUrlOf = (req) => (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+router.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /marcacao/\nDisallow: /api/\nDisallow: /cal/\n\nSitemap: ${baseUrlOf(req)}/sitemap.xml\n`);
+});
+router.get('/sitemap.xml', (req, res) => {
+  const base = baseUrlOf(req);
+  const en = getSettings().lang_en === '1';
+  const urls = ['/', '/marcar', '/privacidade'];
+  const today = nowIn(getSettings().timezone).date;
+  const entry = (u) => `<url><loc>${base}${u}</loc><lastmod>${today}</lastmod>${en ? `<xhtml:link rel="alternate" hreflang="pt" href="${base}${u}?lang=pt"/><xhtml:link rel="alternate" hreflang="en" href="${base}${u}?lang=en"/>` : ''}</url>`;
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${urls.map(entry).join('')}</urlset>`);
 });
 
 router.post('/contacto', rateLimit('contact', 5, HOUR), async (req, res) => {

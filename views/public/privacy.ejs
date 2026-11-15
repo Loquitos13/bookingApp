@@ -1,0 +1,35 @@
+<%- include('../partials/public-head', { title: L('privacy.title') }) %>
+<% const controller = site.privacy_controller || site.business_name; %>
+<main id="conteudo" class="ticket-page legal">
+  <div class="wrap narrow">
+    <h1 class="ticket-h"><%= L('privacy.title') %></h1>
+    <p class="lead">Como tratamos os dados pessoais de quem marca ou nos contacta através deste site.</p>
+
+    <h2>Quem é o responsável</h2>
+    <p><%= controller %>, <%= site.address %>. Contacto para questões de privacidade: <a href="mailto:<%= site.email %>"><%= site.email %></a>, <%= site.phone %>.</p>
+
+    <h2>Que dados recolhemos</h2>
+    <ul>
+      <li><strong>Marcações:</strong> nome, email, telemóvel, o serviço, o dia e a hora, e a nota que escrever (opcional).</li>
+      <li><strong>Mensagens:</strong> nome, email, telemóvel (opcional) e o texto da mensagem.</li>
+      <li><strong>Lista de espera:</strong> nome, email e telemóvel, para o avisarmos se vagar um horário.</li>
+      <li><strong>Pagamentos online</strong> (quando existirem): são processados pelo prestador de pagamentos; não guardamos dados de cartão.</li>
+    </ul>
+
+    <h2>Para que os usamos</h2>
+    <p>Para gerir a sua marcação: confirmar, lembrar, alterar ou cancelar, e para responder às suas mensagens. Não usamos os dados para publicidade nem os vendemos.</p>
+    <p><strong>Fundamento:</strong> a execução do serviço que pediu (art. 6.º, n.º 1, al. b) do RGPD) e o seu consentimento, quando aplicável.</p>
+
+    <h2>Durante quanto tempo</h2>
+    <p>Enquanto for nosso cliente e pelo prazo exigido por lei para efeitos fiscais e de faturação. Pode pedir a eliminação antes disso, salvo obrigação legal de conservação.</p>
+
+    <h2>Os seus direitos</h2>
+    <p>Pode pedir acesso, retificação, eliminação, limitação, portabilidade ou opor-se ao tratamento, escrevendo para <a href="mailto:<%= site.email %>"><%= site.email %></a>. Respondemos no prazo de um mês. Pode também apresentar reclamação à CNPD (<a href="https://www.cnpd.pt" target="_blank" rel="noopener">cnpd.pt</a>).</p>
+
+    <h2>Cookies</h2>
+    <p>O site público não usa cookies de publicidade nem de estatística. Usamos apenas o estritamente necessário para funcionar (por exemplo, a preferência de idioma).</p>
+
+    <p class="fine">Última atualização: <%= t.formatDateLong(new Date().toISOString().slice(0, 10)) %>. <% if (site.demo_mode === '1') { %>Texto-modelo de demonstração: deve ser revisto por cada negócio antes de publicar.<% } %></p>
+  </div>
+</main>
+<%- include('../partials/public-foot') %>

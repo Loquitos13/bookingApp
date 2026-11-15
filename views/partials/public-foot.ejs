@@ -8,7 +8,12 @@
       <%= site.address %><br>
       <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a> · <a href="mailto:<%= site.email %>"><%= site.email %></a>
     </address>
-    <p class="foot-small">© <%= new Date().getFullYear() %> <%= site.business_name %><% if (site.demo_mode === '1') { %> · Conteúdo de demonstração: o negócio, a equipa e os contactos são fictícios.<% } %></p>
+    <nav class="foot-links" aria-label="Informação legal">
+      <a href="/privacidade"><%= L('foot.privacy') %></a>
+      <a href="<%= site.complaints_url || 'https://www.livroreclamacoes.pt' %>" target="_blank" rel="noopener"><%= L('foot.complaints') %></a>
+      <% if (site.lang_en === '1') { %><a href="?lang=<%= lang === 'en' ? 'pt' : 'en' %>" hreflang="<%= lang === 'en' ? 'pt' : 'en' %>" lang="<%= lang === 'en' ? 'pt' : 'en' %>"><%= lang === 'en' ? 'Português' : 'English' %></a><% } %>
+    </nav>
+    <p class="foot-small">© <%= new Date().getFullYear() %> <%= site.business_name %><% if (site.demo_mode === '1') { %> · <%= L('foot.demo') %><% } %></p>
   </div>
 </footer>
 <% if (typeof bottomBar === 'undefined' || bottomBar) { %>

@@ -52,7 +52,7 @@
     <% } %>
   </div>
 <% } else { %>
-<div class="agenda <%= view === 'semana' ? 'is-week' : '' %>" style="--cols: <%= columns.length %>" data-ppm="<%= PPM %>" data-from="<%= from %>" data-step="<%= step %>" data-csrf="<%= csrf %>">
+<div class="agenda <%= view === 'semana' ? 'is-week' : '' %>" tabindex="0" role="region" aria-label="Grelha da agenda" style="--cols: <%= columns.length %>" data-ppm="<%= PPM %>" data-from="<%= from %>" data-step="<%= step %>" data-csrf="<%= csrf %>">
   <div class="ag-head">
     <span></span>
     <% columns.forEach(c => { %>

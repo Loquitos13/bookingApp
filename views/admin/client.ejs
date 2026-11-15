@@ -50,4 +50,16 @@
     <button class="btn">Guardar notas</button>
   </form>
 </div>
+<details class="panel danger-panel">
+  <summary><h2>Dados pessoais (RGPD)</h2></summary>
+  <p class="muted">A pedido do cliente: exportar tudo o que guardamos, ou apagar os dados pessoais. Ao apagar, as marcações ficam anónimas (contam nas estatísticas, sem nome nem contactos). Não é reversível.</p>
+  <div class="row-actions">
+    <a class="btn btn-ghost" href="/admin/clientes/exportar?email=<%= encodeURIComponent(c.email) %>">Exportar dados (JSON)</a>
+  </div>
+  <form method="post" action="/admin/clientes/apagar" class="form-grid erase" data-confirm="Apagar definitivamente os dados pessoais de <%= c.name %>?">
+    <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="email" value="<%= c.email %>">
+    <label>Para confirmar, escreva o email do cliente<input name="confirm" autocomplete="off" placeholder="<%= c.email %>"></label>
+    <div><button class="btn btn-danger">Apagar dados pessoais</button></div>
+  </form>
+</details>
 <%- include('../partials/admin-foot') %>
