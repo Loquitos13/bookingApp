@@ -4,7 +4,7 @@
     <%- include('../partials/flap', { text: typeof code !== 'undefined' ? code : '404' }) %>
     <h1 class="ticket-h"><%= title %></h1>
     <p class="lead"><%= text %></p>
-    <p class="ticket-manage"><a class="btn btn-signal" href="/marcar">Marcar <%- include('../partials/icon', { name: 'arrow' }) %></a> <a class="btn btn-ink" href="/">Página inicial</a></p>
+    <p class="ticket-manage"><a class="btn btn-signal" href="/marcar"><%= L('msg.book') %> <%- include('../partials/icon', { name: 'arrow' }) %></a> <a class="btn btn-ink" href="/"><%= L('msg.home') %></a></p>
   </div>
 </main>
 <%- include('../partials/public-foot') %>

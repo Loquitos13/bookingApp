@@ -1,18 +1,18 @@
-<%- include('../partials/public-head', { title: 'Marcar', bodyClass: 'page-book' }) %>
+<%- include('../partials/public-head', { title: L('bk.title'), bodyClass: 'page-book' }) %>
 <%
   const initials = (n) => n.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const errStep = !error ? '' : /hor[aá]rio|dia e a hora|indispon/i.test(error) ? 3 : /servi/i.test(error) ? 1 : 4;
+  const errStep = !error ? '' : (typeof errorStep !== 'undefined' && errorStep) || 4;
 %>
 <main id="conteudo" class="book">
   <div class="wrap book-grid">
     <div class="book-main">
       <header class="book-head">
-        <h1>Marcar</h1>
-        <ol class="route" aria-label="Passos da marcação">
-          <li data-route="1"><button type="button" class="route-stop" data-goto="1"><span class="stop" aria-hidden="true"></span><span class="route-label">Serviço</span><span class="route-value" data-value="service"></span></button></li>
-          <li data-route="2"><button type="button" class="route-stop" data-goto="2"><span class="stop" aria-hidden="true"></span><span class="route-label">Profissional</span><span class="route-value" data-value="staff"></span></button></li>
-          <li data-route="3"><button type="button" class="route-stop" data-goto="3"><span class="stop" aria-hidden="true"></span><span class="route-label">Dia e hora</span><span class="route-value" data-value="when"></span></button></li>
-          <li data-route="4"><button type="button" class="route-stop" data-goto="4"><span class="stop" aria-hidden="true"></span><span class="route-label">Dados</span><span class="route-value"></span></button></li>
+        <h1><%= L('bk.title') %></h1>
+        <ol class="route" aria-label="<%= L('bk.steps') %>">
+          <li data-route="1"><button type="button" class="route-stop" data-goto="1"><span class="stop" aria-hidden="true"></span><span class="route-label"><%= L('bk.s1') %></span><span class="route-value" data-value="service"></span></button></li>
+          <li data-route="2"><button type="button" class="route-stop" data-goto="2"><span class="stop" aria-hidden="true"></span><span class="route-label"><%= L('bk.s2') %></span><span class="route-value" data-value="staff"></span></button></li>
+          <li data-route="3"><button type="button" class="route-stop" data-goto="3"><span class="stop" aria-hidden="true"></span><span class="route-label"><%= L('bk.s3') %></span><span class="route-value" data-value="when"></span></button></li>
+          <li data-route="4"><button type="button" class="route-stop" data-goto="4"><span class="stop" aria-hidden="true"></span><span class="route-label"><%= L('bk.s4') %></span><span class="route-value"></span></button></li>
         </ol>
       </header>
 
@@ -20,7 +20,7 @@
 
       <form method="post" action="/marcar" id="booking" novalidate data-error-step="<%= errStep %>">
         <fieldset class="step" data-step="1">
-          <legend class="step-title" tabindex="-1">Que serviço procura?</legend>
+          <legend class="step-title" tabindex="-1"><%= L('bk.q1') %></legend>
           <div class="opts">
             <% services.forEach(s => { %>
               <label class="opt">
@@ -37,14 +37,14 @@
         </fieldset>
 
         <fieldset class="step" data-step="2">
-          <legend class="step-title" tabindex="-1">Com quem?</legend>
+          <legend class="step-title" tabindex="-1"><%= L('bk.q2') %></legend>
           <div class="opts">
             <label class="opt" data-staff="">
               <input type="radio" name="staffId" value="" <%= !form.staffId ? 'checked' : '' %>>
               <span class="flap flap-sm" aria-hidden="true"><span class="flap-cell">1</span><span class="flap-cell">º</span></span>
               <span class="opt-body">
-                <span class="opt-name">Sem preferência</span>
-                <span class="opt-meta" data-first="any">Mostra todos os horários</span>
+                <span class="opt-name"><%= L('bk.any') %></span>
+                <span class="opt-meta" data-first="any"><%= L('bk.anyd') %></span>
               </span>
               <span class="opt-tick" aria-hidden="true"><%- include('../partials/icon', { name: 'check', size: 18 }) %></span>
             </label>
@@ -63,40 +63,40 @@
         </fieldset>
 
         <fieldset class="step" data-step="3">
-          <legend class="step-title" tabindex="-1">Quando?</legend>
+          <legend class="step-title" tabindex="-1"><%= L('bk.q3') %></legend>
           <div class="days-wrap">
             <p class="days-month" id="days-month" aria-live="polite"></p>
-            <div class="days" id="days" role="radiogroup" aria-label="Dia"></div>
+            <div class="days" id="days" role="radiogroup" aria-label="<%= L('bk.day') %>"></div>
           </div>
           <div class="slots" id="slots" aria-live="polite">
-            <noscript><p>Indique o dia e a hora:</p></noscript>
+            <noscript><p><%= L('bk.nojs') %></p></noscript>
           </div>
           <div class="nojs-when">
-            <label class="field"><span>Dia</span><input type="date" name="date" id="f-date" value="<%= form.date || '' %>"></label>
-            <label class="field"><span>Hora</span><input name="time" id="f-time" value="<%= form.time || '' %>" placeholder="HH:MM" pattern="\d{1,2}:\d{2}"></label>
+            <label class="field"><span><%= L('bk.day') %></span><input type="date" name="date" id="f-date" value="<%= form.date || '' %>"></label>
+            <label class="field"><span><%= L('bk.hour') %></span><input name="time" id="f-time" value="<%= form.time || '' %>" placeholder="HH:MM" pattern="\d{1,2}:\d{2}"></label>
           </div>
         </fieldset>
 
         <fieldset class="step" data-step="4">
-          <legend class="step-title" tabindex="-1">Os seus dados</legend>
+          <legend class="step-title" tabindex="-1"><%= L('bk.q4') %></legend>
           <div class="ticket-preview" aria-hidden="true" id="preview">
             <span class="tp-when" data-value="when-long"></span>
             <span class="tp-svc" data-value="service"></span>
             <span class="tp-staff" data-value="staff-long"></span>
           </div>
           <div class="fields">
-            <label class="field field-wide"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name" value="<%= form.name || '' %>"><em class="field-err">Indique o seu nome.</em></label>
-            <label class="field"><span>Telemóvel</span><input name="phone" type="tel" required autocomplete="tel" inputmode="tel" value="<%= form.phone || '' %>" minlength="9"><em class="field-err">Indique um número com pelo menos 9 dígitos.</em></label>
-            <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" inputmode="email" value="<%= form.email || '' %>"><em class="field-err">Indique um email válido, por exemplo nome@exemplo.pt.</em></label>
+            <label class="field field-wide"><span><%= L('f.name') %></span><input name="name" required maxlength="120" autocomplete="name" value="<%= form.name || '' %>"><em class="field-err"><%= L('bk.err.name') %></em></label>
+            <label class="field"><span><%= L('f.phone') %></span><input name="phone" type="tel" required autocomplete="tel" inputmode="tel" value="<%= form.phone || '' %>" minlength="9"><em class="field-err"><%= L('bk.err.phone') %></em></label>
+            <label class="field"><span><%= L('f.email') %></span><input name="email" type="email" required autocomplete="email" inputmode="email" value="<%= form.email || '' %>"><em class="field-err"><%= L('bk.err.email') %></em></label>
             <div class="field field-wide">
-              <button type="button" class="link-btn" id="add-note" aria-expanded="<%= form.notes ? 'true' : 'false' %>" aria-controls="note"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> Acrescentar uma nota</button>
-              <label id="note" class="field" <%= form.notes ? '' : 'hidden' %>><span>Nota para a equipa <em>opcional</em></span><textarea name="notes" rows="3" maxlength="1000" placeholder="Ex.: o motivo da consulta"><%= form.notes || '' %></textarea></label>
+              <button type="button" class="link-btn" id="add-note" aria-expanded="<%= form.notes ? 'true' : 'false' %>" aria-controls="note"><%- include('../partials/icon', { name: 'plus', size: 18 }) %> <%= L('bk.note') %></button>
+              <label id="note" class="field" <%= form.notes ? '' : 'hidden' %>><span><%= L('bk.notel') %> <em><%= L('f.optional') %></em></span><textarea name="notes" rows="3" maxlength="1000" placeholder="<%= L('bk.noteph') %>"><%= form.notes || '' %></textarea></label>
             </div>
-            <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span>Aceito que os meus dados sejam usados para gerir esta marcação (<a href="/privacidade" target="_blank">política de privacidade</a>).</span></label>
+            <label class="check field-wide"><input type="checkbox" name="consent" value="1" required> <span><%= L('bk.consent') %> (<a href="/privacidade" target="_blank"><%= L('bk.privacy') %></a>).</span></label>
           </div>
           <% if (turnstileKey) { %><div class="cf-turnstile field-wide" data-sitekey="<%= turnstileKey %>" data-language="pt"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <button class="btn btn-signal btn-lg btn-block submit-nojs">Confirmar marcação</button>
+          <button class="btn btn-signal btn-lg btn-block submit-nojs"><%= L('bk.confirm') %></button>
         </fieldset>
       </form>
 
@@ -107,9 +107,9 @@
           <p class="muted"><%= L('wl.lead') %></p>
           <input type="hidden" name="serviceId"><input type="hidden" name="staffId"><input type="hidden" name="date">
           <div class="fields">
-            <label class="field"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name"></label>
-            <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email"></label>
-            <label class="field"><span>Telemóvel <em>opcional</em></span><input name="phone" type="tel" autocomplete="tel"></label>
+            <label class="field"><span><%= L('f.name') %></span><input name="name" required maxlength="120" autocomplete="name"></label>
+            <label class="field"><span><%= L('f.email') %></span><input name="email" type="email" required autocomplete="email"></label>
+            <label class="field"><span><%= L('f.phone') %> <em><%= L('f.optional') %></em></span><input name="phone" type="tel" autocomplete="tel"></label>
           </div>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button class="btn btn-ink"><%= L('wl.submit') %></button>
@@ -117,16 +117,16 @@
       </section>
     </div>
 
-    <aside class="book-aside" aria-label="Resumo">
+    <aside class="book-aside" aria-label="<%= L('bk.summary') %>">
       <div class="stub">
         <p class="stub-title"><%= site.business_name %></p>
         <dl>
-          <dt>Serviço</dt><dd data-value="service">—</dd>
-          <dt>Profissional</dt><dd data-value="staff-long">Sem preferência</dd>
-          <dt>Quando</dt><dd data-value="when-long">—</dd>
-          <dt>Preço</dt><dd data-value="price">—</dd>
+          <dt><%= L('bk.s1') %></dt><dd data-value="service">—</dd>
+          <dt><%= L('bk.s2') %></dt><dd data-value="staff-long"><%= L('bk.any') %></dd>
+          <dt><%= L('bk.when') %></dt><dd data-value="when-long">—</dd>
+          <dt><%= L('bk.price') %></dt><dd data-value="price">—</dd>
         </dl>
-        <p class="stub-note">Cancelamento gratuito até <%= site.cancel_hours %>h antes.</p>
+        <p class="stub-note"><%= L('bk.freecancel', { h: site.cancel_hours }) %></p>
       </div>
     </aside>
   </div>
@@ -134,7 +134,7 @@
   <div class="book-bar" id="bar">
     <div class="wrap book-bar-inner">
       <span class="bar-sum" id="bar-sum" aria-live="polite"></span>
-      <button type="button" class="btn btn-signal btn-lg" id="next" disabled>Continuar <%- include('../partials/icon', { name: 'arrow' }) %></button>
+      <button type="button" class="btn btn-signal btn-lg" id="next" disabled><%= L('bk.continue') %> <%- include('../partials/icon', { name: 'arrow' }) %></button>
     </div>
   </div>
 </main>

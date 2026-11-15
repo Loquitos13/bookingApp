@@ -15,15 +15,18 @@
   const fTime = $('#f-time');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const WD_LONG = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-  const euros = (c) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(c / 100);
+  const I = JSON.parse((document.getElementById('i18n-js') || {}).textContent || '{}');
+  const T = (k, v) => { let s = I[k] || k; if (v) for (const [a, b] of Object.entries(v)) s = s.split(`{${a}}`).join(b); return s; };
+  const EN = document.documentElement.lang === 'en';
+  const MONTHS = T('months').split(',');
+  const WD = T('wd').split(',');
+  const WD_LONG = T('wdlong').split(',');
+  const euros = (c) => new Intl.NumberFormat(EN ? 'en-IE' : 'pt-PT', { style: 'currency', currency: 'EUR' }).format(c / 100);
   const pad = (n) => String(n).padStart(2, '0');
   const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
   const ymd = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
   const shortDate = (s) => { const d = parse(s); return `${WD[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`; };
-  const longDate = (s) => { const d = parse(s); return `${WD_LONG[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`; };
+  const longDate = (s) => { const d = parse(s); return T('longdate', { wd: WD_LONG[d.getDay()], d: d.getDate(), m: MONTHS[d.getMonth()] }); };
 
   let step = 1, reached = 1, today = null, reqId = 0, firstCache = {};
 
@@ -31,7 +34,7 @@
   const service = () => data.services.find((s) => String(s.id) === val('serviceId'));
   const staff = () => data.staff.find((p) => String(p.id) === val('staffId'));
   const staffFor = (sid) => data.links.filter((l) => l.service_id === +sid).map((l) => l.staff_id);
-  const relDay = (s) => (s === today ? 'hoje' : today && s === ymd(new Date(parse(today).getTime() + 864e5)) ? 'amanhã' : shortDate(s));
+  const relDay = (s) => (s === today ? T('today') : today && s === ymd(new Date(parse(today).getTime() + 864e5)) ? T('tomorrow') : shortDate(s));
 
   /* ---------- navegação entre passos ---------- */
   function go(n, { push = true, back = false } = {}) {
@@ -100,18 +103,18 @@
     const when = fDate.value && fTime.value ? `${relDay(fDate.value)} · ${fTime.value}` : '';
     const set = (key, text) => $$(`[data-value="${key}"]`).forEach((el) => (el.textContent = text));
     set('service', svc ? svc.name : '—');
-    set('staff', svc ? (p ? p.name.split(' ')[0] : 'Qualquer') : '');
-    set('staff-long', p ? `Com ${p.name}` : 'Primeiro profissional livre');
+    set('staff', svc ? (p ? p.name.split(' ')[0] : T('any')) : '');
+    set('staff-long', p ? T('with', { name: p.name }) : T('firstfree'));
     set('when', when);
     set('when-long', fDate.value && fTime.value ? `${longDate(fDate.value)} · ${fTime.value}` : '—');
     set('price', svc ? `${euros(svc.price_cents)} · ${svc.duration_min} min` : '—');
 
-    if (!svc) barSum.textContent = 'Escolha um serviço';
+    if (!svc) barSum.textContent = T('pick');
     else barSum.innerHTML = `<b>${escapeHtml(svc.name)}</b> · ${svc.duration_min} min · ${euros(svc.price_cents)}${when ? ` · <b>${when}</b>` : ''}`;
 
     const ready = step === 1 ? !!svc : step === 2 ? true : step === 3 ? !!(fDate.value && fTime.value) : true;
     next.disabled = !ready;
-    next.firstChild.textContent = step === 4 ? 'Confirmar ' : 'Continuar ';
+    next.firstChild.textContent = (step === 4 ? T('confirm') : T('continue')) + ' ';
   }
   const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -128,7 +131,7 @@
       return;
     }
     next.disabled = true;
-    next.firstChild.textContent = 'A confirmar… ';
+    next.firstChild.textContent = T('confirming') + ' ';
     form.submit();
   }
   form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
@@ -168,8 +171,8 @@
       const el = $(`[data-first="${k}"]`);
       if (!el) return;
       const label = $(`[data-staff="${k === 'any' ? '' : k}"]`);
-      if (f) { el.innerHTML = `1.ª vaga <b>${relDay(f.date)} ${f.time}</b>`; label && label.classList.remove('is-full'); }
-      else { el.textContent = 'Sem vagas online'; }
+      if (f) { el.innerHTML = `${T('first')} <b>${relDay(f.date)} ${f.time}</b>`; label && label.classList.remove('is-full'); }
+      else { el.textContent = T('nofree'); }
     });
   }
 
@@ -196,16 +199,17 @@
       }
       const ok = avail.has(key), on = key === fDate.value;
       html += `<button type="button" class="day" role="radio" data-date="${key}" aria-checked="${on}" ${ok ? '' : 'disabled'} tabindex="${on ? 0 : -1}"
-        aria-label="${longDate(key)}${ok ? '' : ', sem vagas'}"><span class="day-wd">${i === 0 ? 'Hoje' : WD[d.getDay()]}</span><span class="day-n">${d.getDate()}</span><span class="day-dot"></span></button>`;
+        aria-label="${longDate(key)}${ok ? '' : T('nofreeday')}"><span class="day-wd">${i === 0 ? T('Today') : WD[d.getDay()]}</span><span class="day-n">${d.getDate()}</span><span class="day-dot"></span></button>`;
     }
     daysEl.innerHTML = html;
     const sel = $('.day[aria-checked="true"]', daysEl);
     if (sel) daysEl.scrollLeft = sel.offsetLeft - daysEl.clientWidth / 2 + sel.offsetWidth / 2;
+    update();
     if (fDate.value) loadSlots();
     else {
       monthEl.textContent = '';
-      slotsEl.innerHTML = `<div class="slots-empty"><p>Sem vagas online nos próximos ${res.maxDays} dias${val('staffId') ? ' com este profissional' : ''}.</p>
-        ${val('staffId') ? '<button type="button" class="btn btn-ink" data-any>Ver com qualquer profissional</button>' : '<p>Ligue-nos: encontramos um horário consigo.</p>'}</div>`;
+      slotsEl.innerHTML = `<div class="slots-empty"><p>${T('nofreedays', { n: res.maxDays })}${val('staffId') ? T('withthis') : ''}.</p>
+        ${val('staffId') ? `<button type="button" class="btn btn-ink" data-any>${T('tryany')}</button>` : `<p>${T('callus')}</p>`}</div>`;
     }
   }
 
@@ -228,7 +232,7 @@
     if (t) { selectDay(t); t.focus(); }
   });
 
-  const skeleton = () => `<div class="skel" aria-label="A carregar horários">${'<span></span>'.repeat(8)}</div>`;
+  const skeleton = () => `<div class="skel" aria-label="${T('loading')}">${'<span></span>'.repeat(8)}</div>`;
 
   async function loadSlots() {
     const svc = service();
@@ -238,10 +242,10 @@
     slotsEl.innerHTML = skeleton();
     const res = await fetch(`/api/slots?service=${svc.id}&staff=${val('staffId')}&date=${fDate.value}`).then((r) => r.json());
     if (id !== reqId) return;
-    if (!res.slots.length) { slotsEl.innerHTML = '<div class="slots-empty"><p>Este dia acabou de ficar cheio. Escolha outro dia.</p></div>'; return; }
-    const groups = [['Manhã', (s) => s.start < 780], ['Tarde', (s) => s.start >= 780 && s.start < 1080], ['Fim do dia', (s) => s.start >= 1080]];
+    if (!res.slots.length) { slotsEl.innerHTML = `<div class="slots-empty"><p>${T('full')}</p></div>`; return; }
+    const groups = [[T('morning'), (s) => s.start < 780], [T('afternoon'), (s) => s.start >= 780 && s.start < 1080], [T('evening'), (s) => s.start >= 1080]];
     let k = 0;
-    slotsEl.innerHTML = `<div role="radiogroup" aria-label="Hora">` + groups.map(([g, f]) => {
+    slotsEl.innerHTML = `<div role="radiogroup" aria-label="${T('hour')}">` + groups.map(([g, f]) => {
       const l = res.slots.filter(f);
       if (!l.length) return '';
       return `<div class="slot-group"><span class="slot-label">${g}</span><div class="slot-list">${l.map((s) => {

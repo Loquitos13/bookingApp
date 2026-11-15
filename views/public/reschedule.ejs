@@ -1,13 +1,13 @@
-<%- include('../partials/public-head', { title: 'Mudar dia ou hora', bodyClass: 'page-book' }) %>
+<%- include('../partials/public-head', { title: L('rs.title'), bodyClass: 'page-book' }) %>
 <main id="conteudo" class="book">
   <div class="wrap book-grid">
     <div class="book-main">
       <header class="book-head">
-        <a class="link-btn back-link" href="/marcacao/<%= b.token %>"><%- include('../partials/icon', { name: 'back', size: 18 }) %> Voltar ao bilhete</a>
-        <h1>Mudar dia ou hora</h1>
+        <a class="link-btn back-link" href="/marcacao/<%= b.token %>"><%- include('../partials/icon', { name: 'back', size: 18 }) %> <%= L('rs.back') %></a>
+        <h1><%= L('rs.title') %></h1>
       </header>
       <div class="ticket-preview now-preview">
-        <span class="tp-staff">Marcação atual</span>
+        <span class="tp-staff"><%= L('rs.now') %></span>
         <span class="tp-when"><%= t.formatDateLong(b.date) %> · <%= t.minToTime(b.start_min) %></span>
         <span class="tp-svc"><%= b.service_name %> · <%= b.staff_name %></span>
       </div>
@@ -15,21 +15,21 @@
 
       <form method="post" id="move" novalidate>
         <fieldset class="step is-static">
-          <legend class="step-title">Com quem?</legend>
+          <legend class="step-title"><%= L('bk.q2') %></legend>
           <div class="seg-row" role="radiogroup">
-            <label class="seg-opt"><input type="radio" name="anyStaff" value="0" checked><span>Com <%= b.staff_name.split(' ')[0] %></span></label>
-            <label class="seg-opt"><input type="radio" name="anyStaff" value="1"><span>Qualquer profissional</span></label>
+            <label class="seg-opt"><input type="radio" name="anyStaff" value="0" checked><span><%= L('rs.with', { name: b.staff_name.split(' ')[0] }) %></span></label>
+            <label class="seg-opt"><input type="radio" name="anyStaff" value="1"><span><%= L('rs.any') %></span></label>
           </div>
         </fieldset>
         <fieldset class="step is-static">
-          <legend class="step-title">Novo dia e hora</legend>
+          <legend class="step-title"><%= L('rs.new') %></legend>
           <div id="picker"></div>
           <noscript>
             <div class="nojs-when">
-              <label class="field"><span>Dia</span><input type="date" name="date"></label>
-              <label class="field"><span>Hora</span><input name="time" placeholder="HH:MM"></label>
+              <label class="field"><span><%= L('bk.day') %></span><input type="date" name="date"></label>
+              <label class="field"><span><%= L('bk.hour') %></span><input name="time" placeholder="HH:MM"></label>
             </div>
-            <button class="btn btn-signal btn-lg btn-block">Confirmar alteração</button>
+            <button class="btn btn-signal btn-lg btn-block"><%= L('rs.confirm') %></button>
           </noscript>
         </fieldset>
       </form>
@@ -37,8 +37,8 @@
   </div>
   <div class="book-bar">
     <div class="wrap book-bar-inner">
-      <span class="bar-sum" id="m-sum" aria-live="polite">Escolha o novo horário</span>
-      <button type="submit" form="move" class="btn btn-signal btn-lg" id="m-go" disabled>Confirmar <%- include('../partials/icon', { name: 'check' }) %></button>
+      <span class="bar-sum" id="m-sum" aria-live="polite"><%= L('rs.pick') %></span>
+      <button type="submit" form="move" class="btn btn-signal btn-lg" id="m-go" disabled><%= L('rs.confirmShort') %> <%- include('../partials/icon', { name: 'check' }) %></button>
     </div>
   </div>
 </main>
@@ -56,11 +56,11 @@
     onChange: function (v) {
       dIn.value = v.date; tIn.value = v.time;
       go.disabled = !(v.date && v.time);
-      sum.innerHTML = v.date && v.time ? 'Novo: <b>' + p.longDate(v.date) + ' · ' + v.time + '</b>' : 'Escolha o novo horário';
+      sum.innerHTML = v.date && v.time ? <%- JSON.stringify(L('rs.newsum')) %> + ' <b>' + p.longDate(v.date) + ' · ' + v.time + '</b>' : <%- JSON.stringify(L('rs.pick')) %>;
     }
   });
   form.addEventListener('change', function (e) { if (e.target.name === 'anyStaff') p.reload(); });
-  form.addEventListener('submit', function () { go.disabled = true; go.firstChild.textContent = 'A alterar… '; });
+  form.addEventListener('submit', function () { go.disabled = true; go.firstChild.textContent = <%- JSON.stringify(L('rs.saving') + ' ') %>; });
 })();
 </script>
 <%- include('../partials/public-foot', { bottomBar: false }) %>

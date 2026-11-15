@@ -29,6 +29,11 @@ async function send({ to, subject, text }) {
 
 const baseUrl = () => (process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
 
+function bookingSummaryEn(b) {
+  const { formatDateLong: fl } = require('./time');
+  return [`Service: ${b.service_name}`, `With: ${b.staff_name}`, `Date: ${fl(b.date, 'en')}`, `Time: ${minToTime(b.start_min)} – ${minToTime(b.end_min)}`, `Reference: ${b.ref}`].join('\n');
+}
+
 function bookingSummary(b) {
   return [
     `Serviço: ${b.service_name}`,
@@ -42,12 +47,20 @@ function bookingSummary(b) {
 function notifyNewBooking(b) {
   const st = getSettings();
   const manage = `${baseUrl()}/marcacao/${b.token}`;
-  const state = b.status === 'pending' ? 'Recebemos o seu pedido de marcação — vamos confirmá-lo em breve.' : 'A sua marcação está confirmada.';
-  module.exports.send({
-    to: b.customer_email,
-    subject: `${st.business_name}: marcação ${b.status === 'pending' ? 'recebida' : 'confirmada'} (${b.ref})`,
-    text: `Olá ${b.customer_name},\n\n${state}\n\n${bookingSummary(b)}\n\nMorada: ${st.address}\n\nPara ver ou cancelar: ${manage}\n\nAté breve,\n${st.business_name}`,
-  });
+  if (b.lang === 'en') {
+    module.exports.send({
+      to: b.customer_email,
+      subject: `${st.business_name}: booking ${b.status === 'pending' ? 'received' : 'confirmed'} (${b.ref})`,
+      text: `Hello ${b.customer_name},\n\n${b.status === 'pending' ? 'We received your booking request and will confirm it shortly.' : 'Your booking is confirmed.'}\n\n${bookingSummaryEn(b)}\n\nAddress: ${st.address}\n\nTo view, change or cancel: ${manage}\n\nSee you soon,\n${st.business_name}`,
+    });
+  } else {
+    const state = b.status === 'pending' ? 'Recebemos o seu pedido de marcação — vamos confirmá-lo em breve.' : 'A sua marcação está confirmada.';
+    module.exports.send({
+      to: b.customer_email,
+      subject: `${st.business_name}: marcação ${b.status === 'pending' ? 'recebida' : 'confirmada'} (${b.ref})`,
+      text: `Olá ${b.customer_name},\n\n${state}\n\n${bookingSummary(b)}\n\nMorada: ${st.address}\n\nPara ver, mudar ou cancelar: ${manage}\n\nAté breve,\n${st.business_name}`,
+    });
+  }
   module.exports.send({
     to: process.env.NOTIFY_EMAIL || st.email,
     subject: `Nova marcação ${b.ref} — ${b.customer_name}`,
@@ -120,7 +133,7 @@ function sendReminder(b) {
     to: b.customer_email,
     subject: en ? `Reminder: ${b.service_name} at ${st.business_name}` : `Lembrete: ${b.service_name} · ${st.business_name}`,
     text: en
-      ? `Hello ${b.customer_name},\n\nA reminder of your appointment:\n\n${bookingSummary(b)}\n\nAddress: ${st.address}\n\nNeed to change or cancel? ${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`
+      ? `Hello ${b.customer_name},\n\nA reminder of your appointment:\n\n${bookingSummaryEn(b)}\n\nAddress: ${st.address}\n\nNeed to change or cancel? ${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`
       : `Olá ${b.customer_name},\n\nLembramos a sua marcação:\n\n${bookingSummary(b)}\n\nMorada: ${st.address}\n\nPrecisa de mudar ou cancelar? ${baseUrl()}/marcacao/${b.token}\n\nAté breve,\n${st.business_name}`,
   });
   if (st.reminder_sms === '1') {

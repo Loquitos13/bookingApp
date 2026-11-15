@@ -27,30 +27,31 @@
   <link rel="stylesheet" href="/static/css/site.css">
   <link rel="stylesheet" href="/static/css/picker.css">
   <script nonce="<%= nonce %>">document.documentElement.classList.add('js')</script>
+  <script type="application/json" id="i18n-js"><%- JSON.stringify(jsDict).replace(/</g, '\\u003c') %></script>
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
-<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<a class="skip" href="#conteudo"><%= L('nav.skip') %></a>
 <header class="topbar">
   <div class="wrap topbar-inner">
-    <a class="mark" href="/" aria-label="<%= site.business_name %> — início">
+    <a class="mark" href="/" aria-label="<%= site.business_name %> — <%= L('nav.home') %>">
       <% if (site.brand_logo) { %><img class="mark-logo" src="<%= site.brand_logo %>" alt="" width="32" height="32"><% } else { %><span class="mark-plate" aria-hidden="true"><%= site.business_name.trim()[0] %></span><% } %>
       <span class="mark-name"><%= site.business_name %></span>
     </a>
     <nav class="topnav" aria-label="Principal">
-      <a href="/#servicos">Serviços</a>
-      <a href="/#equipa">Equipa</a>
-      <a href="/#visita">Horário e contactos</a>
-      <a class="btn btn-signal btn-sm" href="/marcar">Marcar</a>
+      <a href="/#servicos"><%= L('nav.services') %></a>
+      <a href="/#equipa"><%= L('nav.team') %></a>
+      <a href="/#visita"><%= L('nav.visit') %></a>
+      <a class="btn btn-signal btn-sm" href="/marcar"><%= L('nav.book') %></a>
     </nav>
-    <a class="btn btn-signal btn-sm top-book" href="/marcar">Marcar</a>
+    <a class="btn btn-signal btn-sm top-book" href="/marcar"><%= L('nav.book') %></a>
     <details class="menu">
-      <summary aria-label="Abrir menu"><%- include('icon', { name: 'menu', size: 22 }) %></summary>
+      <summary aria-label="<%= L('nav.menu') %>"><%- include('icon', { name: 'menu', size: 22 }) %></summary>
       <div class="menu-sheet">
-        <a href="/#servicos">Serviços</a>
-        <a href="/#equipa">Equipa</a>
-        <a href="/#visita">Horário e contactos</a>
-        <a href="/#perguntas">Perguntas frequentes</a>
-        <a class="btn btn-signal" href="/marcar">Marcar <%- include('icon', { name: 'arrow' }) %></a>
+        <a href="/#servicos"><%= L('nav.services') %></a>
+        <a href="/#equipa"><%= L('nav.team') %></a>
+        <a href="/#visita"><%= L('nav.visit') %></a>
+        <a href="/#perguntas"><%= L('nav.faq') %></a>
+        <a class="btn btn-signal" href="/marcar"><%= L('nav.book') %> <%- include('icon', { name: 'arrow' }) %></a>
       </div>
     </details>
   </div>

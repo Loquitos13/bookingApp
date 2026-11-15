@@ -25,6 +25,19 @@ function middleware(req, res, next) {
   }
   req.lang = lang;
   res.locals.lang = lang;
+  const src = lang === 'en' ? EN : PT;
+  res.locals.jsDict = Object.fromEntries(Object.keys(PT).filter((k) => k.startsWith('js.')).map((k) => [k.slice(3), src[k] ?? PT[k]]));
+  if (!req.path.startsWith('/admin')) {
+    // datas, preços e dias da semana no idioma da página
+    const time = require('./time');
+    res.locals.t = {
+      ...time,
+      formatDateLong: (d) => time.formatDateLong(d, lang),
+      formatDateShort: (d) => time.formatDateShort(d, lang),
+      euros: (c) => time.euros(c, lang),
+      WEEKDAYS: lang === 'en' ? time.WEEKDAYS_EN : time.WEEKDAYS,
+    };
+  }
   res.locals.L = (key, vars) => {
     let s = (lang === 'en' ? EN[key] : PT[key]) ?? PT[key] ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(v);

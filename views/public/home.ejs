@@ -13,20 +13,20 @@
           <h1 class="plate-name"><%= site.business_name %></h1>
           <p class="plate-sub"><%= site.business_subtitle %></p>
         </div>
-        <p class="promise"><%= site.tagline %></p>
-        <p class="intro"><%= site.intro %></p>
+        <p class="promise"><%= (lang === 'en' && site.tagline_en) || site.tagline %></p>
+        <p class="intro"><%= (lang === 'en' && site.intro_en) || site.intro %></p>
         <p class="status <%= status.open ? 'is-open' : '' %>"><span class="status-dot" aria-hidden="true"></span><%= status.text %></p>
       </div>
 
       <section class="board" aria-labelledby="board-title">
         <header class="board-head">
-          <h2 id="board-title">Próximas vagas</h2>
+          <h2 id="board-title"><%= L('home.board') %></h2>
           <span class="board-clock" aria-hidden="true"><%- include('../partials/icon', { name: 'clock', size: 16 }) %> <span data-clock></span></span>
         </header>
         <% if (!departures.length) { %>
-          <p class="board-empty">Sem vagas online nas próximas duas semanas. Ligue-nos e encontramos um horário: <a href="tel:<%= tel %>"><%= site.phone %></a></p>
+          <p class="board-empty"><%= L('home.board.empty') %> <a href="tel:<%= tel %>"><%= site.phone %></a></p>
         <% } else { %>
-          <div class="board-cols" aria-hidden="true"><span>Hora</span><span>Serviço · dia · com</span></div>
+          <div class="board-cols" aria-hidden="true"><span><%= L('home.col.time') %></span><span><%= L('home.col.what') %></span></div>
           <ol class="deps">
             <% departures.forEach((d, i) => { %>
               <li>
@@ -34,7 +34,7 @@
                   <%- include('../partials/flap', { text: d.time }) %>
                   <span class="dep-body">
                     <span class="dep-svc"><%= d.service.name %><% if (d.left <= 2) { %><span class="dep-state"><%= d.left === 1 ? 'Última vaga' : 'Últimas vagas' %></span><% } %></span>
-                    <span class="dep-meta"><strong><%= dayLabel(d.date) %></strong> · <%= d.staffName %><%= d.others > 0 ? ' ou outro' : '' %> · <%= d.service.duration_min %> min</span>
+                    <span class="dep-meta"><strong><%= dayLabel(d.date) %></strong> · <%= d.staffName %><%= d.others > 0 ? L('home.ornew') : '' %> · <%= d.service.duration_min %> min</span>
                   </span>
                   <%- include('../partials/icon', { name: 'arrow', cls: 'dep-go' }) %>
                 </a>
@@ -43,8 +43,8 @@
           </ol>
         <% } %>
         <footer class="board-foot">
-          <a class="btn btn-signal btn-block btn-lg" href="/marcar">Marcar <%- include('../partials/icon', { name: 'arrow' }) %></a>
-          <a class="board-link" href="/marcar">Ver todos os dias e horários</a>
+          <a class="btn btn-signal btn-block btn-lg" href="/marcar"><%= L('nav.book') %> <%- include('../partials/icon', { name: 'arrow' }) %></a>
+          <a class="board-link" href="/marcar"><%= L('home.board.all') %></a>
         </footer>
       </section>
     </div>
@@ -53,8 +53,8 @@
   <section id="servicos" class="band">
     <div class="wrap">
       <header class="band-head">
-        <h2>Serviços</h2>
-        <p>Preço por sessão. Se não sabe por onde começar, comece pela <a href="/marcar?servico=<%= services[0] && services[0].id %>"><%= services[0] && services[0].name.toLowerCase() %></a>.</p>
+        <h2><%= L('home.services') %></h2>
+        <p><%= L('home.services.lead') %> <a href="/marcar?servico=<%= services[0] && services[0].id %>"><%= services[0] && services[0].name.toLowerCase() %></a>.</p>
       </header>
       <ul class="timetable">
         <% services.forEach(s => { %>
@@ -63,7 +63,7 @@
               <span class="tt-name"><%= s.name %></span>
               <span class="tt-desc"><%= s.description %><% s.packages.forEach(p => { %><span class="tt-pack"><%= p.name %> · <%= t.euros(p.price_cents) %> <em>(<%= t.euros(Math.round(p.price_cents / p.sessions)) %>/<%= L('pack.session') %>)</em></span><% }) %></span>
               <span class="tt-meta"><span><%= s.duration_min %> min</span><span class="tt-price"><%= t.euros(s.price_cents) %></span></span>
-              <span class="tt-go">Marcar <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></span>
+              <span class="tt-go"><%= L('nav.book') %> <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></span>
             </a>
           </li>
         <% }) %>
@@ -73,19 +73,19 @@
 
   <section class="band band-line" aria-labelledby="como">
     <div class="wrap">
-      <header class="band-head"><h2 id="como">Marcar demora um minuto</h2><p>Sem criar conta. Só aparecem horários realmente livres.</p></header>
+      <header class="band-head"><h2 id="como"><%= L('home.line.title') %></h2><p><%= L('home.line.lead') %></p></header>
       <ol class="line">
-        <li><span class="stop" aria-hidden="true"></span><strong>Serviço</strong><span>Escolha o que precisa.</span></li>
-        <li><span class="stop" aria-hidden="true"></span><strong>Profissional</strong><span>Alguém em concreto ou o primeiro livre.</span></li>
-        <li><span class="stop" aria-hidden="true"></span><strong>Dia e hora</strong><span>Toque num horário livre.</span></li>
-        <li><span class="stop" aria-hidden="true"></span><strong>Confirmado</strong><span>Recebe o bilhete por email, com link para gerir.</span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong><%= L('home.line.1') %></strong><span><%= L('home.line.1d') %></span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong><%= L('home.line.2') %></strong><span><%= L('home.line.2d') %></span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong><%= L('home.line.3') %></strong><span><%= L('home.line.3d') %></span></li>
+        <li><span class="stop" aria-hidden="true"></span><strong><%= L('home.line.4') %></strong><span><%= L('home.line.4d') %></span></li>
       </ol>
     </div>
   </section>
 
   <section id="equipa" class="band">
     <div class="wrap">
-      <header class="band-head"><h2>Equipa</h2></header>
+      <header class="band-head"><h2><%= L('home.team') %></h2></header>
       <ul class="crew">
         <% staff.forEach(p => { %>
           <li class="crew-row">
@@ -95,7 +95,7 @@
               <p class="crew-role"><%= p.role %></p>
               <p class="crew-bio"><%= p.bio %></p>
             </div>
-            <a class="crew-go" href="/marcar?profissional=<%= p.id %>">Marcar com <%= p.name.split(' ')[0] %> <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
+            <a class="crew-go" href="/marcar?profissional=<%= p.id %>"><%= L('home.bookWith', { name: p.name.split(' ')[0] }) %> <%- include('../partials/icon', { name: 'arrow', size: 18 }) %></a>
           </li>
         <% }) %>
       </ul>
@@ -105,16 +105,16 @@
   <section id="visita" class="band band-dark">
     <div class="wrap visit">
       <div>
-        <h2>Horário</h2>
+        <h2><%= L('home.hours') %></h2>
         <p class="status <%= status.open ? 'is-open' : '' %>"><span class="status-dot" aria-hidden="true"></span><%= status.text %></p>
         <table class="hours">
-          <caption class="sr-only">Horário semanal</caption>
+          <caption class="sr-only"><%= L('home.hours.cap') %></caption>
           <tbody>
           <% const todayWd = t.weekday(today); [1,2,3,4,5,6,0].forEach(d => { const h = hours.find(x => x.weekday === d); %>
             <tr class="<%= d === todayWd ? 'is-today' : '' %>">
-              <th scope="row"><%= t.WEEKDAYS[d] %><%= d === todayWd ? ' · hoje' : '' %></th>
+              <th scope="row"><%= t.WEEKDAYS[d] %><%= d === todayWd ? ' · ' + L('home.today') : '' %></th>
               <td>
-                <% if (!h || h.closed) { %>Encerrado<% } else if (h.break_start != null) { %>
+                <% if (!h || h.closed) { %><%= L('home.closed') %><% } else if (h.break_start != null) { %>
                   <%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.break_start) %>&ensp;<%= t.minToTime(h.break_end) %>–<%= t.minToTime(h.close_min) %>
                 <% } else { %><%= t.minToTime(h.open_min) %>–<%= t.minToTime(h.close_min) %><% } %>
               </td>
@@ -124,10 +124,10 @@
         </table>
       </div>
       <div class="visit-where">
-        <h2>Onde estamos</h2>
+        <h2><%= L('home.where') %></h2>
         <p class="visit-address"><%= site.address %></p>
         <div class="visit-actions">
-          <a class="btn btn-signal" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %> Como chegar</a>
+          <a class="btn btn-signal" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %> <%= L('home.directions') %></a>
           <a class="btn btn-ghost-dark" href="tel:<%= tel %>"><%- include('../partials/icon', { name: 'phone' }) %> <%= site.phone %></a>
           <a class="btn btn-ghost-dark" href="mailto:<%= site.email %>"><%- include('../partials/icon', { name: 'mail' }) %> Email</a>
         </div>
@@ -137,28 +137,28 @@
 
   <section id="perguntas" class="band">
     <div class="wrap faq-wrap">
-      <header class="band-head"><h2>Perguntas frequentes</h2></header>
+      <header class="band-head"><h2><%= L('home.faq') %></h2></header>
       <div class="faq">
-        <details><summary>Preciso de criar conta para marcar?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Não. Basta o nome, o email e o telemóvel. Recebe por email um link pessoal para ver ou cancelar a marcação.</p></details>
-        <details><summary>Como cancelo ou altero?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Pelo link do email de confirmação, até <%= site.cancel_hours %> horas antes. Depois disso, ligue para <a href="tel:<%= tel %>"><%= site.phone %></a>.</p></details>
-        <details><summary>Com quanta antecedência posso marcar?<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Até <%= site.max_days_ahead %> dias. Para o próprio dia, com pelo menos <%= site.min_notice_hours %> horas de antecedência.</p></details>
-        <details><summary>Não encontro horário que me dê jeito.<%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p>Escolha "sem preferência" no profissional, para ver todos os horários. Se mesmo assim não der, envie-nos uma mensagem abaixo.</p></details>
+        <details><summary><%= L('faq.1q') %><%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p><%= L('faq.1a') %></p></details>
+        <details><summary><%= L('faq.2q') %><%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p><%= L('faq.2a', { h: site.cancel_hours }) %> <a href="tel:<%= tel %>"><%= site.phone %></a>.</p></details>
+        <details><summary><%= L('faq.3q') %><%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p><%= L('faq.3a', { d: site.max_days_ahead, h: site.min_notice_hours }) %></p></details>
+        <details><summary><%= L('faq.4q') %><%- include('../partials/icon', { name: 'down', cls: 'faq-i' }) %></summary><p><%= L('faq.4a') %></p></details>
       </div>
     </div>
   </section>
 
   <section id="contacto" class="band band-tint">
     <div class="wrap contact">
-      <header class="band-head"><h2>Envie-nos uma mensagem</h2><p>Respondemos por email, normalmente no próprio dia útil.</p></header>
-      <% if (sent) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> Mensagem enviada. Obrigado!</p><% } %>
+      <header class="band-head"><h2><%= L('contact.title') %></h2><p><%= L('contact.lead') %></p></header>
+      <% if (sent) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> <%= L('contact.sent') %></p><% } %>
       <form method="post" action="/contacto" class="fields">
-        <label class="field"><span>Nome</span><input name="name" required maxlength="120" autocomplete="name"></label>
+        <label class="field"><span><%= L('f.name') %></span><input name="name" required maxlength="120" autocomplete="name"></label>
         <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" inputmode="email"></label>
-        <label class="field"><span>Telemóvel <em>opcional</em></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
-        <label class="field field-wide"><span>Mensagem</span><textarea name="message" rows="4" required maxlength="3000"></textarea></label>
+        <label class="field"><span><%= L('f.phone') %> <em><%= L('f.optional') %></em></span><input name="phone" type="tel" autocomplete="tel" inputmode="tel"></label>
+        <label class="field field-wide"><span><%= L('f.message') %></span><textarea name="message" rows="4" required maxlength="3000"></textarea></label>
         <% if (turnstileKey) { %><div class="cf-turnstile field-wide" data-sitekey="<%= turnstileKey %>" data-language="pt"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
         <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <button class="btn btn-ink">Enviar mensagem</button>
+        <button class="btn btn-ink"><%= L('contact.send') %></button>
       </form>
     </div>
   </section>

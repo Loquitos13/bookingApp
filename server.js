@@ -88,7 +88,7 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.use('/admin', require('./src/routes/admin'));
 app.use('/', require('./src/routes/public'));
 
-app.use((req, res) => res.status(404).render('public/message', { code: '404', title: 'Esta página não existe', text: 'Pode ter sido removida ou o endereço está incompleto.' }));
+app.use((req, res) => res.status(404).render('public/message', { code: '404', title: res.locals.L ? res.locals.L('e.notfound.title') : 'Esta página não existe', text: res.locals.L ? res.locals.L('e.notfound.text') : '' }));
 app.use((err, req, res, _next) => {
   console.error(err);
   res.status(500).render('public/message', { code: '500', title: 'Algo correu mal', text: 'Não foi culpa sua. Tente novamente dentro de instantes ou ligue-nos.' });

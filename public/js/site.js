@@ -39,7 +39,7 @@
   /* --- relógio do painel --- */
   const clock = document.querySelector('[data-clock]');
   if (clock) {
-    const fmt = new Intl.DateTimeFormat('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' });
+    const fmt = new Intl.DateTimeFormat(document.documentElement.lang === 'en' ? 'en-GB' : 'pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' });
     const set = () => (clock.textContent = fmt.format(new Date()));
     set();
     setInterval(set, 15000);

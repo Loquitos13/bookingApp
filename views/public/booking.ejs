@@ -1,6 +1,6 @@
-<%- include('../partials/public-head', { title: 'A sua marcação', bodyClass: 'page-ticket' }) %>
+<%- include('../partials/public-head', { title: L('tk.title'), bodyClass: 'page-ticket' }) %>
 <%
-  const STATUS = { pending: 'Por confirmar', confirmed: 'Confirmada', completed: 'Concluída', cancelled: 'Cancelada', no_show: 'Falta' };
+  const STATUS = { pending: L('st.pending'), confirmed: L('st.confirmed'), completed: L('st.completed'), cancelled: L('st.cancelled'), no_show: L('st.no_show') };
   const stamp = (d, m) => d.replace(/-/g, '') + 'T' + t.minToTime(m).replace(':', '') + '00';
   const gcal = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
     + '&text=' + encodeURIComponent(b.service_name + ' · ' + site.business_name)
@@ -14,10 +14,10 @@
 <main id="conteudo" class="ticket-page">
   <div class="wrap narrow">
     <% if (isNew) { %>
-      <h1 class="ticket-h"><%= b.status === 'pending' ? 'Pedido recebido' : 'Está marcado' %></h1>
-      <p class="lead"><%= b.status === 'pending' ? 'Vamos confirmar e avisamos por email.' : 'Enviámos o bilhete para' %> <strong><%= b.customer_email %></strong>.</p>
+      <h1 class="ticket-h"><%= b.payment_status === 'pending' ? L('tk.payfirst') : b.status === 'pending' ? L('tk.received') : L('tk.booked') %></h1>
+      <p class="lead"><%= b.payment_status === 'pending' ? L('tk.payto') : b.status === 'pending' ? L('tk.willconfirm') : L('tk.sentto') %> <strong><%= b.customer_email %></strong>.</p>
     <% } else { %>
-      <h1 class="ticket-h">A sua marcação</h1>
+      <h1 class="ticket-h"><%= L('tk.title') %></h1>
     <% } %>
     <% if (b.payment_status === 'pending' && b.status !== 'cancelled') { %>
       <div class="pay-box" role="status">
@@ -33,11 +33,11 @@
     <% } else if (payState === '1') { %>
       <p class="notice notice-ok" role="status"><%= L('pay.checking') %></p>
     <% } %>
-    <% if (moved) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> Marcação alterada. Enviámos a confirmação por email.</p><% } %>
-    <% if (cancelled && b.status === 'cancelled') { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> A marcação foi cancelada.</p><% } %>
-    <% if (cancelled && b.status !== 'cancelled') { %><p class="notice notice-err" role="alert">Já não é possível cancelar online. Ligue para <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p><% } %>
+    <% if (moved) { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> <%= L('tk.moved') %></p><% } %>
+    <% if (cancelled && b.status === 'cancelled') { %><p class="notice notice-ok" role="status"><%- include('../partials/icon', { name: 'check' }) %> <%= L('tk.cancelled') %></p><% } %>
+    <% if (cancelled && b.status !== 'cancelled') { %><p class="notice notice-err" role="alert"><%= L('tk.toolate') %> <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p><% } %>
 
-    <article class="ticket <%= isNew ? 'is-new' : '' %> st-<%= b.status %>" aria-label="Bilhete da marcação">
+    <article class="ticket <%= isNew ? 'is-new' : '' %> st-<%= b.status %>" aria-label="<%= L('tk.ticket') %>">
       <div class="ticket-main">
         <p class="ticket-biz"><%= site.business_name %> <span><%= site.business_subtitle %></span></p>
         <div class="ticket-time">
@@ -45,48 +45,48 @@
           <span class="ticket-date"><%= t.formatDateLong(b.date) %></span>
         </div>
         <dl class="ticket-facts">
-          <div><dt>Serviço</dt><dd><%= b.service_name %></dd></div>
-          <div><dt>Com</dt><dd><%= b.staff_name %></dd></div>
-          <div><dt>Duração</dt><dd><%= b.duration_min %> min · até <%= t.minToTime(b.end_min) %></dd></div>
-          <div><dt>Preço</dt><dd><%= t.euros(b.price_cents) %><%= b.payment_status === 'paid' ? ' · ' + L('pay.paidShort', { amount: t.euros(b.deposit_cents) }) : '' %></dd></div>
+          <div><dt><%= L('tk.service') %></dt><dd><%= b.service_name %></dd></div>
+          <div><dt><%= L('tk.with') %></dt><dd><%= b.staff_name %></dd></div>
+          <div><dt><%= L('tk.duration') %></dt><dd><%= b.duration_min %> min · <%= L('tk.until') %> <%= t.minToTime(b.end_min) %></dd></div>
+          <div><dt><%= L('tk.price') %></dt><dd><%= t.euros(b.price_cents) %><%= b.payment_status === 'paid' ? ' · ' + L('pay.paidShort', { amount: t.euros(b.deposit_cents) }) : '' %></dd></div>
         </dl>
       </div>
       <div class="ticket-stub">
         <span class="ticket-state"><%= STATUS[b.status] %></span>
-        <span class="ticket-ref"><span>Ref.</span> <%= b.ref %></span>
+        <span class="ticket-ref"><span><%= L('tk.ref') %></span> <%= b.ref %></span>
       </div>
     </article>
 
     <% if (live) { %>
     <div class="ticket-actions">
-      <a class="action" href="/marcacao/<%= b.token %>.ics"><%- include('../partials/icon', { name: 'calendar' }) %><span>Adicionar ao calendário</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
+      <a class="action" href="/marcacao/<%= b.token %>.ics"><%- include('../partials/icon', { name: 'calendar' }) %><span><%= L('tk.addcal') %></span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
       <a class="action" href="<%= gcal %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'external' }) %><span>Google Calendar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
-      <a class="action" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %><span>Como chegar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
-      <button type="button" class="action" data-share data-title="<%= b.service_name %> · <%= site.business_name %>" data-text="<%= t.formatDateLong(b.date) %> às <%= t.minToTime(b.start_min) %>" hidden><%- include('../partials/icon', { name: 'share' }) %><span>Partilhar</span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></button>
+      <a class="action" href="<%= maps %>" target="_blank" rel="noopener"><%- include('../partials/icon', { name: 'pin' }) %><span><%= L('tk.directions') %></span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></a>
+      <button type="button" class="action" data-share data-title="<%= b.service_name %> · <%= site.business_name %>" data-text="<%= t.formatDateLong(b.date) %> <%= L('tk.at') %> <%= t.minToTime(b.start_min) %>" hidden><%- include('../partials/icon', { name: 'share' }) %><span><%= L('tk.share') %></span><%- include('../partials/icon', { name: 'arrow', size: 18, cls: 'action-go' }) %></button>
     </div>
     <% } %>
 
     <div class="ticket-manage">
       <% if (canCancel) { %>
-        <a class="btn btn-signal" href="/marcacao/<%= b.token %>/reagendar"><%- include('../partials/icon', { name: 'calendar', size: 18 }) %> Mudar dia ou hora</a>
+        <a class="btn btn-signal" href="/marcacao/<%= b.token %>/reagendar"><%- include('../partials/icon', { name: 'calendar', size: 18 }) %> <%= L('tk.change') %></a>
         <form method="post" action="/marcacao/<%= b.token %>/cancelar" id="cancel-form">
-          <button type="button" class="link-btn link-danger" data-open="cancel-dialog">Cancelar esta marcação</button>
+          <button type="button" class="link-btn link-danger" data-open="cancel-dialog"><%= L('tk.cancel') %></button>
           <dialog id="cancel-dialog" class="sheet" aria-labelledby="cancel-title">
-            <h2 id="cancel-title">Cancelar a marcação?</h2>
-            <p><%= b.service_name %>, <%= t.formatDateLong(b.date).toLowerCase() %> às <%= t.minToTime(b.start_min) %>. O horário fica livre para outra pessoa.</p>
+            <h2 id="cancel-title"><%= L('tk.cancelq') %></h2>
+            <p><%= b.service_name %>, <%= t.formatDateLong(b.date) %> <%= L('tk.at') %> <%= t.minToTime(b.start_min) %>. <%= L('tk.freed') %></p>
             <div class="sheet-actions">
-              <button class="btn btn-danger btn-block">Sim, cancelar</button>
-              <button type="button" class="btn btn-ghost btn-block" data-close>Manter marcação</button>
+              <button class="btn btn-danger btn-block"><%= L('tk.yes') %></button>
+              <button type="button" class="btn btn-ghost btn-block" data-close><%= L('tk.keep') %></button>
             </div>
           </dialog>
-          <noscript><button class="btn btn-danger">Cancelar marcação</button></noscript>
+          <noscript><button class="btn btn-danger"><%= L('tk.cancelbtn') %></button></noscript>
         </form>
       <% } else if (live) { %>
-        <p class="muted">Para alterar ou cancelar a menos de <%= site.cancel_hours %>h, ligue para <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p>
+        <p class="muted"><%= L('tk.late', { h: site.cancel_hours }) %> <a href="tel:<%= site.phone.replace(/\s/g,'') %>"><%= site.phone %></a>.</p>
       <% } %>
-      <a class="btn btn-ink" href="/marcar">Fazer outra marcação</a>
+      <a class="btn btn-ink" href="/marcar"><%= L('tk.another') %></a>
     </div>
-    <p class="fine">Este link é pessoal: guarde-o para gerir a marcação.</p>
+    <p class="fine"><%= L('tk.personal') %></p>
   </div>
 </main>
 <%- include('../partials/public-foot', { bottomBar: false }) %>

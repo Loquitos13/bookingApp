@@ -18,8 +18,8 @@
 </footer>
 <% if (typeof bottomBar === 'undefined' || bottomBar) { %>
 <nav class="dock" aria-label="Ações rápidas">
-  <a class="dock-call" href="tel:<%= site.phone.replace(/\s/g,'') %>"><%- include('icon', { name: 'phone' }) %> Ligar</a>
-  <a class="btn btn-signal dock-book" href="/marcar">Marcar <%- include('icon', { name: 'arrow' }) %></a>
+  <a class="dock-call" href="tel:<%= site.phone.replace(/\s/g,'') %>"><%- include('icon', { name: 'phone' }) %> <%= L('dock.call') %></a>
+  <a class="btn btn-signal dock-book" href="/marcar"><%= L('nav.book') %> <%- include('icon', { name: 'arrow' }) %></a>
 </nav>
 <% } %>
 <script src="/static/js/site.js" defer></script>

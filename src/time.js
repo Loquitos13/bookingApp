@@ -54,19 +54,23 @@ const WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Q
 const WEEKDAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
-function formatDateLong(date) {
+const WEEKDAYS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function formatDateLong(date, lang = 'pt') {
   const [y, m, d] = date.split('-').map(Number);
+  if (lang === 'en') return `${WEEKDAYS_EN[weekday(date)]}, ${d} ${MONTHS_EN[m - 1]} ${y}`;
   return `${WEEKDAYS[weekday(date)]}, ${d} de ${MONTHS[m - 1]} de ${y}`;
 }
-function formatDateShort(date) {
+function formatDateShort(date, lang = 'pt') {
   const [, m, d] = date.split('-').map(Number);
+  if (lang === 'en') return `${WEEKDAYS_EN[weekday(date)].slice(0, 3)}, ${d} ${MONTHS_EN[m - 1].slice(0, 3)}`;
   return `${WEEKDAYS_SHORT[weekday(date)]}, ${d} ${MONTHS[m - 1].slice(0, 3)}`;
 }
 
-const euros = (cents) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format((cents || 0) / 100);
+const euros = (cents, lang = 'pt') =>
+  new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'pt-PT', { style: 'currency', currency: 'EUR' }).format((cents || 0) / 100);
 
 module.exports = {
   pad, minToTime, timeToMin, isDate, weekday, addDays, diffDays, nowIn,
-  formatDateLong, formatDateShort, euros, WEEKDAYS, WEEKDAYS_SHORT, MONTHS,
+  formatDateLong, formatDateShort, euros, WEEKDAYS, WEEKDAYS_SHORT, MONTHS, WEEKDAYS_EN, MONTHS_EN,
 };

@@ -189,3 +189,20 @@ test('back office: clientes, arrastar na agenda, vistas e app', async () => {
   const sw = await fetch(base + '/admin/sw.js');
   assert.equal(sw.headers.get('service-worker-allowed'), '/admin');
 });
+
+test('site em inglês: troca de idioma, datas e textos', async () => {
+  const r = await fetch(base + '/?lang=en');
+  const html = await r.text();
+  assert.match(html, /<html lang="en">/);
+  assert.match(html, /Next available/);
+  assert.match(html, /Booking takes a minute/);
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const book = await (await fetch(base + '/marcar', { headers: { cookie } })).text();
+  assert.match(book, /What do you need\?/);
+  assert.match(book, /"months":"January,February/);
+  const pt = await (await fetch(base + '/?lang=pt')).text();
+  assert.match(pt, /Próximas vagas/);
+  const seo = await (await fetch(base + '/sitemap.xml')).text();
+  assert.match(seo, /hreflang="en"/);
+  assert.match(pt, /"@type":"LocalBusiness"/);
+});

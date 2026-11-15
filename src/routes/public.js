@@ -150,24 +150,26 @@ router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
   };
   if (req.body.website) return res.redirect('/'); // honeypot anti-spam
 
+  const L = res.locals.L;
   const errors = [];
-  if (!form.serviceId) errors.push('Escolha um serviço.');
-  if (!isDate(form.date) || timeToMin(form.time) == null) errors.push('Escolha o dia e a hora.');
-  if (form.name.length < 2) errors.push('Indique o seu nome.');
-  if (!EMAIL_RE.test(form.email)) errors.push('Indique um email válido.');
-  if (form.phone.replace(/\D/g, '').length < 9) errors.push('Indique um telefone válido.');
-  if (!req.body.consent) errors.push('É necessário aceitar o tratamento dos dados para a marcação.');
-  if (!errors.length && !(await verifyTurnstile(req))) errors.push('Não foi possível confirmar que não é um robô. Tente novamente.');
+  let errorStep = 4;
+  if (!form.serviceId) { errors.push(L('e.service')); errorStep = 1; }
+  else if (!isDate(form.date) || timeToMin(form.time) == null) { errors.push(L('e.when')); errorStep = 3; }
+  if (form.name.length < 2) errors.push(L('e.name'));
+  if (!EMAIL_RE.test(form.email)) errors.push(L('e.email'));
+  if (form.phone.replace(/\D/g, '').length < 9) errors.push(L('e.phone'));
+  if (!req.body.consent) errors.push(L('e.consent'));
+  if (!errors.length && !(await verifyTurnstile(req))) errors.push(L('e.robot'));
   if (!errors.length) {
     // limite de marcações futuras por pessoa (evita encher a agenda)
     const max = +getSettings().max_online_per_email || 4;
     const n = db.prepare(`SELECT COUNT(*) c FROM bookings WHERE lower(customer_email) = ? AND source = 'online' AND status IN ('pending','confirmed') AND date >= ?`)
       .get(form.email, nowIn(getSettings().timezone).date).c;
-    if (n >= max) errors.push(`Já tem ${n} marcações futuras. Para marcar mais, contacte-nos por telefone.`);
+    if (n >= max) errors.push(L('e.limit', { n }));
   }
   if (errors.length) {
     res.status(422);
-    return renderBooking(res, { error: errors.join(' '), form });
+    return renderBooking(res, { error: errors.join(' '), errorStep, form });
   }
 
   try {
@@ -188,7 +190,7 @@ router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
   } catch (e) {
     if (!(e instanceof BookingError)) throw e;
     res.status(409);
-    renderBooking(res, { error: e.message, form: { ...form, time: '' } });
+    renderBooking(res, { error: L('e.taken'), errorStep: 3, form: { ...form, time: '' } });
   }
 });
 
@@ -255,7 +257,7 @@ router.post('/marcacao/:token/reagendar', rateLimit('manage', 20, HOUR), (req, r
     res.redirect(`/marcacao/${b.token}?reagendada=1`);
   } catch (e) {
     if (!(e instanceof BookingError)) throw e;
-    back(e.message);
+    back(res.locals.L('e.taken'));
   }
 });
 
