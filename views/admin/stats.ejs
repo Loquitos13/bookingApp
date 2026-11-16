@@ -20,7 +20,7 @@
   <div><span>Marcações</span><strong><%= k.total %></strong><small><%= k.total ? Math.round(k.online / k.total * 100) : 0 %>% feitas pelo site</small></div>
   <div><span>Faturado</span><strong><%= t.euros(k.revenue) %></strong><small>sessões concluídas · média <%= t.euros(k.avg) %></small></div>
   <div class="<%= k.noShowRate >= 10 ? 'is-warn' : '' %>"><span>Faltas</span><strong><%= k.noShowRate %>%</strong><small><%= k.noShow %> faltas · <%= k.cancelRate %>% cancelaram</small></div>
-  <div><span>Clientes</span><strong><%= k.clients %></strong><small><%= k.newClients %> novos · <%= k.clients - k.newClients %> habituais</small></div>
+  <div><span>Clientes</span><strong><%= k.clients %></strong><small><%= k.newClients %> <%= k.newClients === 1 ? 'novo' : 'novos' %> · <%= k.clients - k.newClients %> <%= k.clients - k.newClients === 1 ? 'habitual' : 'habituais' %></small></div>
 </section>
 
 <div class="grid2">
