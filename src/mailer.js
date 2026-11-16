@@ -18,12 +18,14 @@ async function send({ to, subject, text }) {
   const from = process.env.MAIL_FROM || `${st.business_name} <${st.email}>`;
   if (!transport) {
     console.log(`\n[email:simulado] Para: ${to}\nAssunto: ${subject}\n${text}\n`);
-    return;
+    return true;
   }
   try {
     await transport.sendMail({ from, to, subject, text });
+    return true;
   } catch (e) {
     console.error('[email] falhou:', e.message);
+    return false;
   }
 }
 
@@ -70,31 +72,36 @@ function notifyNewBooking(b) {
 
 function notifyStatusChange(b) {
   const st = getSettings();
-  const msgs = {
-    confirmed: 'A sua marcação foi confirmada.',
-    cancelled: 'A sua marcação foi cancelada. Se quiser, pode fazer uma nova marcação no nosso site.',
-  };
+  const en = b.lang === 'en';
+  const msgs = en
+    ? { confirmed: 'Your booking is confirmed.', cancelled: 'Your booking was cancelled. You can make a new booking on our website at any time.' }
+    : { confirmed: 'A sua marcação foi confirmada.', cancelled: 'A sua marcação foi cancelada. Se quiser, pode fazer uma nova marcação no nosso site.' };
   if (!msgs[b.status]) return;
   module.exports.send({
     to: b.customer_email,
-    subject: `${st.business_name}: marcação ${b.status === 'confirmed' ? 'confirmada' : 'cancelada'} (${b.ref})`,
-    text: `Olá ${b.customer_name},\n\n${msgs[b.status]}\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
+    subject: en
+      ? `${st.business_name}: booking ${b.status === 'confirmed' ? 'confirmed' : 'cancelled'} (${b.ref})`
+      : `${st.business_name}: marcação ${b.status === 'confirmed' ? 'confirmada' : 'cancelada'} (${b.ref})`,
+    text: `${en ? 'Hello' : 'Olá'} ${b.customer_name},\n\n${msgs[b.status]}\n\n${en ? bookingSummaryEn(b) : bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
   });
 }
-
 function notifyRescheduled(b, before, { byBusiness = false } = {}) {
   const st = getSettings();
-  const was = `${formatDateLong(before.date)} às ${minToTime(before.start)}`;
+  const en = b.lang === 'en';
+  const { formatDateLong: fl } = require('./time');
+  const was = en ? `${fl(before.date, 'en')} at ${minToTime(before.start)}` : `${formatDateLong(before.date)} às ${minToTime(before.start)}`;
   module.exports.send({
     to: b.customer_email,
-    subject: `${st.business_name}: marcação alterada (${b.ref})`,
-    text: `Olá ${b.customer_name},\n\nA sua marcação foi alterada (antes: ${was}).\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
+    subject: en ? `${st.business_name}: booking changed (${b.ref})` : `${st.business_name}: marcação alterada (${b.ref})`,
+    text: en
+      ? `Hello ${b.customer_name},\n\nYour booking was changed (before: ${was}).\n\n${bookingSummaryEn(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`
+      : `Olá ${b.customer_name},\n\nA sua marcação foi alterada (antes: ${was}).\n\n${bookingSummary(b)}\n\n${baseUrl()}/marcacao/${b.token}\n\n${st.business_name}`,
   });
   if (byBusiness) return;
   module.exports.send({
     to: process.env.NOTIFY_EMAIL || st.email,
     subject: `Marcação ${b.ref} reagendada pelo cliente`,
-    text: `${b.customer_name} mudou de ${was} para ${formatDateLong(b.date)} às ${minToTime(b.start_min)} (${b.staff_name}).\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
+    text: `${b.customer_name} mudou de ${formatDateLong(before.date)} às ${minToTime(before.start)} para ${formatDateLong(b.date)} às ${minToTime(b.start_min)} (${b.staff_name}).\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
   });
 }
 
@@ -129,7 +136,7 @@ function sendReminder(b) {
   const st = getSettings();
   const en = b.lang === 'en';
   const when = `${formatDateLong(b.date)} às ${minToTime(b.start_min)}`;
-  module.exports.send({
+  const sent = module.exports.send({
     to: b.customer_email,
     subject: en ? `Reminder: ${b.service_name} at ${st.business_name}` : `Lembrete: ${b.service_name} · ${st.business_name}`,
     text: en
@@ -141,6 +148,7 @@ function sendReminder(b) {
       ? `${st.business_name}: reminder ${b.service_name}, ${b.date} ${minToTime(b.start_min)}. Change/cancel: ${baseUrl()}/marcacao/${b.token}`
       : `${st.business_name}: lembrete ${b.service_name}, ${when}. Mudar/cancelar: ${baseUrl()}/marcacao/${b.token}`);
   }
+  return sent;
 }
 
 function sendReviewRequest(b) {
@@ -163,7 +171,7 @@ function sendWaitlistOpening(w, serviceName) {
     to: w.email,
     subject: en ? `A slot opened up on ${w.date} · ${st.business_name}` : `Vagou um horário a ${formatDateLong(w.date)} · ${st.business_name}`,
     text: en
-      ? `Hello ${w.name},\n\nGood news: a slot for ${serviceName} on ${w.date} is now available. It's first come, first served:\n\n${link}\n\n${st.business_name}`
+      ? `Hello ${w.name},\n\nGood news: a slot for ${serviceName} on ${w.date} is now available. It's first come, first served:\n\n${link}\n\nTo leave the waiting list: ${baseUrl()}/lista-espera/${w.token}/sair\n\n${st.business_name}`
       : `Olá ${w.name},\n\nBoas notícias: vagou um horário para ${serviceName} a ${formatDateLong(w.date)}. É por ordem de chegada:\n\n${link}\n\nPara sair da lista de espera: ${baseUrl()}/lista-espera/${w.token}/sair\n\n${st.business_name}`,
   });
   if (st.reminder_sms === '1') sendSms(w.phone, `${st.business_name}: ${en ? 'a slot opened up on' : 'vagou um horário a'} ${w.date}. ${link}`);

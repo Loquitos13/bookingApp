@@ -260,7 +260,8 @@ function seed() {
   if (sv) db.prepare('INSERT INTO packages(name, service_id, sessions, price_cents, validity_days) VALUES (?,?,?,?,?)').run('Pack 10 sessões', sv.id, 10, Math.round(sv.price_cents * 10 * 0.85), 365);
 
   const email = process.env.ADMIN_EMAIL || 'admin@exemplo.pt';
-  const pass = process.env.ADMIN_PASSWORD || 'admin123';
+  // em demonstração a palavra-passe é conhecida; numa instalação real é aleatória (mostrada uma vez no arranque)
+  const pass = process.env.ADMIN_PASSWORD || (DEFAULT_SETTINGS.demo_mode === '1' ? 'admin123' : require('node:crypto').randomBytes(9).toString('base64url'));
   db.prepare('INSERT INTO users(name, email, password_hash) VALUES (?, ?, ?)').run(
     'Administrador',
     email.toLowerCase(),
@@ -271,14 +272,27 @@ function seed() {
 seed();
 ensureStaffTokens();
 
+// as definições são lidas em todos os pedidos (e muitas vezes por pedido no cálculo de vagas): cache invalidada ao gravar
+let settingsCache = null;
 function getSettings() {
-  const out = { ...DEFAULT_SETTINGS };
-  for (const r of db.prepare('SELECT key, value FROM settings').all()) out[r.key] = r.value;
-  return out;
+  if (!settingsCache) {
+    settingsCache = { ...DEFAULT_SETTINGS };
+    for (const r of db.prepare('SELECT key, value FROM settings').all()) settingsCache[r.key] = r.value;
+  }
+  return { ...settingsCache };
+}
+
+const stmts = new Map();
+/** Statement preparado uma única vez (caminhos quentes). */
+function stmt(sql) {
+  let s = stmts.get(sql);
+  if (!s) { s = db.prepare(sql); stmts.set(sql, s); }
+  return s;
 }
 
 function setSetting(key, value) {
   db.prepare('INSERT OR REPLACE INTO settings(key, value) VALUES (?, ?)').run(key, String(value));
+  settingsCache = null;
 }
 
 /** Executa fn numa transação exclusiva (evita marcações duplicadas em simultâneo). */
@@ -294,4 +308,4 @@ function tx(fn) {
   }
 }
 
-module.exports = { db, getSettings, setSetting, tx, DEFAULT_SETTINGS, ensureStaffTokens };
+module.exports = { db, stmt, getSettings, setSetting, tx, DEFAULT_SETTINGS, ensureStaffTokens };

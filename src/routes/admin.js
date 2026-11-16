@@ -35,6 +35,7 @@ const back = (res, url, msg) => res.redirect(url + (url.includes('?') ? '&' : '?
 
 // ---------- Autenticação ----------
 const attempts = new Map();
+setInterval(() => { const t = Date.now() - 15 * 60 * 1000; for (const [k, v] of attempts) if (v.t < t) attempts.delete(k); }, 10 * 60 * 1000).unref();
 router.get('/login', (req, res) => {
   if (req.user) return res.redirect('/admin');
   res.render('admin/login', { error: null, next: req.query.next || '/admin' });
@@ -204,7 +205,7 @@ router.get('/estatisticas', (req, res) => {
   for (const b of live) { const o = (bySvc[b.service_name] ||= { name: b.service_name, n: 0, rev: 0 }); o.n++; if (b.status === 'completed') o.rev += b.price_cents; }
   const services = Object.values(bySvc).sort((a, b) => b.n - a.n);
   const hours = Array.from({ length: 24 }, (_, h) => ({ h, n: 0 }));
-  for (const b of live) hours[Math.floor(b.start_min / 60)].n++;
+  for (const b of live) { const h = hours[Math.floor(b.start_min / 60)]; if (h) h.n++; }
   const hourRange = hours.filter((h) => h.n);
   const hMin = hourRange.length ? hourRange[0].h : 9, hMax = hourRange.length ? hourRange[hourRange.length - 1].h : 18;
 
@@ -288,20 +289,25 @@ router.get('/agenda/imprimir', (req, res) => {
 });
 
 // arrastar para reagendar (agenda): valida conflitos, a não ser que force=true (desfazer)
+/** Mover uma marcação (arrastar na agenda ou encaixe manual): mesmas validações nos dois caminhos. */
+function moveBooking(req, b, { date, start, staffId, force }) {
+  const own = ownStaff(req);
+  if (own && (b.staff_id !== own || staffId !== own)) return { ok: false, code: 403, error: 'Só pode mover as suas marcações.' };
+  if (!isDate(date) || !Number.isInteger(start) || start < 0 || start + b.duration_min > 24 * 60) return { ok: false, code: 400, error: 'Data ou hora inválida.' };
+  if (!db.prepare('SELECT 1 FROM staff WHERE id = ?').get(staffId)) return { ok: false, code: 400, error: 'Profissional inválido.' };
+  const end = start + b.duration_min;
+  if (!force && busyIntervals(staffId, date, { ignoreBookingId: b.id }).some(([s0, e0]) => start < e0 && end > s0)) {
+    return { ok: false, code: 409, error: 'Colide com outra marcação ou bloqueio.' };
+  }
+  db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?").run(date, start, end, staffId, b.id);
+  return { ok: true };
+}
+
 router.post('/api/reagendar', (req, res) => {
   const b = getBooking(+req.body.id);
   if (!b) return res.status(404).json({ error: 'Marcação não encontrada.' });
-  const own = ownStaff(req);
-  if (own && (b.staff_id !== own || (+req.body.staffId && +req.body.staffId !== own))) return res.status(403).json({ error: 'Só pode mover as suas marcações.' });
-  const date = String(req.body.date || '');
-  const start = +req.body.start;
-  const staffId = +req.body.staffId || b.staff_id;
-  if (!isDate(date) || !Number.isInteger(start) || start < 0 || start + b.duration_min > 24 * 60) return res.status(400).json({ error: 'Data ou hora inválida.' });
-  const end = start + b.duration_min;
-  if (!req.body.force && busyIntervals(staffId, date, { ignoreBookingId: b.id }).some(([s0, e0]) => start < e0 && end > s0)) {
-    return res.status(409).json({ error: 'Colide com outra marcação ou bloqueio.' });
-  }
-  db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?").run(date, start, end, staffId, b.id);
+  const r = moveBooking(req, b, { date: String(req.body.date || ''), start: +req.body.start, staffId: +req.body.staffId || b.staff_id, force: !!req.body.force });
+  if (!r.ok) return res.status(r.code).json({ error: r.error });
   const nb = getBooking(b.id);
   res.json({ ok: true, booking: { id: nb.id, date: nb.date, start: nb.start_min, staffId: nb.staff_id, staffName: nb.staff_name }, before: { date: b.date, start: b.start_min, staffId: b.staff_id } });
 });
@@ -343,7 +349,8 @@ router.get('/marcacoes/exportar.csv', (req, res) => {
     )
     .all();
   const { minToTime } = require('../time');
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // valores que começam por = + - @ (ou tab/CR) seriam fórmulas no Excel: prefixar com '
+  const esc = (v) => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return `"${t.replace(/"/g, '""')}"`; };
   const lines = [['Referência', 'Data', 'Início', 'Fim', 'Serviço', 'Profissional', 'Cliente', 'Email', 'Telefone', 'Estado', 'Origem', 'Preço', 'Notas'].map(esc).join(';')];
   for (const r of rows) {
     lines.push([r.ref, r.date, minToTime(r.start_min), minToTime(r.end_min), r.service, r.staff, r.customer_name, r.customer_email, r.customer_phone, STATUS[r.status], r.source, (r.price_cents / 100).toFixed(2).replace('.', ','), r.notes].map(esc).join(';'));
@@ -476,16 +483,8 @@ router.post('/marcacoes/:id', (req, res, next) => {
   }
 
   if (action === 'reschedule') {
-    const date = clean(req.body.date, 10);
-    const start = timeToMin(req.body.time);
-    const staffId = +req.body.staffId || b.staff_id;
-    if (!isDate(date) || start == null) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('Data/hora inválida.'));
-    const end = start + b.duration_min;
-    const conflict = busyIntervals(staffId, date, { ignoreBookingId: b.id }).some(([s, e]) => start < e && end > s);
-    if (conflict && req.body.force !== '1') {
-      return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('Esse horário colide com outra marcação ou bloqueio. Ative "Ignorar conflitos" para forçar.'));
-    }
-    db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?").run(date, start, end, staffId, b.id);
+    const r = moveBooking(req, b, { date: clean(req.body.date, 10), start: timeToMin(req.body.time), staffId: +req.body.staffId || b.staff_id, force: req.body.force === '1' });
+    if (!r.ok) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent(r.code === 409 ? r.error + ' Ative "Ignorar conflitos" para forçar.' : r.error));
     return back(res, `/admin/marcacoes/${b.id}`, 'Marcação reagendada.');
   }
 
@@ -723,7 +722,7 @@ router.get('/equipa/:id/horario', (req, res, next) => {
   ensureStaffTokens();
   const general = db.prepare('SELECT * FROM hours ORDER BY weekday').all();
   const own = db.prepare('SELECT * FROM staff_hours WHERE staff_id = ? ORDER BY weekday').all(p.id);
-  const base = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const base = res.locals.baseUrl;
   res.render('admin/staff-hours', { p: db.prepare('SELECT * FROM staff WHERE id = ?').get(p.id), general, own, feed: `${base}/cal/${db.prepare('SELECT ics_token FROM staff WHERE id = ?').get(p.id).ics_token}.ics` });
 });
 router.post('/equipa/:id/horario', (req, res) => {
@@ -798,10 +797,17 @@ router.post('/mensagens/:id', (req, res) => {
 });
 
 // ---------- Utilizadores (só dono) ----------
+// a palavra-passe temporária é mostrada na própria resposta (nunca num URL, que fica no histórico e nos registos)
+function renderUsers(req, res, { error = null, created = null } = {}) {
+  const users = db.prepare('SELECT u.id, u.name, u.email, u.role, u.staff_id, s.name staff_name FROM users u LEFT JOIN staff s ON s.id = u.staff_id ORDER BY u.role, u.name').all();
+  const staff = db.prepare('SELECT id, name FROM staff WHERE active = 1 ORDER BY sort, name').all();
+  res.set('Cache-Control', 'no-store');
+  res.render('admin/users', { users, staff, error, created });
+}
 router.get('/utilizadores', (req, res) => {
   const users = db.prepare('SELECT u.id, u.name, u.email, u.role, u.staff_id, s.name staff_name FROM users u LEFT JOIN staff s ON s.id = u.staff_id ORDER BY u.role, u.name').all();
   const staff = db.prepare('SELECT id, name FROM staff WHERE active = 1 ORDER BY sort, name').all();
-  res.render('admin/users', { users, staff, error: req.query.erro || null, created: req.query.criado || null });
+  res.render('admin/users', { users, staff, error: req.query.erro || null, created: null });
 });
 router.post('/utilizadores', (req, res) => {
   const name = clean(req.body.name, 120), email = clean(req.body.email, 160).toLowerCase();
@@ -814,7 +820,7 @@ router.post('/utilizadores', (req, res) => {
   const temp = require('node:crypto').randomBytes(6).toString('base64url');
   db.prepare('INSERT INTO users(name, email, password_hash, role, staff_id) VALUES (?,?,?,?,?)').run(name, email, hashPassword(temp), role, staffId);
   require('../mailer').send({ to: email, subject: `Acesso ao back office · ${getSettings().business_name}`, text: `Olá ${name},\n\nFoi criado um acesso para si.\n\nEndereço: ${(process.env.BASE_URL || '')}/admin\nEmail: ${email}\nPalavra-passe temporária: ${temp}\n\nAltere-a em "A minha conta" depois de entrar.` });
-  res.redirect('/admin/utilizadores?criado=' + encodeURIComponent(`${email} · palavra-passe temporária: ${temp}`));
+  renderUsers(req, res, { created: `${email} · palavra-passe temporária: ${temp}` });
 });
 router.post('/utilizadores/:uid', (req, res) => {
   const uid = +req.params.uid;
@@ -832,7 +838,7 @@ router.post('/utilizadores/:uid', (req, res) => {
     const temp = require('node:crypto').randomBytes(6).toString('base64url');
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(temp), uid);
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(uid);
-    return res.redirect('/admin/utilizadores?criado=' + encodeURIComponent(`${u.email} · nova palavra-passe temporária: ${temp}`));
+    return renderUsers(req, res, { created: `${u.email} · nova palavra-passe temporária: ${temp}` });
   }
   const role = ROLE_LABEL[req.body.role] ? req.body.role : u.role;
   if (u.role === 'owner' && role !== 'owner' && owners <= 1) return fail('Tem de existir pelo menos um dono.');
@@ -860,7 +866,10 @@ router.post('/definicoes', (req, res) => {
     if (checkboxes.includes(key)) { if (section && req.body[`has_${key}`]) setSetting(key, req.body[key] ? '1' : '0'); continue; }
     if (!(key in req.body)) continue;
     let v = clean(req.body[key], 2000);
-    if (numeric[key]) v = String(Math.max(numeric[key][0], Math.min(numeric[key][1], parseInt(v, 10) || 0)));
+    if (numeric[key]) {
+      const n = key === 'deposit_value' ? parseFloat(v.replace(',', '.')) : parseInt(v, 10);
+      v = String(Math.max(numeric[key][0], Math.min(numeric[key][1], Number.isFinite(n) ? n : 0)));
+    }
     if (key === 'timezone') { try { new Intl.DateTimeFormat('en', { timeZone: v }); } catch { continue; } }
     if (key === 'brand_signal' && !/^#[0-9a-f]{6}$/i.test(v)) continue;
     if (key === 'deposit_mode' && !['off', 'percent', 'fixed', 'full'].includes(v)) continue;

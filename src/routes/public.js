@@ -10,7 +10,7 @@ const { rateLimit, verifyTurnstile } = require('../security-mw');
 const payments = require('../payments');
 const router = express.Router();
 const HOUR = 60 * 60 * 1000;
-router.use('/api', rateLimit('api', 240, 60 * 1000));
+router.use('/api', rateLimit('api', 90, 60 * 1000));
 
 const activeServices = () => {
   const list = db.prepare('SELECT * FROM services WHERE active = 1 ORDER BY sort, name').all();
@@ -55,14 +55,14 @@ router.get('/', (req, res) => {
     staff: activeStaff(),
     hours,
     departures: nextDepartures(4),
-    status: openStatus(hours, now),
+    status: openStatus(hours, now, res.locals.L),
     today: now.date,
     sent: req.query.enviado === '1',
   });
 });
 
 /** "Aberto agora · fecha às 19:30" / "Fechado · abre amanhã às 09:00" */
-function openStatus(hours, now) {
+function openStatus(hours, now, L) {
   const byDay = Object.fromEntries(hours.map((h) => [h.weekday, h]));
   const wd = weekday(now.date);
   const h = byDay[wd];
@@ -70,16 +70,16 @@ function openStatus(hours, now) {
     const inBreak = h.break_start != null && now.min >= h.break_start && now.min < h.break_end;
     if (now.min >= h.open_min && now.min < h.close_min && !inBreak) {
       const closes = h.break_start != null && now.min < h.break_start ? h.break_start : h.close_min;
-      return { open: true, text: `Aberto agora · fecha às ${minToTime(closes)}` };
+      return { open: true, text: L('os.open', { t: minToTime(closes) }) };
     }
-    if (inBreak) return { open: false, text: `Pausa · reabre às ${minToTime(h.break_end)}` };
-    if (now.min < h.open_min) return { open: false, text: `Fechado · abre hoje às ${minToTime(h.open_min)}` };
+    if (inBreak) return { open: false, text: L('os.break', { t: minToTime(h.break_end) }) };
+    if (now.min < h.open_min) return { open: false, text: L('os.today', { t: minToTime(h.open_min) }) };
   }
   for (let i = 1; i <= 7; i++) {
     const n = byDay[(wd + i) % 7];
-    if (n && !n.closed) return { open: false, text: `Fechado · abre ${i === 1 ? 'amanhã' : ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][(wd + i) % 7]} às ${minToTime(n.open_min)}` };
+    if (n && !n.closed) return { open: false, text: L('os.next', { day: i === 1 ? L('os.tomorrow') : L('os.wd' + ((wd + i) % 7)), t: minToTime(n.open_min) }) };
   }
-  return { open: false, text: 'Fechado' };
+  return { open: false, text: L('os.closed') };
 }
 
 function renderBooking(res, extra = {}) {

@@ -202,3 +202,12 @@ def('js.loading', 'A carregar horários', 'Loading times');
 def('js.nofreeday', ', sem vagas', ', fully booked');
 def('js.day', 'Dia', 'Day');
 def('js.hour', 'Hora', 'Time');
+
+// estado aberto/fechado
+def('os.open', 'Aberto agora · fecha às {t}', 'Open now · closes at {t}');
+def('os.break', 'Pausa · reabre às {t}', 'On a break · reopens at {t}');
+def('os.today', 'Fechado · abre hoje às {t}', 'Closed · opens today at {t}');
+def('os.next', 'Fechado · abre {day} às {t}', 'Closed · opens {day} at {t}');
+def('os.tomorrow', 'amanhã', 'tomorrow');
+def('os.closed', 'Fechado', 'Closed');
+['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'].forEach((d, i) => def('os.wd' + i, d, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i]));

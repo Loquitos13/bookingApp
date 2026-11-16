@@ -10,7 +10,7 @@ function timeToMin(t) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim());
   if (!m) return null;
   const h = +m[1], mi = +m[2];
-  if (h > 24 || mi > 59) return null;
+  if (h > 23 || mi > 59) return null;
   return h * 60 + mi;
 }
 

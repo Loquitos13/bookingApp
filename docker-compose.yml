@@ -12,6 +12,7 @@ services:
       ADMIN_EMAIL: "admin@exemplo.pt"
       ADMIN_PASSWORD: "mude-esta-palavra-passe"
       DEMO: "0"
+      # Só com um proxy à frente (Nginx, Caddy, Cloudflare): TRUST_PROXY: "1"
       # Email (opcional)
       # SMTP_HOST: ""
       # SMTP_PORT: "587"

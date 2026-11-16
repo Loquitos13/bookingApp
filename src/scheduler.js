@@ -22,8 +22,9 @@ function reminders(now) {
     // só se faltar menos do que a antecedência definida, e se a marcação não foi feita há menos de 1 h
     if (m <= 0 || m > hours * 60) continue;
     if (Date.now() - Date.parse(r.created_at.replace(' ', 'T') + 'Z') < 60 * 60 * 1000) continue;
-    mailer.sendReminder(getBooking(r.id));
     db.prepare("UPDATE bookings SET reminder_sent_at = datetime('now') WHERE id = ?").run(r.id);
+    // se o email falhar (ex.: SMTP em baixo), volta a tentar na próxima ronda
+    Promise.resolve(mailer.sendReminder(getBooking(r.id))).then((ok) => { if (ok === false) db.prepare('UPDATE bookings SET reminder_sent_at = NULL WHERE id = ?').run(r.id); });
     n++;
   }
   return n;
@@ -43,8 +44,11 @@ function reviews(now) {
     const recent = db.prepare(
       `SELECT 1 FROM bookings WHERE lower(customer_email) = lower(?) AND review_sent_at >= datetime('now', '-180 days') LIMIT 1`
     ).get(r.customer_email);
+    if (recent) { // no máximo um pedido a cada 6 meses por pessoa; '0' marca "saltado" sem contar como enviado
+      db.prepare("UPDATE bookings SET review_sent_at = '0' WHERE id = ?").run(r.id);
+      continue;
+    }
     db.prepare("UPDATE bookings SET review_sent_at = datetime('now') WHERE id = ?").run(r.id);
-    if (recent) continue; // no máximo um pedido a cada 6 meses por pessoa
     mailer.sendReviewRequest(getBooking(r.id));
     n++;
   }

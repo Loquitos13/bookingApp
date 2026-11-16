@@ -1,13 +1,12 @@
 'use strict';
-const { db, getSettings, tx } = require('./db');
+const { db, stmt, getSettings, tx } = require('./db');
 const { weekday, nowIn, addDays, diffDays, minToTime } = require('./time');
 const { bookingRef, randomToken } = require('./security');
 
 const ACTIVE_STATUSES = "('pending','confirmed','completed')";
 
 function staffForService(serviceId) {
-  return db
-    .prepare(
+  return stmt(
       `SELECT s.* FROM staff s JOIN staff_services ss ON ss.staff_id = s.id
        WHERE ss.service_id = ? AND s.active = 1 ORDER BY s.sort, s.name`
     )
@@ -20,10 +19,10 @@ const { holidayName } = require('./holidays');
 function dayHours(date, staffId = null) {
   const wd = weekday(date);
   if (staffId) {
-    const sh = db.prepare('SELECT * FROM staff_hours WHERE staff_id = ? AND weekday = ?').get(staffId, wd);
+    const sh = stmt('SELECT * FROM staff_hours WHERE staff_id = ? AND weekday = ?').get(staffId, wd);
     if (sh) return sh;
   }
-  return db.prepare('SELECT * FROM hours WHERE weekday = ?').get(wd);
+  return stmt('SELECT * FROM hours WHERE weekday = ?').get(wd);
 }
 const isHolidayClosed = (date) => getSettings().auto_holidays === '1' && !!holidayName(date);
 
@@ -40,15 +39,13 @@ function workWindows(date, staffId = null) {
 /** Intervalos ocupados (marcações + bloqueios) de um profissional num dia. */
 function busyIntervals(staffId, date, { ignoreBookingId = null } = {}) {
   const buffer = +getSettings().buffer_min || 0;
-  const out = db
-    .prepare(
+  const out = stmt(
       `SELECT start_min, end_min FROM bookings
        WHERE staff_id = ? AND date = ? AND status IN ${ACTIVE_STATUSES} AND id IS NOT ?`
     )
     .all(staffId, date, ignoreBookingId)
     .map((b) => [b.start_min, b.end_min + buffer]);
-  const blocks = db
-    .prepare(
+  const blocks = stmt(
       `SELECT start_min, end_min FROM blocks
        WHERE (staff_id IS NULL OR staff_id = ?) AND date_from <= ? AND date_to >= ?`
     )
@@ -65,7 +62,7 @@ const overlaps = (s, e, list) => list.some(([a, b]) => s < b && e > a);
  */
 function getSlots({ serviceId, staffId = null, date, forAdmin = false, ignoreBookingId = null }) {
   const st = getSettings();
-  const svc = db.prepare('SELECT * FROM services WHERE id = ?').get(serviceId);
+  const svc = stmt('SELECT * FROM services WHERE id = ?').get(serviceId);
   if (!svc || (!svc.active && !forAdmin)) return [];
 
   const now = nowIn(st.timezone);
@@ -163,7 +160,7 @@ function rescheduleBooking(id, { date, start, staffId = null }, { forAdmin = fal
 function createBooking(input, { source = 'online', force = false } = {}) {
   const st = getSettings();
   return tx(() => {
-    const svc = db.prepare('SELECT * FROM services WHERE id = ?').get(input.serviceId);
+    const svc = stmt('SELECT * FROM services WHERE id = ?').get(input.serviceId);
     if (!svc) throw new BookingError('Serviço inválido.');
     let staffId = input.staffId ? +input.staffId : null;
 
