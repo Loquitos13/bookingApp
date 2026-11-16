@@ -206,15 +206,10 @@ router.get('/marcacao/:token.ics', (req, res, next) => {
   if (!row) return next();
   const b = getBooking(row.id);
   const st = getSettings();
-  const stamp = (date, min) => `${date.replace(/-/g, '')}T${minToTime(min).replace(':', '')}00`;
-  const esc = (v) => String(v).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const ics = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//bookingapp//PT', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
-    `UID:${b.ref}@bookingapp`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
-    `DTSTART;TZID=${st.timezone}:${stamp(b.date, b.start_min)}`, `DTEND;TZID=${st.timezone}:${stamp(b.date, b.end_min)}`,
-    `SUMMARY:${esc(`${b.service_name} · ${st.business_name}`)}`, `LOCATION:${esc(st.address)}`,
-    `DESCRIPTION:${esc(`Com ${b.staff_name}. Referência ${b.ref}.`)}`, 'END:VEVENT', 'END:VCALENDAR',
-  ].join('\r\n');
+  const ics = require('../ics').calendar({
+    timezone: st.timezone,
+    events: [{ uid: b.ref, date: b.date, start: b.start_min, end: b.end_min, summary: `${b.service_name} · ${st.business_name}`, location: st.address, description: `${b.staff_name} · Ref. ${b.ref}` }],
+  });
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Content-Disposition', `attachment; filename="marcacao-${b.ref}.ics"`);
   res.send(ics);
@@ -284,21 +279,20 @@ router.get('/cal/:token.ics', rateLimit('cal', 60, HOUR), (req, res, next) => {
     `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
      WHERE b.staff_id = ? AND b.status IN ('pending','confirmed','completed') AND b.date BETWEEN date(?, '-30 days') AND date(?, '+180 days')`
   ).all(p.id, today, today);
-  const stamp = (date, min) => `${date.replace(/-/g, '')}T${minToTime(min).replace(':', '')}00`;
-  const esc = (v) => String(v).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//bookingapp//PT', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    `X-WR-CALNAME:${esc(`${st.business_name} · ${p.name}`)}`, `X-WR-TIMEZONE:${st.timezone}`, 'REFRESH-INTERVAL;VALUE=DURATION:PT15M', 'X-PUBLISHED-TTL:PT15M'];
-  for (const b of rows) {
-    lines.push('BEGIN:VEVENT', `UID:${b.ref}@bookingapp`, `DTSTAMP:${now}`,
-      `DTSTART;TZID=${st.timezone}:${stamp(b.date, b.start_min)}`, `DTEND;TZID=${st.timezone}:${stamp(b.date, b.end_min)}`,
-      `SUMMARY:${esc(`${b.service_name} · ${b.customer_name}${b.status === 'pending' ? ' (por confirmar)' : ''}`)}`,
-      `DESCRIPTION:${esc(`Ref. ${b.ref}${b.notes ? ' · ' + b.notes : ''}`)}`, `STATUS:${b.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED'}`, 'END:VEVENT');
-  }
-  lines.push('END:VCALENDAR');
+  const ics = require('../ics').calendar({
+    publish: true,
+    name: `${st.business_name} · ${p.name}`,
+    timezone: st.timezone,
+    events: rows.map((b) => ({
+      uid: b.ref, date: b.date, start: b.start_min, end: b.end_min,
+      summary: `${b.service_name} · ${b.customer_name}${b.status === 'pending' ? ' (por confirmar)' : ''}`,
+      description: `Ref. ${b.ref}${b.notes ? ' · ' + b.notes : ''}`,
+      status: b.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED',
+    })),
+  });
   res.set('Content-Type', 'text/calendar; charset=utf-8');
   res.set('Cache-Control', 'private, max-age=300');
-  res.send(lines.join('\r\n'));
+  res.send(ics);
 });
 
 // ---- lista de espera ----

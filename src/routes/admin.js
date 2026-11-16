@@ -11,7 +11,8 @@ const { notifyStatusChange, notifyNewBooking } = require('../mailer');
 const { hashPassword, verifyPassword } = require('../security');
 const { isDate, nowIn, addDays, timeToMin, weekday } = require('../time');
 
-const router = express.Router();
+// rotas sensíveis a maiúsculas e à barra final: o controlo de papéis compara caminhos exatos
+const router = express.Router({ caseSensitive: true, strict: true });
 
 const STATUS = {
   pending: 'Pendente',
@@ -25,7 +26,7 @@ const today = () => nowIn(getSettings().timezone).date;
 
 router.use((req, res, next) => {
   res.locals.STATUS = STATUS;
-  res.locals.flash = req.query.ok ? decodeURIComponent(req.query.ok) : null;
+  res.locals.flash = req.query.ok ? String(req.query.ok) : null; // já vem descodificado pelo Express
   res.locals.unread = req.user ? db.prepare('SELECT COUNT(*) c FROM messages WHERE read = 0').get().c : 0;
   res.locals.pendingCount = req.user ? db.prepare("SELECT COUNT(*) c FROM bookings WHERE status = 'pending'").get().c : 0;
   next();
@@ -70,19 +71,20 @@ router.use((req, res, next) => {
   const role = req.user.role;
   res.locals.role = role;
   res.locals.ROLE_LABEL = ROLE_LABEL;
-  const p = req.path;
+  // caminho normalizado (minúsculas, sem barra final) para o controlo não poder ser contornado
+  const p = req.path.toLowerCase().replace(/\/+$/, '') || '/';
   const deny = () => (req.method === 'GET' && !p.startsWith('/api') ? res.status(403).render('admin/forbidden') : res.status(403).json({ error: 'Sem permissão.' }));
   if (role === 'reception' && OWNER_ONLY.some((x) => p === x || p.startsWith(x + '/'))) return deny();
   if (role === 'staff') {
     if (!(p === '/' || STAFF_ALLOWED.some((x) => p === x || p.startsWith(x + '/')))) return deny();
-    // o profissional só vê a sua coluna
-    if (['/agenda', '/marcacoes', '/agenda/imprimir', '/api/slots', '/api/days'].includes(p)) req.query.staff = String(ownStaff(req));
+    // o profissional só vê a sua coluna, em qualquer listagem
+    req.query.staff = String(ownStaff(req));
   }
   next();
 });
 router.param('id', (req, res, next, id) => {
   const own = ownStaff(req);
-  if (own && req.baseUrl.endsWith('/admin') && req.path.startsWith('/marcacoes/')) {
+  if (own && req.path.toLowerCase().startsWith('/marcacoes/')) {
     const b = db.prepare('SELECT staff_id FROM bookings WHERE id = ?').get(+id);
     if (b && b.staff_id !== own) return res.status(403).render('admin/forbidden');
   }
@@ -337,7 +339,7 @@ router.get('/marcacoes/exportar.csv', (req, res) => {
     .prepare(
       `SELECT b.ref, b.date, b.start_min, b.end_min, s.name service, st.name staff, b.customer_name, b.customer_email,
               b.customer_phone, b.status, b.source, b.price_cents, b.notes FROM bookings b
-       JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id ORDER BY b.date, b.start_min`
+       JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id ${ownStaff(req) ? 'WHERE b.staff_id = ' + ownStaff(req) : ''} ORDER BY b.date, b.start_min`
     )
     .all();
   const { minToTime } = require('../time');
@@ -848,7 +850,7 @@ router.get('/definicoes', (req, res) => res.render('admin/settings', { error: re
 router.post('/definicoes', (req, res) => {
   const numeric = {
     slot_step: [5, 120], min_notice_hours: [0, 720], max_days_ahead: [1, 365], buffer_min: [0, 120], cancel_hours: [0, 720],
-    reminder_hours: [0, 168], review_delay_hours: [0, 168], max_online_per_email: [1, 50], deposit_value: [0, 100000], payment_timeout_min: [10, 1440],
+    reminder_hours: [0, 168], review_delay_hours: [0, 168], max_online_per_email: [1, 50], deposit_value: [0, 100000], payment_timeout_min: [30, 1440],
   };
   const checkboxes = ['auto_confirm', 'demo_mode', 'auto_holidays', 'reminder_sms', 'lang_en'];
   const urls = ['review_url', 'complaints_url'];

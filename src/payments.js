@@ -39,6 +39,8 @@ async function stripe(pathname, params) {
 
 async function createCheckout(b, baseUrl) {
   const st = getSettings();
+  // "pagar outra vez": fecha a sessão anterior para não ser possível pagar duas vezes
+  if (b.payment_ref) await stripe(`checkout/sessions/${encodeURIComponent(b.payment_ref)}/expire`, {}).catch(() => {});
   const timeout = Math.max(30, +st.payment_timeout_min || 30); // a Stripe exige pelo menos 30 min
   const session = await stripe('checkout/sessions', {
     mode: 'payment',
@@ -84,10 +86,13 @@ function applyEvent(event) {
   const b = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
   if (!b) return null;
   const confirmStatus = getSettings().auto_confirm === '1' ? 'confirmed' : 'pending';
+  // eventos de uma sessão antiga (substituída por um novo "pagar") não mexem na marcação
+  const stale = obj.id && b.payment_ref && obj.id !== b.payment_ref;
   const paid = () => {
     if (b.payment_status === 'paid') return null;
     db.prepare(`UPDATE bookings SET payment_status = 'paid', status = CASE WHEN status = 'cancelled' THEN status ELSE ? END, updated_at = datetime('now') WHERE id = ?`).run(confirmStatus, id);
-    return id;
+    // pago depois de cancelada (horário já libertado): não confirmar ao cliente, avisar o negócio
+    return { id, late: b.status === 'cancelled' };
   };
   switch (event.type) {
     case 'checkout.session.completed':
@@ -99,6 +104,7 @@ function applyEvent(event) {
       return paid();
     case 'checkout.session.async_payment_failed':
     case 'checkout.session.expired':
+      if (stale) return null;
       db.prepare(`UPDATE bookings SET payment_status = 'expired', status = 'cancelled', updated_at = datetime('now'),
         internal_notes = trim(internal_notes || ' [Cancelada: pagamento não concluído]') WHERE id = ? AND payment_status != 'paid'`).run(id);
       return null;

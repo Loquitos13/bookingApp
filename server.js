@@ -16,7 +16,10 @@ const time = require('./src/time');
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.set('trust proxy', 1);
+// Só confiar em X-Forwarded-For quando há um proxy à frente (ex.: TRUST_PROXY=1 atrás de Nginx/Caddy/Cloudflare).
+// Sem proxy, confiar nele deixaria qualquer cliente escolher o próprio IP e contornar os limites de pedidos.
+const tp = process.env.TRUST_PROXY;
+app.set('trust proxy', !tp || tp === '0' || tp === 'false' ? false : /^\d+$/.test(tp) ? +tp : tp);
 app.disable('x-powered-by');
 
 // webhook da Stripe: precisa do corpo em bruto para verificar a assinatura (antes dos outros parsers)
@@ -26,10 +29,20 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb
   if (!payments.verifySignature(raw, req.get('stripe-signature'), process.env.STRIPE_WEBHOOK_SECRET)) return res.status(400).send('assinatura inválida');
   let event;
   try { event = JSON.parse(raw); } catch { return res.status(400).send('json inválido'); }
-  const paidId = payments.applyEvent(event);
-  if (paidId) {
+  const paid = payments.applyEvent(event);
+  if (paid) {
     const { getBooking } = require('./src/availability');
-    require('./src/mailer').notifyNewBooking(getBooking(paidId));
+    const mailer = require('./src/mailer');
+    const b = getBooking(paid.id);
+    if (!paid.late) mailer.notifyNewBooking(b);
+    else {
+      const st = getSettings();
+      mailer.send({
+        to: process.env.NOTIFY_EMAIL || st.email,
+        subject: `Atenção: pagamento recebido para a marcação cancelada ${b.ref}`,
+        text: `${b.customer_name} pagou ${(b.deposit_cents / 100).toFixed(2)} € depois de a marcação ${b.ref} (${b.date}) ter sido cancelada por falta de pagamento.\nReative a marcação se o horário ainda estiver livre, ou faça o reembolso na Stripe.\n\n${(process.env.BASE_URL || '')}/admin/marcacoes/${b.id}`,
+      });
+    }
   }
   res.json({ received: true });
 });
@@ -91,6 +104,14 @@ app.use('/', require('./src/routes/public'));
 app.use((req, res) => res.status(404).render('public/message', { code: '404', title: res.locals.L ? res.locals.L('e.notfound.title') : 'Esta página não existe', text: res.locals.L ? res.locals.L('e.notfound.text') : '' }));
 app.use((err, req, res, _next) => {
   console.error(err);
+  // o erro pode ter acontecido antes de o idioma e o resto do contexto estarem prontos
+  const L = { 'msg.book': 'Marcar', 'msg.home': 'Página inicial', 'nav.book': 'Marcar' };
+  res.locals.L ||= (k) => L[k] || '';
+  res.locals.lang ||= 'pt';
+  res.locals.jsDict ||= {};
+  res.locals.nonce ||= '';
+  res.locals.canonical ||= '/';
+  res.locals.baseUrl ||= '';
   res.status(500).render('public/message', { code: '500', title: 'Algo correu mal', text: 'Não foi culpa sua. Tente novamente dentro de instantes ou ligue-nos.' });
 });
 

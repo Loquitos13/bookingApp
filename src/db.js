@@ -255,6 +255,10 @@ function seed() {
     else insH.run(d, 0, 540, 1170, 780, 840);
   }
 
+  // pacote de exemplo: só na primeira instalação (apagá-lo depois é definitivo)
+  const sv = db.prepare('SELECT id, price_cents FROM services ORDER BY sort LIMIT 1 OFFSET 1').get();
+  if (sv) db.prepare('INSERT INTO packages(name, service_id, sessions, price_cents, validity_days) VALUES (?,?,?,?,?)').run('Pack 10 sessões', sv.id, 10, Math.round(sv.price_cents * 10 * 0.85), 365);
+
   const email = process.env.ADMIN_EMAIL || 'admin@exemplo.pt';
   const pass = process.env.ADMIN_PASSWORD || 'admin123';
   db.prepare('INSERT INTO users(name, email, password_hash) VALUES (?, ?, ?)').run(
@@ -266,10 +270,6 @@ function seed() {
 }
 seed();
 ensureStaffTokens();
-if (!db.prepare('SELECT COUNT(*) c FROM packages').get().c) {
-  const sv = db.prepare('SELECT id, price_cents FROM services ORDER BY sort LIMIT 1 OFFSET 1').get();
-  if (sv) db.prepare('INSERT INTO packages(name, service_id, sessions, price_cents, validity_days) VALUES (?,?,?,?,?)').run('Pack 10 sessões', sv.id, 10, Math.round(sv.price_cents * 10 * 0.85), 365);
-}
 
 function getSettings() {
   const out = { ...DEFAULT_SETTINGS };

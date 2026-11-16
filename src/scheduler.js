@@ -65,7 +65,7 @@ function waitlist(now) {
 }
 
 function expirePayments() {
-  const timeout = Math.max(10, +getSettings().payment_timeout_min || 30);
+  const timeout = Math.max(30, +getSettings().payment_timeout_min || 30); // o mesmo prazo da sessão Stripe
   const r = db.prepare(
     `UPDATE bookings SET status = 'cancelled', payment_status = 'expired', updated_at = datetime('now'),
        internal_notes = trim(internal_notes || ' [Cancelada: pagamento não concluído]')

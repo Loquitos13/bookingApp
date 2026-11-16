@@ -30,7 +30,9 @@ function parseCookies(header = '') {
     const i = part.indexOf('=');
     if (i < 0) continue;
     const k = part.slice(0, i).trim();
-    if (k) out[k] = decodeURIComponent(part.slice(i + 1).trim());
+    if (!k) continue;
+    const v = part.slice(i + 1).trim();
+    try { out[k] = decodeURIComponent(v); } catch { out[k] = v; } // um cookie malformado não pode partir o pedido
   }
   return out;
 }

@@ -88,7 +88,7 @@
     <% [['off', 'Não pedir'], ['percent', 'Sinal em % do preço'], ['fixed', 'Sinal de valor fixo (€)'], ['full', 'Valor total']].forEach(([k, l]) => { %><option value="<%= k %>" <%= site.deposit_mode === k ? 'selected' : '' %>><%= l %></option><% }) %>
   </select></label>
   <label>Valor (% ou €)<input type="number" name="deposit_value" min="0" step="1" value="<%= site.deposit_value %>"></label>
-  <label>Tempo para pagar (min) antes de libertar o horário<input type="number" name="payment_timeout_min" min="10" max="1440" value="<%= site.payment_timeout_min %>"></label>
+  <label>Tempo para pagar (min) antes de libertar o horário<input type="number" name="payment_timeout_min" min="30" max="1440" value="<%= site.payment_timeout_min %>"></label>
   <div class="span2"><button class="btn btn-signal">Guardar</button></div>
 </form>
 
