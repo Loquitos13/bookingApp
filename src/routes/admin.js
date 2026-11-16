@@ -44,7 +44,8 @@ router.post('/login', (req, res) => {
   const key = req.ip;
   const a = attempts.get(key) || { n: 0, t: Date.now() };
   if (Date.now() - a.t > 15 * 60 * 1000) Object.assign(a, { n: 0, t: Date.now() });
-  const nextUrl = String(req.body.next || '/admin').startsWith('/admin') ? req.body.next : '/admin';
+  const n = String(req.body.next || '');
+  const nextUrl = /^\/admin(\/|\?|$)/.test(n) ? n : '/admin';
   if (a.n >= 10) return res.status(429).render('admin/login', { error: 'Demasiadas tentativas. Aguarde 15 minutos.', next: nextUrl });
   if (login(res, req.body.email, req.body.password)) {
     attempts.delete(key);
@@ -440,7 +441,7 @@ router.get('/marcacoes/:id', (req, res, next) => {
   const history = db
     .prepare(
       `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
-       WHERE b.customer_email = ? AND b.id != ? ORDER BY b.date DESC LIMIT 10`
+       WHERE lower(b.customer_email) = lower(?) AND b.id != ? ORDER BY b.date DESC LIMIT 10`
     )
     .all(b.customer_email, b.id);
   const series = b.series_id ? db.prepare('SELECT id, date, start_min, status FROM bookings WHERE series_id = ? ORDER BY date').all(b.series_id) : [];

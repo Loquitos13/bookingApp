@@ -1,5 +1,5 @@
 /* Seletor de dia + hora reutilizável (faixa de dias e horários em células de painel).
-   Uso: Picker({ root, base: '/api', params: () => ({ service, staff, token }), selected: { date, time }, onChange }) */
+   Uso: Picker({ root, base: '/api', params: () => ({ service, staff, token }), selected: { date, time }, onChange, empty }) */
 (function () {
   'use strict';
   const PT = { months: 'janeiro,fevereiro,março,abril,maio,junho,julho,agosto,setembro,outubro,novembro,dezembro', wd: 'Dom,Seg,Ter,Qua,Qui,Sex,Sáb', wdlong: 'domingo,segunda-feira,terça-feira,quarta-feira,quinta-feira,sexta-feira,sábado', longdate: '{wd}, {d} de {m}', Today: 'Hoje', nofreeday: ', sem vagas', nofreedays: 'Sem vagas online nos próximos {n} dias', full: 'Este dia acabou de ficar cheio. Escolha outro dia.', morning: 'Manhã', afternoon: 'Tarde', evening: 'Fim do dia', loading: 'A carregar horários', hour: 'Hora', day: 'Dia' };
@@ -14,11 +14,11 @@
   const longDate = (s) => { const d = parse(s); return T('longdate', { wd: WD_LONG[d.getDay()], d: d.getDate(), m: MONTHS[d.getMonth()] }); };
   const qs = (o) => Object.entries(o).filter(([, v]) => v !== '' && v != null).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
 
-  window.Picker = function ({ root, base = '/api', params, selected = {}, onChange = () => {} }) {
+  window.Picker = function ({ root, base = '/api', params, selected = {}, onChange = () => {}, empty = (n) => `<p>${T('nofreedays', { n })}.</p>` }) {
     root.innerHTML = `<div class="days-wrap"><p class="days-month" aria-live="polite"></p><div class="days" role="radiogroup" aria-label="${T('day')}"></div></div><div class="slots" aria-live="polite"></div>`;
     const monthEl = root.querySelector('.days-month'), daysEl = root.querySelector('.days'), slotsEl = root.querySelector('.slots');
-    let date = selected.date || '', time = selected.time || '', req = 0;
-    const emit = () => onChange({ date, time });
+    let date = selected.date || '', time = selected.time || '', today = '', req = 0;
+    const emit = () => onChange({ date, time, today });
     const skeleton = () => `<div class="skel" aria-label="${T('loading')}">${'<span></span>'.repeat(8)}</div>`;
 
     async function loadDays() {
@@ -27,6 +27,7 @@
       slotsEl.innerHTML = skeleton();
       const res = await fetch(`${base}/days?${qs(params())}`).then((r) => r.json());
       if (id !== req) return;
+      today = res.today;
       const avail = new Set(res.days);
       if (!avail.has(date)) { date = res.days[0] || ''; time = ''; }
       let html = '', month = -1;
@@ -45,7 +46,7 @@
       const sel = daysEl.querySelector('[aria-checked="true"]');
       if (sel) daysEl.scrollLeft = sel.offsetLeft - daysEl.clientWidth / 2 + sel.offsetWidth / 2;
       if (date) loadSlots();
-      else { monthEl.textContent = ''; slotsEl.innerHTML = `<div class="slots-empty"><p>${T('nofreedays', { n: res.maxDays })}.</p></div>`; }
+      else { monthEl.textContent = ''; slotsEl.innerHTML = `<div class="slots-empty">${empty(res.maxDays)}</div>`; }
       emit();
     }
 
@@ -89,6 +90,7 @@
     });
 
     loadDays();
-    return { reload: loadDays, value: () => ({ date, time }), longDate };
+    const reload = (sel) => { if (sel) { date = sel.date || ''; time = sel.time || ''; } return loadDays(); };
+    return { reload, value: () => ({ date, time }), longDate, slotsEl };
   };
 })();

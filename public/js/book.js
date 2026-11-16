@@ -8,9 +8,6 @@
   const route = $$('.route li');
   const next = $('#next');
   const barSum = $('#bar-sum');
-  const daysEl = $('#days');
-  const slotsEl = $('#slots');
-  const monthEl = $('#days-month');
   const fDate = $('#f-date');
   const fTime = $('#f-time');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,7 +25,7 @@
   const shortDate = (s) => { const d = parse(s); return `${WD[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`; };
   const longDate = (s) => { const d = parse(s); return T('longdate', { wd: WD_LONG[d.getDay()], d: d.getDate(), m: MONTHS[d.getMonth()] }); };
 
-  let step = 1, reached = 1, today = null, reqId = 0, firstCache = {};
+  let step = 1, reached = 1, today = null, firstCache = {};
 
   const val = (name) => (form.querySelector(`input[name="${name}"]:checked`) || {}).value || '';
   const service = () => data.services.find((s) => String(s.id) === val('serviceId'));
@@ -176,95 +173,31 @@
     });
   }
 
-  /* ---------- passo 3: dias e horários ---------- */
-  async function loadDays() {
-    const svc = service();
-    if (!svc) return;
-    const id = ++reqId;
-    daysEl.innerHTML = '';
-    slotsEl.innerHTML = skeleton();
-    const res = await fetch(`/api/days?service=${svc.id}&staff=${val('staffId')}`).then((r) => r.json());
-    if (id !== reqId) return;
-    today = res.today;
-    const avail = new Set(res.days);
-    if (!avail.has(fDate.value)) { fDate.value = res.days[0] || ''; fTime.value = ''; }
-    let html = '', month = -1;
-    const start = parse(res.today);
-    for (let i = 0; i <= res.maxDays; i++) {
-      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-      const key = ymd(d);
-      if (d.getMonth() !== month) {
-        if (month !== -1) html += `<span class="day-month" aria-hidden="true">${MONTHS[d.getMonth()].slice(0, 3)}</span>`;
-        month = d.getMonth();
-      }
-      const ok = avail.has(key), on = key === fDate.value;
-      html += `<button type="button" class="day" role="radio" data-date="${key}" aria-checked="${on}" ${ok ? '' : 'disabled'} tabindex="${on ? 0 : -1}"
-        aria-label="${longDate(key)}${ok ? '' : T('nofreeday')}"><span class="day-wd">${i === 0 ? T('Today') : WD[d.getDay()]}</span><span class="day-n">${d.getDate()}</span><span class="day-dot"></span></button>`;
-    }
-    daysEl.innerHTML = html;
-    const sel = $('.day[aria-checked="true"]', daysEl);
-    if (sel) daysEl.scrollLeft = sel.offsetLeft - daysEl.clientWidth / 2 + sel.offsetWidth / 2;
-    update();
-    if (fDate.value) loadSlots();
-    else {
-      monthEl.textContent = '';
-      slotsEl.innerHTML = `<div class="slots-empty"><p>${T('nofreedays', { n: res.maxDays })}${val('staffId') ? T('withthis') : ''}.</p>
-        ${val('staffId') ? `<button type="button" class="btn btn-ink" data-any>${T('tryany')}</button>` : `<p>${T('callus')}</p>`}</div>`;
-    }
+  /* ---------- passo 3: dias e horários (picker.js partilhado) ---------- */
+  let picker = null;
+  function loadDays() {
+    if (!service()) return;
+    const sel = { date: fDate.value, time: fTime.value };
+    if (picker) return picker.reload(sel);
+    picker = Picker({
+      root: $('#picker'),
+      params: () => ({ service: val('serviceId'), staff: val('staffId') }),
+      selected: sel,
+      empty: (n) => `<p>${T('nofreedays', { n })}${val('staffId') ? T('withthis') : ''}.</p>` +
+        (val('staffId') ? `<button type="button" class="btn btn-ink" data-any>${T('tryany')}</button>` : `<p>${T('callus')}</p>`),
+      onChange: (v) => {
+        today = v.today || today;
+        fDate.value = v.date; fTime.value = v.time;
+        update();
+        if (step === 3) history.replaceState({ step }, '', urlFor());
+      },
+    });
+    picker.slotsEl.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-any]')) return;
+      form.querySelector('input[name="staffId"][value=""]').checked = true;
+      update(); loadDays();
+    });
   }
-
-  function selectDay(btn) {
-    if (!btn || btn.disabled) return;
-    $$('.day', daysEl).forEach((d) => { const on = d === btn; d.setAttribute('aria-checked', on); d.tabIndex = on ? 0 : -1; });
-    fDate.value = btn.dataset.date;
-    fTime.value = '';
-    loadSlots();
-    update();
-    history.replaceState({ step }, '', urlFor());
-  }
-  daysEl.addEventListener('click', (e) => selectDay(e.target.closest('.day')));
-  daysEl.addEventListener('keydown', (e) => {
-    if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
-    e.preventDefault();
-    const list = $$('.day:not(:disabled)', daysEl);
-    const i = list.indexOf(document.activeElement);
-    const t = list[i + (e.key === 'ArrowRight' ? 1 : -1)];
-    if (t) { selectDay(t); t.focus(); }
-  });
-
-  const skeleton = () => `<div class="skel" aria-label="${T('loading')}">${'<span></span>'.repeat(8)}</div>`;
-
-  async function loadSlots() {
-    const svc = service();
-    if (!svc || !fDate.value) return;
-    const id = ++reqId;
-    monthEl.textContent = longDate(fDate.value);
-    slotsEl.innerHTML = skeleton();
-    const res = await fetch(`/api/slots?service=${svc.id}&staff=${val('staffId')}&date=${fDate.value}`).then((r) => r.json());
-    if (id !== reqId) return;
-    if (!res.slots.length) { slotsEl.innerHTML = `<div class="slots-empty"><p>${T('full')}</p></div>`; return; }
-    const groups = [[T('morning'), (s) => s.start < 780], [T('afternoon'), (s) => s.start >= 780 && s.start < 1080], [T('evening'), (s) => s.start >= 1080]];
-    let k = 0;
-    slotsEl.innerHTML = `<div role="radiogroup" aria-label="${T('hour')}">` + groups.map(([g, f]) => {
-      const l = res.slots.filter(f);
-      if (!l.length) return '';
-      return `<div class="slot-group"><span class="slot-label">${g}</span><div class="slot-list">${l.map((s) => {
-        const on = s.time === fTime.value;
-        return `<button type="button" class="slot is-in" role="radio" aria-checked="${on}" data-time="${s.time}" style="animation-delay:${Math.min(k++, 14) * 18}ms">${s.time}</button>`;
-      }).join('')}</div></div>`;
-    }).join('') + '</div>';
-  }
-
-  slotsEl.addEventListener('click', (e) => {
-    if (e.target.closest('[data-any]')) { form.querySelector('input[name="staffId"][value=""]').checked = true; update(); loadDays(); return; }
-    const b = e.target.closest('.slot');
-    if (!b) return;
-    fTime.value = b.dataset.time;
-    $$('.slot', slotsEl).forEach((s) => s.setAttribute('aria-checked', s === b));
-    update();
-    history.replaceState({ step }, '', urlFor());
-    if (navigator.vibrate) navigator.vibrate(8);
-  });
 
   /* ---------- passo 4 ---------- */
   const noteBtn = $('#add-note');

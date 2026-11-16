@@ -10,8 +10,9 @@
   const hhmm = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
   let toastT;
 
-  function say(html, undo) {
-    toast.innerHTML = html + (undo ? ' <button type="button" class="toast-undo">Desfazer</button>' : '');
+  function say(text, undo) {
+    toast.textContent = text;
+    if (undo) toast.insertAdjacentHTML('beforeend', ' <button type="button" class="toast-undo">Desfazer</button>');
     toast.hidden = false;
     toast.classList.remove('is-out');
     clearTimeout(toastT);
@@ -99,7 +100,7 @@
       try {
         const j = await save(el, target);
         el.dataset.staff = j.booking.staffId;
-        say(`Movida para <b>${hhmm(j.booking.start)}</b> · ${j.booking.staffName}.`, async () => {
+        say(`Movida para ${hhmm(j.booking.start)} · ${j.booking.staffName}.`, async () => {
           try {
             await save(el, { date: j.before.date, start: j.before.start, staffId: j.before.staffId }, true);
             el.dataset.staff = j.before.staffId;

@@ -64,13 +64,7 @@
 
         <fieldset class="step" data-step="3">
           <legend class="step-title" tabindex="-1"><%= L('bk.q3') %></legend>
-          <div class="days-wrap">
-            <p class="days-month" id="days-month" aria-live="polite"></p>
-            <div class="days" id="days" role="radiogroup" aria-label="<%= L('bk.day') %>"></div>
-          </div>
-          <div class="slots" id="slots" aria-live="polite">
-            <noscript><p><%= L('bk.nojs') %></p></noscript>
-          </div>
+          <div id="picker"><noscript><p><%= L('bk.nojs') %></p></noscript></div>
           <div class="nojs-when">
             <label class="field"><span><%= L('bk.day') %></span><input type="date" name="date" id="f-date" value="<%= form.date || '' %>"></label>
             <label class="field"><span><%= L('bk.hour') %></span><input name="time" id="f-time" value="<%= form.time || '' %>" placeholder="HH:MM" pattern="\d{1,2}:\d{2}"></label>
@@ -139,5 +133,6 @@
   </div>
 </main>
 <script type="application/json" id="booking-data"><%- JSON.stringify({ services, staff: staff.map(p => ({ id: p.id, name: p.name, role: p.role })), links, cancelHours: site.cancel_hours }).replace(/</g, '\\u003c') %></script>
+<script src="/static/js/picker.js" defer></script>
 <script src="/static/js/book.js" defer></script>
 <%- include('../partials/public-foot', { bottomBar: false }) %>

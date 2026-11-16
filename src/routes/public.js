@@ -325,12 +325,11 @@ router.get('/lista-espera/:token/sair', (req, res, next) => {
 
 router.get('/privacidade', (req, res) => res.render('public/privacy'));
 
-const baseUrlOf = (req) => (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 router.get('/robots.txt', (req, res) => {
-  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /marcacao/\nDisallow: /api/\nDisallow: /cal/\n\nSitemap: ${baseUrlOf(req)}/sitemap.xml\n`);
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /marcacao/\nDisallow: /api/\nDisallow: /cal/\n\nSitemap: ${res.locals.baseUrl}/sitemap.xml\n`);
 });
 router.get('/sitemap.xml', (req, res) => {
-  const base = baseUrlOf(req);
+  const base = res.locals.baseUrl;
   const en = getSettings().lang_en === '1';
   const urls = ['/', '/marcar', '/privacidade'];
   const today = nowIn(getSettings().timezone).date;
