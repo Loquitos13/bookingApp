@@ -109,7 +109,7 @@ const DEFAULT_SETTINGS = {
   business_subtitle: 'Fisioterapia & Osteopatia',
   tagline: 'Recupere o movimento. Volte a fazer o que gosta.',
   intro:
-    'Somos uma clínica pequena, com tempo para si. Avaliamos com cuidado, explicamos o que se passa e criamos um plano de tratamento à sua medida — da lesão desportiva à dor lombar do dia a dia.',
+    'Somos uma clínica pequena e temos tempo para cada pessoa. Na primeira consulta percebemos o que se passa e explicamos-lho. Depois fazemos um plano de tratamento, seja para uma lesão desportiva ou para a dor lombar do dia a dia.',
   phone: '+351 210 000 000',
   email: 'geral@equilibrio-clinica.pt',
   address: 'Rua das Flores, 120, 1200-195 Lisboa',

@@ -56,7 +56,7 @@ function notifyNewBooking(b) {
       text: `Hello ${b.customer_name},\n\n${b.status === 'pending' ? 'We received your booking request and will confirm it shortly.' : 'Your booking is confirmed.'}\n\n${bookingSummaryEn(b)}\n\nAddress: ${st.address}\n\nTo view, change or cancel: ${manage}\n\nSee you soon,\n${st.business_name}`,
     });
   } else {
-    const state = b.status === 'pending' ? 'Recebemos o seu pedido de marcação — vamos confirmá-lo em breve.' : 'A sua marcação está confirmada.';
+    const state = b.status === 'pending' ? 'Recebemos o seu pedido de marcação. Vamos confirmá-lo em breve.' : 'A sua marcação está confirmada.';
     module.exports.send({
       to: b.customer_email,
       subject: `${st.business_name}: marcação ${b.status === 'pending' ? 'recebida' : 'confirmada'} (${b.ref})`,
@@ -65,7 +65,7 @@ function notifyNewBooking(b) {
   }
   module.exports.send({
     to: process.env.NOTIFY_EMAIL || st.email,
-    subject: `Nova marcação ${b.ref} — ${b.customer_name}`,
+    subject: `Nova marcação ${b.ref} · ${b.customer_name}`,
     text: `${bookingSummary(b)}\n\nCliente: ${b.customer_name}\nEmail: ${b.customer_email}\nTelefone: ${b.customer_phone}\nNotas: ${b.notes || '—'}\n\n${baseUrl()}/admin/marcacoes/${b.id}`,
   });
 }
@@ -159,7 +159,7 @@ function sendReviewRequest(b) {
     subject: en ? `How was your visit to ${st.business_name}?` : `Como correu a sua visita à ${st.business_name}?`,
     text: en
       ? `Hello ${b.customer_name},\n\nThank you for coming. If you have a minute, a short review helps others find us:\n\n${st.review_url}\n\n${st.business_name}`
-      : `Olá ${b.customer_name},\n\nObrigado pela visita. Se tiver um minuto, uma avaliação curta ajuda outras pessoas a encontrar-nos:\n\n${st.review_url}\n\nObrigado!\n${st.business_name}`,
+      : `Olá ${b.customer_name},\n\nObrigado pela visita. Se tiver um minuto, uma avaliação curta ajuda outras pessoas a encontrar-nos:\n\n${st.review_url}\n\n${st.business_name}`,
   });
 }
 

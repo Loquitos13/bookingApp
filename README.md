@@ -1,4 +1,4 @@
-# Template de marcações — site + reservas online + back office
+# Template de marcações: site, reservas online e back office
 
 Template para negócios que trabalham por marcação (clínicas, salões, estúdios, explicações…). Cada instalação serve um negócio. A demo usa um exemplo fictício, "Equilíbrio — Fisioterapia & Osteopatia". Todo o conteúdo específico do setor é editável no back office.
 
@@ -12,7 +12,7 @@ npm start          # http://localhost:3000  ·  back office em /admin
 npm test           # 37 testes
 ```
 
-Na primeira execução é criada `data/app.db` com **dados de demonstração fictícios**: 3 profissionais, 5 serviços, um pacote, cerca de 800 marcações em 12 semanas de histórico e 3 semanas de futuro, clientes recorrentes, mensagens, férias e um feriado.
+Na primeira execução é criada `data/app.db` com dados de demonstração fictícios: 3 profissionais, 5 serviços, um pacote, cerca de 800 marcações em 12 semanas de histórico e 3 semanas de futuro, clientes recorrentes, mensagens, férias e um feriado.
 
 - **Login de demonstração:** `admin@exemplo.pt` / `admin123`.
 - **Para entregar a um cliente:** arranque com `DEMO=0` e defina `ADMIN_EMAIL` e `ADMIN_PASSWORD`.
@@ -25,28 +25,28 @@ Com Docker: `docker compose up -d`. O `docker-compose.yml` tem todas as variáve
 - **Página inicial:** placa com o nome do negócio, painel de "Próximas vagas" reais (com aviso de "Última vaga"), serviços e pacotes, equipa, horário com "Aberto agora", perguntas frequentes e contacto.
 - **Marcação:** um passo por ecrã (serviço → profissional → dia e hora → dados). O botão Voltar do browser funciona entre passos.
 - **Lista de espera:** quando nenhum horário serve, o cliente é avisado por email se vagar.
-- **Bilhete:** adicionar ao calendário (.ics e Google), como chegar, partilhar, **mudar dia ou hora** e cancelar, até X horas antes.
-- **Pagamento de sinal online** (opcional): cartão, MB WAY e Multibanco via Stripe.
+- **Bilhete:** adicionar ao calendário (.ics e Google), como chegar, partilhar, mudar dia ou hora e cancelar, até X horas antes.
+- Pagamento de sinal online (opcional): cartão, MB WAY e Multibanco via Stripe.
 - **Legal:** política de privacidade, link para o Livro de Reclamações, e consentimento ao marcar.
 - **SEO:** `sitemap.xml`, `robots.txt`, dados estruturados *LocalBusiness*, imagem de partilha e *hreflang*.
 
 **Back office** (`/admin`, instalável como app no telemóvel)
 - **Hoje:** agenda do dia, pedidos por confirmar (um toque para confirmar ou recusar) e lista de espera.
-- **Agenda:** vistas Dia, Semana e Mês, filtro por profissional e **arrastar para mudar a hora** (com Desfazer). Mostra feriados e folgas, e tem uma folha do dia para imprimir.
+- **Agenda:** vistas Dia, Semana e Mês, filtro por profissional e arrastar para mudar a hora (com Desfazer). Mostra feriados e folgas, e tem uma folha do dia para imprimir.
 - **Marcações:** pesquisa, filtros e exportação CSV.
   - **Ficha da marcação:** estado, reagendamento com horários livres, notas e pagamento.
   - **Séries:** marcações semanais ou quinzenais, com cancelamento "esta e as seguintes".
-- **Clientes:** histórico, visitas, faltas, valor gasto, notas, pacotes, atalhos (ligar, WhatsApp, email) e **RGPD** (exportar e apagar dados).
+- **Clientes:** histórico, visitas, faltas, valor gasto, notas, pacotes, atalhos (ligar, WhatsApp, email) e RGPD (exportar e apagar dados).
 - **Pacotes de sessões:** uma sessão é descontada automaticamente quando uma marcação é concluída.
 - **Estatísticas:** ocupação, faltas, faturação, clientes novos e habituais, marcações por semana, serviços e horas.
-- **Equipa:** serviços que cada pessoa faz, **horário próprio de cada profissional** e **calendário pessoal** (link .ics para o Google, iPhone ou Outlook).
+- **Equipa:** serviços que cada pessoa faz, horário próprio de cada profissional e calendário pessoal (link .ics para o Google, iPhone ou Outlook).
 - **Utilizadores e papéis:**
   - Dono: acesso a tudo.
   - Receção: sem definições do negócio nem estatísticas.
   - Profissional: só a sua agenda e as suas marcações.
 - **Definições:**
   - textos, contactos e idioma inglês;
-  - **marca** (cor de destaque com pré-visualização e logótipo);
+  - marca (cor de destaque com pré-visualização e logótipo);
   - regras de marcação e feriados automáticos;
   - lembretes e pedidos de avaliação;
   - pagamento de sinal;

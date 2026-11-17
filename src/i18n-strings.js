@@ -47,7 +47,7 @@ def('home.board.all', 'Ver todos os dias e horários', 'See all days and times')
 def('home.services', 'Serviços', 'Services');
 def('home.services.lead', 'Preço por sessão. Se não sabe por onde começar, comece pela', 'Price per session. Not sure where to start? Begin with');
 def('home.line.title', 'Marcar demora um minuto', 'Booking takes a minute');
-def('home.line.lead', 'Sem criar conta. Só aparecem horários realmente livres.', 'No account needed. Only truly free times are shown.');
+def('home.line.lead', 'Não precisa de criar conta e só vê horários livres.', "You don't need an account, and you only see free times.");
 def('home.line.1', 'Serviço', 'Service');
 def('home.line.1d', 'Escolha o que precisa.', 'Choose what you need.');
 def('home.line.2', 'Profissional', 'Professional');
