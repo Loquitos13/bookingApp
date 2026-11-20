@@ -76,7 +76,7 @@ test('marcação online, conflito e cancelamento', async () => {
   assert.match(ics.headers.get('content-type'), /text\/calendar/);
   const icsBody = await ics.text();
   assert.match(icsBody, /BEGIN:VEVENT/);
-  assert.match(icsBody, new RegExp(`DTSTART;TZID=Europe/Lisbon:${d.replace(/-/g, '')}T100000`));
+  assert.ok(icsBody.includes(`DTSTART:${require('../src/ics').utcStamp(d, 600, 'Europe/Lisbon')}`));
 
   const token = loc.split('/')[2].split('?')[0];
   const c = await post(`/marcacao/${token}/cancelar`, {});

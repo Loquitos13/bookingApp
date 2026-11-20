@@ -9,7 +9,7 @@ Stack: Node.js 22.13+, Express, EJS e SQLite (incluído no Node). Não precisa d
 ```bash
 npm install
 npm start          # http://localhost:3000  ·  back office em /admin
-npm test           # 37 testes
+npm test           # 49 testes
 ```
 
 Na primeira execução é criada `data/app.db` com dados de demonstração fictícios: 3 profissionais, 5 serviços, um pacote, cerca de 800 marcações em 12 semanas de histórico e 3 semanas de futuro, clientes recorrentes, mensagens, férias e um feriado.

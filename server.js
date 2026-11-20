@@ -120,4 +120,7 @@ if (require.main === module) {
   require('./src/scheduler').start();
   app.listen(PORT, () => console.log(`Site:        http://localhost:${PORT}\nBack office: http://localhost:${PORT}/admin`));
 }
+// nenhuma promessa rejeitada esquecida deve derrubar o servidor (e com ele os limites de pedidos em memória)
+process.on('unhandledRejection', (e) => console.error('[erro não tratado]', e));
+
 module.exports = app;

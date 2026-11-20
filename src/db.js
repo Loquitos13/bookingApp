@@ -296,8 +296,11 @@ function setSetting(key, value) {
 }
 
 /** Executa fn numa transação exclusiva (evita marcações duplicadas em simultâneo). */
+let txDepth = 0;
 function tx(fn) {
+  if (txDepth) return fn(); // já dentro de uma transação: a de fora faz COMMIT/ROLLBACK
   db.exec('BEGIN IMMEDIATE');
+  txDepth++;
   try {
     const r = fn();
     db.exec('COMMIT');
@@ -305,6 +308,8 @@ function tx(fn) {
   } catch (e) {
     db.exec('ROLLBACK');
     throw e;
+  } finally {
+    txDepth--;
   }
 }
 

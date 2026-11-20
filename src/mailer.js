@@ -154,7 +154,7 @@ function sendReminder(b) {
 function sendReviewRequest(b) {
   const st = getSettings();
   const en = b.lang === 'en';
-  module.exports.send({
+  return module.exports.send({
     to: b.customer_email,
     subject: en ? `How was your visit to ${st.business_name}?` : `Como correu a sua visita à ${st.business_name}?`,
     text: en
@@ -167,7 +167,7 @@ function sendWaitlistOpening(w, serviceName) {
   const st = getSettings();
   const en = w.lang === 'en';
   const link = `${baseUrl()}/marcar?servico=${w.service_id}${w.staff_id ? '&profissional=' + w.staff_id : ''}&dia=${w.date}`;
-  module.exports.send({
+  const sent = module.exports.send({
     to: w.email,
     subject: en ? `A slot opened up on ${w.date} · ${st.business_name}` : `Vagou um horário a ${formatDateLong(w.date)} · ${st.business_name}`,
     text: en
@@ -175,6 +175,7 @@ function sendWaitlistOpening(w, serviceName) {
       : `Olá ${w.name},\n\nBoas notícias: vagou um horário para ${serviceName} a ${formatDateLong(w.date)}. É por ordem de chegada:\n\n${link}\n\nPara sair da lista de espera: ${baseUrl()}/lista-espera/${w.token}/sair\n\n${st.business_name}`,
   });
   if (st.reminder_sms === '1') sendSms(w.phone, `${st.business_name}: ${en ? 'a slot opened up on' : 'vagou um horário a'} ${w.date}. ${link}`);
+  return sent;
 }
 
 module.exports = { send, sendSms, normalizePhone, notifyNewBooking, notifyStatusChange, notifyRescheduled, sendReminder, sendReviewRequest, sendWaitlistOpening };

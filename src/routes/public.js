@@ -6,6 +6,9 @@ const { notifyNewBooking, notifyStatusChange, notifyRescheduled, send } = requir
 const { isDate, nowIn, timeToMin, minToTime, weekday, formatDateLong } = require('../time');
 
 const { rateLimit, verifyTurnstile } = require('../security-mw');
+const { EMAIL_RE, clean, randomToken } = require('../security');
+// Express 4 não apanha erros de handlers async: sem isto, um erro derruba o processo
+const ah = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
 const payments = require('../payments');
 const router = express.Router();
@@ -134,10 +137,8 @@ router.get('/api/slots', (req, res) => {
   res.json({ slots: getSlots({ serviceId, staffId, date: req.query.date, ignoreBookingId: ignoreFor(req.query.token) }).map(({ start, time }) => ({ start, time })) });
 });
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 
-router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
+router.post('/marcar', rateLimit('book', 12, HOUR), ah(async (req, res) => {
   const form = {
     serviceId: +req.body.serviceId || '',
     staffId: +req.body.staffId || '',
@@ -192,19 +193,22 @@ router.post('/marcar', rateLimit('book', 12, HOUR), async (req, res) => {
     res.status(409);
     renderBooking(res, { error: L('e.taken'), errorStep: 3, form: { ...form, time: '' } });
   }
-});
+}));
+
+function bookingByToken(token) {
+  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(token));
+  return row ? getBooking(row.id) : null;
+}
 
 router.get('/marcacao/:token', (req, res, next) => {
-  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
-  if (!row) return next();
-  const b = getBooking(row.id);
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
   res.render('public/booking', { b, isNew: req.query.nova === '1', canCancel: canCustomerCancel(b), cancelled: req.query.cancelada === '1', moved: req.query.reagendada === '1', payState: String(req.query.pago || '') });
 });
 
 router.get('/marcacao/:token.ics', (req, res, next) => {
-  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
-  if (!row) return next();
-  const b = getBooking(row.id);
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
   const st = getSettings();
   const ics = require('../ics').calendar({
     timezone: st.timezone,
@@ -215,19 +219,13 @@ router.get('/marcacao/:token.ics', (req, res, next) => {
   res.send(ics);
 });
 
-router.post('/marcacao/:token/pagar', rateLimit('pay', 10, HOUR), async (req, res, next) => {
-  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(req.params.token));
-  if (!row) return next();
-  const b = getBooking(row.id);
+router.post('/marcacao/:token/pagar', rateLimit('pay', 10, HOUR), ah(async (req, res, next) => {
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
   if (b.payment_status !== 'pending' || b.status === 'cancelled' || !process.env.STRIPE_SECRET_KEY) return res.redirect(`/marcacao/${b.token}`);
   try { res.redirect(303, await payments.createCheckout(b, res.locals.baseUrl)); }
   catch (e) { console.error('[pagamentos]', e.message); res.redirect(`/marcacao/${b.token}?pago=erro`); }
-});
-
-function bookingByToken(token) {
-  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(String(token));
-  return row ? getBooking(row.id) : null;
-}
+}));
 
 router.get('/marcacao/:token/reagendar', (req, res, next) => {
   const b = bookingByToken(req.params.token);
@@ -257,9 +255,8 @@ router.post('/marcacao/:token/reagendar', rateLimit('manage', 20, HOUR), (req, r
 });
 
 router.post('/marcacao/:token/cancelar', rateLimit('manage', 20, HOUR), (req, res, next) => {
-  const row = db.prepare('SELECT id FROM bookings WHERE token = ?').get(req.params.token);
-  if (!row) return next();
-  const b = getBooking(row.id);
+  const b = bookingByToken(req.params.token);
+  if (!b) return next();
   if (canCustomerCancel(b)) {
     db.prepare("UPDATE bookings SET status = 'cancelled', updated_at = datetime('now'), internal_notes = trim(internal_notes || ' [Cancelada pelo cliente online]') WHERE id = ?").run(b.id);
     const updated = getBooking(b.id);
@@ -296,7 +293,7 @@ router.get('/cal/:token.ics', rateLimit('cal', 60, HOUR), (req, res, next) => {
 });
 
 // ---- lista de espera ----
-router.post('/lista-espera', rateLimit('waitlist', 10, HOUR), async (req, res) => {
+router.post('/lista-espera', rateLimit('waitlist', 10, HOUR), ah(async (req, res) => {
   if (req.body.website) return res.redirect('/');
   const serviceId = +req.body.serviceId;
   const staffId = +req.body.staffId || null;
@@ -306,17 +303,18 @@ router.post('/lista-espera', rateLimit('waitlist', 10, HOUR), async (req, res) =
   const phone = clean(req.body.phone, 30);
   const L = res.locals.L;
   const svc = db.prepare('SELECT * FROM services WHERE id = ? AND active = 1').get(serviceId);
-  if (!svc || !isDate(date) || date < nowIn(getSettings().timezone).date || name.length < 2 || !EMAIL_RE.test(email)) {
+  const staffOk = !staffId || db.prepare('SELECT 1 FROM staff_services ss JOIN staff st ON st.id = ss.staff_id WHERE ss.staff_id = ? AND ss.service_id = ? AND st.active = 1').get(staffId, serviceId);
+  if (!svc || !staffOk || !isDate(date) || date < nowIn(getSettings().timezone).date || name.length < 2 || !EMAIL_RE.test(email)) {
     return res.status(422).render('public/message', { code: '422', title: L('wl.bad.title'), text: L('wl.bad.text') });
   }
   if (!(await verifyTurnstile(req))) return res.status(422).render('public/message', { code: '422', title: L('wl.bad.title'), text: L('wl.bad.text') });
   const dup = db.prepare("SELECT 1 FROM waitlist WHERE lower(email) = ? AND service_id = ? AND date = ? AND status = 'waiting'").get(email, serviceId, date);
   if (!dup) {
     db.prepare('INSERT INTO waitlist(token, service_id, staff_id, date, name, email, phone, lang) VALUES (?,?,?,?,?,?,?,?)')
-      .run(require('../security').randomToken(), serviceId, staffId, date, name, email, phone, req.lang || 'pt');
+      .run(randomToken(), serviceId, staffId, date, name, email, phone, req.lang || 'pt');
   }
   res.render('public/message', { code: 'OK', title: L('wl.ok.title'), text: L('wl.ok.text', { service: svc.name, date: formatDateLong(date) }) });
-});
+}));
 router.get('/lista-espera/:token/sair', (req, res, next) => {
   const r = db.prepare("UPDATE waitlist SET status = 'removed' WHERE token = ?").run(String(req.params.token));
   if (!r.changes) return next();
@@ -337,7 +335,7 @@ router.get('/sitemap.xml', (req, res) => {
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${urls.map(entry).join('')}</urlset>`);
 });
 
-router.post('/contacto', rateLimit('contact', 5, HOUR), async (req, res) => {
+router.post('/contacto', rateLimit('contact', 5, HOUR), ah(async (req, res) => {
   if (req.body.website) return res.redirect('/');
   if (!(await verifyTurnstile(req))) return res.redirect('/?enviado=0#contacto');
   const name = clean(req.body.name, 120);
@@ -347,6 +345,6 @@ router.post('/contacto', rateLimit('contact', 5, HOUR), async (req, res) => {
     db.prepare('INSERT INTO messages(name, email, phone, message) VALUES (?, ?, ?, ?)').run(name, email, clean(req.body.phone, 30), message);
   }
   res.redirect('/?enviado=1#contacto');
-});
+}));
 
 module.exports = router;

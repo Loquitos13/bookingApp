@@ -1,14 +1,13 @@
 'use strict';
 const express = require('express');
-const { db, getSettings, setSetting, DEFAULT_SETTINGS } = require('../db');
+const { db, tx, getSettings, setSetting, DEFAULT_SETTINGS, ensureStaffTokens } = require('../db');
 const { login, logout, requireAuth } = require('../auth');
 const { getSlots, availableDays, createBooking, getBooking, busyIntervals, rescheduleBooking, dayHours, BookingError, ACTIVE_STATUSES } = require('../availability');
 const { holidayName } = require('../holidays');
-const { ensureStaffTokens } = require('../db');
 const path = require('node:path');
 const fs = require('node:fs');
 const { notifyStatusChange, notifyNewBooking } = require('../mailer');
-const { hashPassword, verifyPassword } = require('../security');
+const { hashPassword, verifyPassword, clean, EMAIL_RE } = require('../security');
 const { isDate, nowIn, addDays, timeToMin, weekday } = require('../time');
 
 // rotas sensíveis a maiúsculas e à barra final: o controlo de papéis compara caminhos exatos
@@ -21,7 +20,6 @@ const STATUS = {
   cancelled: 'Cancelada',
   no_show: 'Faltou',
 };
-const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 const today = () => nowIn(getSettings().timezone).date;
 
 router.use((req, res, next) => {
@@ -223,8 +221,7 @@ router.get('/estatisticas', (req, res) => {
     occupancy, buckets, services, hours: hours.filter((h) => h.h >= hMin && h.h <= hMax),
   });
 });
-const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-function t0month(dt) { return MONTHS_SHORT[dt.getUTCMonth()]; }
+const t0month = (dt) => require('../time').MONTHS[dt.getUTCMonth()].slice(0, 3);
 
 // ---------- Agenda (vista diária por profissional) ----------
 router.get('/agenda', (req, res) => {
@@ -400,30 +397,37 @@ router.post('/marcacoes', (req, res) => {
   let error = null;
   if (!form.serviceId || !isDate(form.date) || start == null) error = 'Escolha o serviço, o dia e a hora.';
   else if (!form.name) error = 'Indique o nome do cliente.';
+  else if (form.email && !EMAIL_RE.test(form.email)) error = 'O email não parece válido.';
   if (!error) {
     try {
-      const b = createBooking({ ...form, start, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
-      if (form.notify && form.email) notifyNewBooking(b);
-      // repetição: semanal / de 2 em 2 semanas, com o mesmo profissional
+      // repetição: semanal / de 2 em 2 semanas, com o mesmo profissional; tudo ou nada (um erro a meio não deixa meia série)
       const every = { semanal: 7, quinzenal: 14 }[req.body.repeat];
-      const times = Math.max(1, Math.min(26, +req.body.repeat_count || 1));
-      if (every && times > 1) {
-        const series = require('node:crypto').randomBytes(8).toString('hex');
-        db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, b.id);
-        const skipped = [];
-        let made = 1;
-        for (let i = 1; i < times; i++) {
-          const d = addDays(form.date, every * i);
-          try {
-            const nb = createBooking({ ...form, date: d, start, staffId: b.staff_id, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
-            db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, nb.id);
-            made++;
-          } catch (e) {
-            if (!(e instanceof BookingError)) throw e;
-            skipped.push(d);
+      const times = every ? Math.max(1, Math.min(26, +req.body.repeat_count || 1)) : 1;
+      const skipped = [];
+      const made = tx(() => {
+        const first = createBooking({ ...form, start, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
+        const list = [first];
+        if (times > 1) {
+          const series = require('node:crypto').randomBytes(8).toString('hex');
+          db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, first.id);
+          for (let i = 1; i < times; i++) {
+            const d = addDays(form.date, every * i);
+            try {
+              const nb = createBooking({ ...form, date: d, start, staffId: first.staff_id, email: form.email || '—', phone: form.phone || '—' }, { source: 'admin', force: form.force });
+              db.prepare('UPDATE bookings SET series_id = ? WHERE id = ?').run(series, nb.id);
+              list.push(nb);
+            } catch (e) {
+              if (!(e instanceof BookingError)) throw e;
+              skipped.push(d);
+            }
           }
         }
-        const msg = `Criadas ${made} marcações em série.` + (skipped.length ? ` Sem vaga (não criadas): ${skipped.map((d) => d.slice(8) + '/' + d.slice(5, 7)).join(', ')}.` : '');
+        return list;
+      });
+      const b = made[0];
+      if (form.notify && form.email) notifyNewBooking(b);
+      if (times > 1) {
+        const msg = `Criadas ${made.length} marcações em série.` + (skipped.length ? ` Sem vaga (não criadas): ${skipped.map((d) => d.slice(8) + '/' + d.slice(5, 7)).join(', ')}.` : '');
         return back(res, `/admin/marcacoes/${b.id}`, msg);
       }
       return back(res, `/admin/marcacoes/${b.id}`, 'Marcação criada.');
@@ -454,8 +458,14 @@ router.post('/marcacoes/:id', (req, res, next) => {
   const action = req.body.action;
 
   if (action === 'status' && STATUS[req.body.status]) {
-    db.prepare("UPDATE bookings SET status = ?, updated_at = datetime('now') WHERE id = ?").run(req.body.status, b.id);
-    require('../packages').onStatusChange(b, req.body.status);
+    const active = (s) => ['pending', 'confirmed', 'completed'].includes(s);
+    if (!active(b.status) && active(req.body.status) && busyIntervals(b.staff_id, b.date, { ignoreBookingId: b.id }).some(([s0, e0]) => b.start_min < e0 && b.end_min > s0)) {
+      return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('Esse horário já está ocupado. Reagende a marcação para outro horário.'));
+    }
+    tx(() => {
+      db.prepare("UPDATE bookings SET status = ?, updated_at = datetime('now') WHERE id = ?").run(req.body.status, b.id);
+      require('../packages').onStatusChange(b, req.body.status);
+    });
     if (req.body.notify === '1') notifyStatusChange(getBooking(b.id));
     const ret = String(req.body.back || '');
     if (ret.startsWith('/admin') && !ret.startsWith('//')) return back(res, ret, `${b.customer_name}: ${STATUS[req.body.status].toLowerCase()}.`);
@@ -463,9 +473,11 @@ router.post('/marcacoes/:id', (req, res, next) => {
   }
 
   if (action === 'details') {
+    const email = clean(req.body.email, 160);
+    if (email && email !== '—' && !EMAIL_RE.test(email)) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('O email não parece válido.'));
     db.prepare(
       `UPDATE bookings SET customer_name = ?, customer_email = ?, customer_phone = ?, notes = ?, internal_notes = ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(clean(req.body.name, 120) || b.customer_name, clean(req.body.email, 160), clean(req.body.phone, 30), clean(req.body.notes, 1000), clean(req.body.internal_notes, 2000), b.id);
+    ).run(clean(req.body.name, 120) || b.customer_name, email, clean(req.body.phone, 30), clean(req.body.notes, 1000), clean(req.body.internal_notes, 2000), b.id);
     return back(res, `/admin/marcacoes/${b.id}`, 'Dados guardados.');
   }
 
@@ -495,7 +507,10 @@ router.post('/marcacoes/:id', (req, res, next) => {
   }
 
   if (action === 'delete') {
-    db.prepare('DELETE FROM bookings WHERE id = ?').run(b.id);
+    tx(() => {
+      require('../packages').onStatusChange(b, 'deleted'); // devolve a sessão do pacote, se a marcação a tinha gasto
+      db.prepare('DELETE FROM bookings WHERE id = ?').run(b.id);
+    });
     return back(res, '/admin/marcacoes', 'Marcação apagada.');
   }
   res.redirect(`/admin/marcacoes/${b.id}`);
@@ -576,11 +591,13 @@ router.post('/clientes/apagar', (req, res) => {
   const email = clean(req.body.email, 160).toLowerCase();
   if (!email || req.body.confirm !== email) return back(res, '/admin/clientes/ficha?email=' + encodeURIComponent(email), 'Para apagar, escreva o email do cliente para confirmar.');
   const anon = `anonimo-${require('node:crypto').randomBytes(4).toString('hex')}@removido.invalid`;
-  db.prepare(`UPDATE bookings SET customer_name = 'Cliente removido', customer_email = ?, customer_phone = '', notes = '', internal_notes = '' WHERE lower(customer_email) = ?`).run(anon, email);
-  db.prepare('DELETE FROM client_notes WHERE email = ?').run(email);
-  db.prepare('DELETE FROM client_packages WHERE email = ?').run(email);
-  db.prepare('DELETE FROM waitlist WHERE lower(email) = ?').run(email);
-  db.prepare('DELETE FROM messages WHERE lower(email) = ?').run(email);
+  tx(() => {
+    db.prepare(`UPDATE bookings SET customer_name = 'Cliente removido', customer_email = ?, customer_phone = '', notes = '', internal_notes = '' WHERE lower(customer_email) = ?`).run(anon, email);
+    db.prepare('DELETE FROM client_notes WHERE email = ?').run(email);
+    db.prepare('DELETE FROM client_packages WHERE email = ?').run(email);
+    db.prepare('DELETE FROM waitlist WHERE lower(email) = ?').run(email);
+    db.prepare('DELETE FROM messages WHERE lower(email) = ?').run(email);
+  });
   back(res, '/admin/clientes', 'Dados pessoais do cliente apagados (marcações anonimizadas).');
 });
 
@@ -605,7 +622,7 @@ router.get('/servicos', (req, res) => {
 
 // pacotes de sessões
 function packageFromBody(b) {
-  return [clean(b.name, 120), +b.service_id, Math.max(1, Math.min(100, +b.sessions || 1)), Math.round((parseFloat(String(b.price).replace(',', '.')) || 0) * 100), Math.max(1, Math.min(1825, +b.validity_days || 365)), b.active ? 1 : 0];
+  return [clean(b.name, 120), +b.service_id, Math.max(1, Math.min(100, +b.sessions || 1)), Math.max(0, Math.round((parseFloat(String(b.price).replace(',', '.')) || 0) * 100)), Math.max(1, Math.min(1825, +b.validity_days || 365)), b.active ? 1 : 0];
 }
 router.post('/pacotes', (req, res) => {
   const v = packageFromBody(req.body);
@@ -637,8 +654,8 @@ router.post('/clientes/pacote', (req, res) => {
   }
   const p = db.prepare('SELECT * FROM packages WHERE id = ?').get(+req.body.package_id);
   if (!p) return back(res, back2, 'Escolha um pacote.');
-  db.prepare("INSERT INTO client_packages(email, package_id, sessions_total, price_cents, expires_at, notes) VALUES (?,?,?,?, date('now', ?), ?)")
-    .run(email, p.id, p.sessions, p.price_cents, `+${p.validity_days} days`, clean(req.body.notes, 300));
+  db.prepare("INSERT INTO client_packages(email, package_id, sessions_total, price_cents, expires_at, notes) VALUES (?,?,?,?,?,?)")
+    .run(email, p.id, p.sessions, p.price_cents, addDays(today(), p.validity_days), clean(req.body.notes, 300));
   back(res, back2, `Pacote "${p.name}" atribuído.`);
 });
 
@@ -647,7 +664,7 @@ function serviceFromBody(body) {
     clean(body.name, 120),
     clean(body.description, 600),
     Math.max(5, Math.min(600, +body.duration_min || 30)),
-    Math.round((parseFloat(String(body.price).replace(',', '.')) || 0) * 100),
+    Math.max(0, Math.round((parseFloat(String(body.price).replace(',', '.')) || 0) * 100)),
     body.active ? 1 : 0,
     +body.sort || 0,
   ];
@@ -671,6 +688,7 @@ router.post('/servicos/:id', (req, res) => {
     return back(res, '/admin/servicos', 'Serviço apagado.');
   }
   const v = serviceFromBody(req.body);
+  v[0] ||= (db.prepare('SELECT name FROM services WHERE id = ?').get(+req.params.id) || {}).name || 'Serviço';
   db.prepare('UPDATE services SET name = ?, description = ?, duration_min = ?, price_cents = ?, active = ?, sort = ? WHERE id = ?').run(...v, +req.params.id);
   back(res, '/admin/servicos', 'Serviço guardado.');
 });
@@ -683,9 +701,11 @@ router.get('/equipa', (req, res) => {
   res.render('admin/staff', { staff, services, links });
 });
 function saveStaffServices(staffId, body) {
-  const ids = [].concat(body.services || []).map(Number).filter(Boolean);
-  db.prepare('DELETE FROM staff_services WHERE staff_id = ?').run(staffId);
-  for (const sid of ids) db.prepare('INSERT OR IGNORE INTO staff_services VALUES (?, ?)').run(staffId, sid);
+  const ids = [].concat(body.services || []).map(Number).filter((id) => db.prepare('SELECT 1 FROM services WHERE id = ?').get(id));
+  tx(() => {
+    db.prepare('DELETE FROM staff_services WHERE staff_id = ?').run(staffId);
+    for (const sid of ids) db.prepare('INSERT OR IGNORE INTO staff_services VALUES (?, ?)').run(staffId, sid);
+  });
 }
 const color = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : '#3d7a6a');
 router.post('/equipa', (req, res) => {
@@ -711,7 +731,7 @@ router.post('/equipa/:id', (req, res) => {
     return back(res, '/admin/equipa', 'Profissional removido.');
   }
   db.prepare('UPDATE staff SET name = ?, role = ?, bio = ?, color = ?, active = ?, sort = ? WHERE id = ?')
-    .run(clean(req.body.name, 120), clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0, id);
+    .run(clean(req.body.name, 120) || (db.prepare('SELECT name FROM staff WHERE id = ?').get(id) || {}).name || 'Profissional', clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0, id);
   saveStaffServices(id, req.body);
   back(res, '/admin/equipa', 'Profissional guardado.');
 });
@@ -728,17 +748,13 @@ router.get('/equipa/:id/horario', (req, res, next) => {
 });
 router.post('/equipa/:id/horario', (req, res) => {
   const id = +req.params.id;
-  db.prepare('DELETE FROM staff_hours WHERE staff_id = ?').run(id);
-  if (req.body.custom === '1') {
-    const ins = db.prepare('INSERT INTO staff_hours(staff_id, weekday, closed, open_min, close_min, break_start, break_end) VALUES (?,?,?,?,?,?,?)');
-    for (let d = 0; d < 7; d++) {
-      const o = timeToMin(req.body[`open_${d}`]) ?? 540;
-      const c = timeToMin(req.body[`close_${d}`]) ?? 1140;
-      const bs = timeToMin(req.body[`bstart_${d}`]);
-      const be = timeToMin(req.body[`bend_${d}`]);
-      ins.run(id, d, req.body[`closed_${d}`] ? 1 : 0, o, Math.max(c, o + 15), bs, bs != null ? be : null);
+  tx(() => {
+    db.prepare('DELETE FROM staff_hours WHERE staff_id = ?').run(id);
+    if (req.body.custom === '1') {
+      const ins = db.prepare('INSERT INTO staff_hours(staff_id, weekday, closed, open_min, close_min, break_start, break_end) VALUES (?,?,?,?,?,?,?)');
+      for (let d = 0; d < 7; d++) ins.run(id, d, ...hoursFromBody(req.body, d));
     }
-  }
+  });
   back(res, `/admin/equipa/${id}/horario`, req.body.custom === '1' ? 'Horário próprio guardado.' : 'Passa a usar o horário geral.');
 });
 router.post('/equipa/:id/calendario', (req, res) => {
@@ -747,18 +763,20 @@ router.post('/equipa/:id/calendario', (req, res) => {
 });
 
 // ---------- Horário ----------
+/** [closed, open, close, break_start, break_end] de um dia do formulário: fecho até à meia-noite, pausa só se couber dentro do dia */
+function hoursFromBody(body, d) {
+  const o = Math.min(timeToMin(body[`open_${d}`]) ?? 540, 1425);
+  const c = Math.min(Math.max(timeToMin(body[`close_${d}`]) ?? 1140, o + 15), 1440);
+  let bs = timeToMin(body[`bstart_${d}`]), be = timeToMin(body[`bend_${d}`]);
+  if (bs == null || be == null || bs >= be || bs < o || be > c) bs = be = null;
+  return [body[`closed_${d}`] ? 1 : 0, o, c, bs, be];
+}
 router.get('/horario', (req, res) => {
   res.render('admin/hours', { hours: db.prepare('SELECT * FROM hours ORDER BY weekday').all() });
 });
 router.post('/horario', (req, res) => {
   const up = db.prepare('UPDATE hours SET closed = ?, open_min = ?, close_min = ?, break_start = ?, break_end = ? WHERE weekday = ?');
-  for (let d = 0; d < 7; d++) {
-    const o = timeToMin(req.body[`open_${d}`]) ?? 540;
-    const c = timeToMin(req.body[`close_${d}`]) ?? 1140;
-    const bs = timeToMin(req.body[`bstart_${d}`]);
-    const be = timeToMin(req.body[`bend_${d}`]);
-    up.run(req.body[`closed_${d}`] ? 1 : 0, o, Math.max(c, o + 15), bs, bs != null ? be : null, d);
-  }
+  tx(() => { for (let d = 0; d < 7; d++) up.run(...hoursFromBody(req.body, d), d); });
   back(res, '/admin/horario', 'Horário guardado.');
 });
 
@@ -805,15 +823,12 @@ function renderUsers(req, res, { error = null, created = null } = {}) {
   res.set('Cache-Control', 'no-store');
   res.render('admin/users', { users, staff, error, created });
 }
-router.get('/utilizadores', (req, res) => {
-  const users = db.prepare('SELECT u.id, u.name, u.email, u.role, u.staff_id, s.name staff_name FROM users u LEFT JOIN staff s ON s.id = u.staff_id ORDER BY u.role, u.name').all();
-  const staff = db.prepare('SELECT id, name FROM staff WHERE active = 1 ORDER BY sort, name').all();
-  res.render('admin/users', { users, staff, error: req.query.erro || null, created: null });
-});
+router.get('/utilizadores', (req, res) => renderUsers(req, res, { error: req.query.erro || null }));
+const staffLink = (role, v) => (role === 'staff' ? (db.prepare('SELECT id FROM staff WHERE id = ?').get(+v) || {}).id ?? null : null);
 router.post('/utilizadores', (req, res) => {
   const name = clean(req.body.name, 120), email = clean(req.body.email, 160).toLowerCase();
   const role = ROLE_LABEL[req.body.role] ? req.body.role : 'reception';
-  const staffId = role === 'staff' ? +req.body.staff_id || null : null;
+  const staffId = staffLink(role, req.body.staff_id);
   const fail = (m) => res.redirect('/admin/utilizadores?erro=' + encodeURIComponent(m));
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Indique o nome e um email válido.');
   if (role === 'staff' && !staffId) return fail('Escolha o profissional associado.');
@@ -843,7 +858,7 @@ router.post('/utilizadores/:uid', (req, res) => {
   }
   const role = ROLE_LABEL[req.body.role] ? req.body.role : u.role;
   if (u.role === 'owner' && role !== 'owner' && owners <= 1) return fail('Tem de existir pelo menos um dono.');
-  const staffId = role === 'staff' ? +req.body.staff_id || null : null;
+  const staffId = staffLink(role, req.body.staff_id);
   if (role === 'staff' && !staffId) return fail('Escolha o profissional associado.');
   db.prepare('UPDATE users SET name = ?, role = ?, staff_id = ? WHERE id = ?').run(clean(req.body.name, 120) || u.name, role, staffId, uid);
   back(res, '/admin/utilizadores', 'Utilizador guardado.');

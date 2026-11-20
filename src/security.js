@@ -37,4 +37,7 @@ function parseCookies(header = '') {
   return out;
 }
 
-module.exports = { hashPassword, verifyPassword, randomToken, bookingRef, parseCookies };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
+
+module.exports = { hashPassword, verifyPassword, randomToken, bookingRef, parseCookies, EMAIL_RE, clean };

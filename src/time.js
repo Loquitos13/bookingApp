@@ -14,7 +14,8 @@ function timeToMin(t) {
   return h * 60 + mi;
 }
 
-const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !isNaN(Date.parse(s + 'T00:00:00Z'));
+// rejeita datas que o Date "corrige" (2025-02-31 viraria 3 de março)
+const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !isNaN(Date.parse(s + 'T00:00:00Z')) && new Date(s + 'T00:00:00Z').toISOString().slice(0, 10) === s;
 
 /** dia da semana (0=domingo) de "YYYY-MM-DD" */
 function weekday(date) {

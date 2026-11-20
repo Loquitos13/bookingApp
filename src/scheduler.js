@@ -49,7 +49,7 @@ function reviews(now) {
       continue;
     }
     db.prepare("UPDATE bookings SET review_sent_at = datetime('now') WHERE id = ?").run(r.id);
-    mailer.sendReviewRequest(getBooking(r.id));
+    Promise.resolve(mailer.sendReviewRequest(getBooking(r.id))).then((ok) => { if (ok === false) db.prepare('UPDATE bookings SET review_sent_at = NULL WHERE id = ?').run(r.id); });
     n++;
   }
   return n;
@@ -61,8 +61,8 @@ function waitlist(now) {
   let n = 0;
   for (const w of rows) {
     if (!getSlots({ serviceId: w.service_id, staffId: w.staff_id, date: w.date }).length) continue;
-    mailer.sendWaitlistOpening(w, w.service_name);
     db.prepare("UPDATE waitlist SET status = 'notified', notified_at = datetime('now') WHERE id = ?").run(w.id);
+    Promise.resolve(mailer.sendWaitlistOpening(w, w.service_name)).then((ok) => { if (ok === false) db.prepare("UPDATE waitlist SET status = 'waiting', notified_at = NULL WHERE id = ?").run(w.id); });
     n++;
   }
   return n;
@@ -81,7 +81,7 @@ function expirePayments() {
 const BACKUP_DIR = path.join(path.dirname(process.env.DB_PATH || path.join(__dirname, '..', 'data', 'app.db')), 'backups');
 function backup({ force = false, keep = 14 } = {}) {
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
-  const day = new Date().toISOString().slice(0, 10);
+  const day = nowIn(getSettings().timezone).date;
   const file = path.join(BACKUP_DIR, `app-${day}.db`);
   if (fs.existsSync(file) && !force) return null;
   if (fs.existsSync(file)) fs.rmSync(file);
@@ -93,8 +93,10 @@ function backup({ force = false, keep = 14 } = {}) {
 
 function runJobs() {
   const now = nowIn(getSettings().timezone);
-  const out = { expired: expirePayments(), reminders: reminders(now), reviews: reviews(now), waitlist: waitlist(now) };
-  if (process.env.BACKUPS !== '0') out.backup = backup();
+  // cada tarefa isolada: um erro numa (ex.: email) não impede as outras nem a cópia de segurança
+  const run = (name, fn) => { try { return fn(); } catch (e) { console.error(`[tarefas] ${name} falhou:`, e.message); return null; } };
+  const out = { expired: run('pagamentos', expirePayments), reminders: run('lembretes', () => reminders(now)), reviews: run('avaliações', () => reviews(now)), waitlist: run('lista de espera', () => waitlist(now)) };
+  if (process.env.BACKUPS !== '0') out.backup = run('cópia', () => backup());
   return out;
 }
 
