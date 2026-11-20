@@ -98,9 +98,9 @@
         <% }) %>
         <% if (c.date === today && nowM > from && nowM < to) { %><div class="ag-now" style="top: <%= (nowM - from) * PPM %>px" aria-hidden="true"></div><% } %>
         <% colBookings.forEach(b => { %>
-          <a class="ag-bk st-<%= b.status %>" title="<%= t.minToTime(b.start_min) %>–<%= t.minToTime(b.end_min) %> · <%= b.customer_name %> · <%= b.service_name %> · <%= b.staff_name %>" href="/admin/marcacoes/<%= b.id %>" data-id="<%= b.id %>" data-start="<%= b.start_min %>" data-dur="<%= b.end_min - b.start_min %>" data-staff="<%= b.staff_id %>"
+          <a class="ag-bk st-<%= b.status %><%= b._n >= 3 ? ' is-narrow' : '' %>" title="<%= t.minToTime(b.start_min) %>–<%= t.minToTime(b.end_min) %> · <%= b.customer_name %> · <%= b.service_name %> · <%= b.staff_name %>" href="/admin/marcacoes/<%= b.id %>" data-id="<%= b.id %>" data-start="<%= b.start_min %>" data-dur="<%= b.end_min - b.start_min %>" data-staff="<%= b.staff_id %>"
              style="top: <%= (b.start_min - from) * PPM %>px; height: <%= (b.end_min - b.start_min) * PPM - 2 %>px; --c: <%= b.staff_color %>; left: calc(<%= b._lane * 100 / b._n %>% + 3px); width: calc(<%= 100 / b._n %>% - 6px)">
-            <strong><span class="ag-t"><%= t.minToTime(b.start_min) %></span> <%= b.customer_name %></strong>
+            <strong><span class="ag-t"><%= t.minToTime(b.start_min) %></span> <span class="ag-n"><%= b.customer_name %></span></strong>
             <small><% if (view === 'semana' && !staffId) { %><i class="dot" style="background:<%= b.staff_color %>"></i><% } %><%= b.service_name %><%= b.status === 'pending' ? ' · por confirmar' : '' %></small>
           </a>
         <% }) %>

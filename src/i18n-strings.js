@@ -105,7 +105,7 @@ def('bk.err.phone', 'Indique um número com pelo menos 9 dígitos.', 'Enter a nu
 def('bk.err.email', 'Indique um email válido, por exemplo nome@exemplo.pt.', 'Enter a valid email, e.g. name@example.com.');
 def('bk.note', 'Acrescentar uma nota', 'Add a note');
 def('bk.notel', 'Nota para a equipa', 'Note for the team');
-def('bk.noteph', 'Ex.: o motivo da consulta', 'E.g. the reason for your visit');
+def('bk.noteph', 'Ex.: o motivo da marcação', 'E.g. the reason for your visit');
 def('bk.consent', 'Aceito que os meus dados sejam usados para gerir esta marcação', 'I agree that my details are used to manage this booking');
 def('bk.privacy', 'política de privacidade', 'privacy policy');
 def('bk.confirm', 'Confirmar marcação', 'Confirm booking');

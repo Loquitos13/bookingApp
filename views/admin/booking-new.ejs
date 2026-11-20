@@ -1,5 +1,5 @@
 <%- include('../partials/admin-head', { title: 'Nova marcação' }) %>
-<header class="head"><h1>Nova marcação</h1><a href="/admin/marcacoes">← Voltar</a></header>
+<header class="head"><h1>Nova marcação</h1><a class="head-link" href="/admin/marcacoes"><%- include('../partials/icon', { name: 'back', size: 16 }) %> Voltar</a></header>
 <% if (error) { %><p class="alert"><%= error %></p><% } %>
 <form method="post" action="/admin/marcacoes" class="panel form-grid" id="new-booking">
   <input type="hidden" name="_csrf" value="<%= csrf %>">

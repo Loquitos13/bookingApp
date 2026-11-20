@@ -42,3 +42,7 @@
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --ease-snap: cubic-bezier(.5, 0, .2, 1);
 }
+
+/* superfícies do browser com as cores da marca (site e back office) */
+::selection { background: var(--signal); color: var(--ink); }
+input, textarea { caret-color: currentColor; }

@@ -75,7 +75,7 @@
   <span></span>
   <%- cb('reminder_sms', 'Enviar também por SMS/WhatsApp' + (smsOn ? '' : ' (requer configurar o Twilio no servidor: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM)')) %>
   <label class="span2">Link para avaliar no Google (opcional)<input name="review_url" type="url" value="<%= site.review_url %>" placeholder="https://g.page/r/…/review"></label>
-  <label>Pedir avaliação (horas depois da consulta concluída)<input type="number" name="review_delay_hours" min="0" max="168" value="<%= site.review_delay_hours %>"></label>
+  <label>Pedir avaliação (horas depois da marcação concluída)<input type="number" name="review_delay_hours" min="0" max="168" value="<%= site.review_delay_hours %>"></label>
   <p class="muted tiny span2">O pedido de avaliação só é enviado a marcações marcadas como "Concluída" e uma única vez por cliente a cada 6 meses.</p>
   <div class="span2"><button class="btn btn-signal">Guardar</button></div>
 </form>

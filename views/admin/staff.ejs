@@ -17,7 +17,7 @@
 <div class="cards">
   <% staff.forEach(p => { %>
     <form method="post" action="/admin/equipa/<%= p.id %>" class="panel form-grid <%= p.active ? '' : 'inactive' %>">
-      <h3 class="span2"><span class="dot" style="background:<%= p.color %>"></span><%= p.name %></h3>
+      <h2 class="span2"><span class="dot" style="background:<%= p.color %>"></span><%= p.name %></h2>
       <% fields(p) %>
       <div class="span2 row-actions">
         <button class="btn">Guardar</button>
@@ -27,7 +27,7 @@
     </form>
   <% }) %>
   <form method="post" action="/admin/equipa" class="panel form-grid new">
-    <h3 class="span2">Novo profissional</h3>
+    <h2 class="span2">Novo profissional</h2>
     <% fields({}) %>
     <div class="span2"><button class="btn">Adicionar</button></div>
   </form>

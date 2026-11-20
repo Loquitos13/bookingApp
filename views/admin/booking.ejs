@@ -2,9 +2,9 @@
 <header class="head">
   <div>
     <h1><a class="h-link" href="/admin/clientes/ficha?email=<%= encodeURIComponent(b.customer_email.toLowerCase()) %>" title="Ver ficha do cliente"><%= b.customer_name %></a> <span class="badge badge-<%= b.status %>"><%= STATUS[b.status] %></span></h1>
-    <p class="muted">Ref. <%= b.ref %> · <%= b.source === 'online' ? 'Marcada pelo site' : 'Criada no back office' %> · <%= b.created_at %> UTC</p>
+    <p class="muted">Ref. <%= b.ref %> · <%= b.source === 'online' ? 'Marcada pelo site' : 'Criada no back office' %> · <%= new Date(b.created_at.replace(' ', 'T') + 'Z').toLocaleString('pt-PT', { timeZone: site.timezone, dateStyle: 'short', timeStyle: 'short' }) %></p>
   </div>
-  <a href="/admin/agenda?data=<%= b.date %>">Ver na agenda →</a>
+  <a class="head-link" href="/admin/agenda?data=<%= b.date %>">Ver na agenda <%- include('../partials/icon', { name: 'arrow', size: 16 }) %></a>
 </header>
 <% if (error) { %><p class="alert"><%= error %></p><% } %>
 

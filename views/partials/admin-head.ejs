@@ -18,9 +18,9 @@
 <body>
 <%
   const nav = [
-    ['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/clientes', 'Clientes', 'users'], ['/admin/estatisticas', 'Estatísticas', 'grid'],
-    ['/admin/servicos', 'Serviços', 'grid'], ['/admin/equipa', 'Equipa', 'user'], ['/admin/horario', 'Horário', 'clock'],
-    ['/admin/bloqueios', 'Férias e bloqueios', 'close'], ['/admin/mensagens', 'Mensagens', 'inbox', unread], ['/admin/definicoes', 'Definições', 'more'] ];
+    ['/admin', 'Hoje', 'home'], ['/admin/agenda', 'Agenda', 'calendar'], ['/admin/marcacoes', 'Marcações', 'list', pendingCount], ['/admin/clientes', 'Clientes', 'users'], ['/admin/estatisticas', 'Estatísticas', 'chart'],
+    ['/admin/servicos', 'Serviços', 'tag'], ['/admin/equipa', 'Equipa', 'user'], ['/admin/horario', 'Horário', 'clock'],
+    ['/admin/bloqueios', 'Férias e bloqueios', 'ban'], ['/admin/mensagens', 'Mensagens', 'inbox', unread], ['/admin/definicoes', 'Definições', 'sliders'] ];
   const OWNER_ONLY = ['/admin/definicoes', '/admin/servicos', '/admin/equipa', '/admin/horario', '/admin/estatisticas'];
   const STAFF_OK = ['/admin', '/admin/agenda', '/admin/marcacoes'];
   const canSee = (href) => role === 'owner' || (role === 'reception' ? !OWNER_ONLY.includes(href) : STAFF_OK.includes(href));
