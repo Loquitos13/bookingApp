@@ -120,7 +120,8 @@ const DEFAULT_SETTINGS = {
   buffer_min: '0',
   cancel_hours: '24',
   auto_confirm: '1',
-  demo_mode: process.env.DEMO === '0' ? '0' : '1',
+  // em produção (imagem Docker) a demo só liga com DEMO=1 explícito: evita um dono admin123 público
+  demo_mode: process.env.DEMO === '1' || (process.env.DEMO !== '0' && process.env.NODE_ENV !== 'production') ? '1' : '0',
   // marca
   brand_signal: '#f5c518',
   brand_logo: '',
@@ -267,7 +268,7 @@ function seed() {
     email.toLowerCase(),
     hashPassword(pass)
   );
-  console.log(`[seed] Utilizador de back office criado: ${email} / ${pass}  (altere a palavra-passe!)`);
+  console.log(`[seed] Utilizador de back office criado: ${email}` + (process.env.ADMIN_PASSWORD ? ' (palavra-passe de ADMIN_PASSWORD)' : ` / ${pass}  (altere a palavra-passe!)`));
 }
 seed();
 ensureStaffTokens();

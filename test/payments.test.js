@@ -75,9 +75,22 @@ test('webhook com assinatura inválida é recusado', async () => {
   assert.equal(db.prepare('SELECT payment_status FROM bookings WHERE id = ?').get(b.id).payment_status, 'pending');
 });
 
+test('webhook de outra sessão, valor menor ou outra moeda não confirma', async () => {
+  const b = db.prepare("SELECT * FROM bookings WHERE customer_email = 'paga@teste.pt'").get();
+  for (const obj of [
+    { id: 'cs_alheia', amount_total: b.deposit_cents, currency: 'eur', client_reference_id: String(b.id) },
+    { id: 'cs_test_1', amount_total: 50, currency: 'eur', metadata: { booking_id: b.id } },
+    { id: 'cs_test_1', amount_total: b.deposit_cents, currency: 'usd', metadata: { booking_id: b.id } },
+  ]) {
+    await hook({ type: 'checkout.session.completed', data: { object: { payment_status: 'paid', ...obj } } });
+    await hook({ type: 'checkout.session.async_payment_succeeded', data: { object: obj } });
+    assert.equal(db.prepare('SELECT payment_status FROM bookings WHERE id = ?').get(b.id).payment_status, 'pending', JSON.stringify(obj));
+  }
+});
+
 test('webhook pago confirma a marcação', async () => {
   const b = db.prepare("SELECT * FROM bookings WHERE customer_email = 'paga@teste.pt'").get();
-  const r = await hook({ type: 'checkout.session.completed', data: { object: { payment_status: 'paid', metadata: { booking_id: b.id } } } });
+  const r = await hook({ type: 'checkout.session.completed', data: { object: { id: 'cs_test_1', amount_total: b.deposit_cents, currency: 'eur', payment_status: 'paid', metadata: { booking_id: b.id } } } });
   assert.equal(r.status, 200);
   const nb = db.prepare('SELECT status, payment_status FROM bookings WHERE id = ?').get(b.id);
   assert.equal(nb.payment_status, 'paid');
@@ -91,7 +104,7 @@ test('Multibanco: referência gerada não liberta o horário; pagamento falhado 
   });
   assert.equal(r.status, 303);
   const b = db.prepare("SELECT * FROM bookings WHERE customer_email = 'mb@teste.pt'").get();
-  await hook({ type: 'checkout.session.completed', data: { object: { payment_status: 'unpaid', metadata: { booking_id: b.id } } } });
+  await hook({ type: 'checkout.session.completed', data: { object: { id: 'cs_test_1', payment_status: 'unpaid', metadata: { booking_id: b.id } } } });
   assert.equal(db.prepare('SELECT payment_status FROM bookings WHERE id = ?').get(b.id).payment_status, 'processing');
   await hook({ type: 'checkout.session.async_payment_failed', data: { object: { metadata: { booking_id: b.id } } } });
   const nb = db.prepare('SELECT status, payment_status FROM bookings WHERE id = ?').get(b.id);

@@ -105,7 +105,7 @@ test('pagamento: eventos de sessões antigas ignorados; pago depois de cancelada
   assert.equal(db.prepare('SELECT status FROM bookings WHERE id = ?').get(id).status, 'pending');
   payments.applyEvent({ type: 'checkout.session.expired', data: { object: { id: 'cs_new', metadata: { booking_id: id } } } });
   assert.equal(db.prepare('SELECT status FROM bookings WHERE id = ?').get(id).status, 'cancelled');
-  const r = payments.applyEvent({ type: 'checkout.session.async_payment_succeeded', data: { object: { id: 'cs_new', metadata: { booking_id: id } } } });
+  const r = payments.applyEvent({ type: 'checkout.session.async_payment_succeeded', data: { object: { id: 'cs_new', amount_total: 0, currency: 'eur', metadata: { booking_id: id } } } });
   assert.deepEqual(r, { id, late: true });
 });
 
@@ -148,6 +148,52 @@ test('RGPD: apagar anonimiza marcações e remove notas', async () => {
   assert.equal(db.prepare("SELECT COUNT(*) c FROM bookings WHERE customer_email = 'ana-cli@t.pt'").get().c, 0);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM client_notes WHERE email = 'ana-cli@t.pt'").get().c, 0);
   assert.equal(db.prepare("SELECT customer_name FROM bookings WHERE ref = 'A1'").get().customer_name, 'Cliente removido');
+});
+
+// --- auditoria de segurança (run 2) ---
+const insB = (ref, staff, date, email, extra = '') => db.prepare(`INSERT INTO bookings(ref, token, service_id, staff_id, date, start_min, end_min, customer_name, customer_email, customer_phone, status${extra ? ', series_id' : ''}) VALUES (?,?,1,?,?,600,660,'X',?,'9','confirmed'${extra ? ',?' : ''})`).run(ref, 't' + ref, staff, date, email, ...(extra ? [extra] : [])).lastInsertRowid;
+
+test('profissional não passa a sua marcação para outro com action=move', async () => {
+  const id = insB('MV1', 1, '2030-02-04', 'mv@t.pt');
+  const { post } = await loginAs('ana@teste.pt');
+  await post(`/admin/marcacoes/${id}`, { action: 'move', date: '2030-02-05', time: '10:00', staffId: '2' });
+  await post(`/admin/marcacoes/${id}`, { action: 'move', date: '2030-02-05', time: '11:00', staffId: '' });
+  assert.equal(db.prepare('SELECT staff_id FROM bookings WHERE id = ?').get(id).staff_id, 1);
+});
+
+test('histórico do cliente na ficha só mostra marcações do próprio profissional', async () => {
+  const mine = insB('HI1', 1, '2030-02-11', 'hist@t.pt');
+  const other = insB('HI2', 2, '2030-02-12', 'hist@t.pt');
+  const { get } = await loginAs('ana@teste.pt');
+  const html = await (await get(`/admin/marcacoes/${mine}`)).text();
+  assert.doesNotMatch(html, new RegExp(`/admin/marcacoes/${other}"`));
+});
+
+test('cancelar série como profissional não cancela marcações de outro', async () => {
+  const a = insB('SE1', 1, '2030-03-04', 'se@t.pt', 'serie-x');
+  const b = insB('SE2', 2, '2030-03-11', 'se@t.pt', 'serie-x');
+  const { post } = await loginAs('ana@teste.pt');
+  await post(`/admin/marcacoes/${a}`, { action: 'cancel_series' });
+  assert.equal(db.prepare('SELECT status FROM bookings WHERE id = ?').get(a).status, 'cancelled');
+  assert.equal(db.prepare('SELECT status FROM bookings WHERE id = ?').get(b).status, 'confirmed');
+});
+
+test('email com vírgulas recusado; nome fica numa só linha', () => {
+  const { EMAIL_RE, line } = require('../src/security');
+  assert.equal(EMAIL_RE.test('x,vitima@t.pt'), false);
+  assert.equal(EMAIL_RE.test('ana@t.pt'), true);
+  assert.equal(line('Ana\r\nVisite http://x', 120), 'Ana Visite http://x');
+});
+
+test('login vindo de outro site é recusado', async () => {
+  const r = await fetch(base + '/admin/login', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', 'sec-fetch-site': 'cross-site' }, body: 'email=dono%40teste.pt&password=segredo123' });
+  assert.equal(r.status, 403);
+  assert.equal(r.headers.get('set-cookie'), null);
+});
+
+test('páginas do back office não ficam na cache do browser', async () => {
+  const { get } = await loginAs('dono@teste.pt');
+  assert.equal((await get('/admin')).headers.get('cache-control'), 'no-store');
 });
 
 // no fim: bloqueia o IP dos testes

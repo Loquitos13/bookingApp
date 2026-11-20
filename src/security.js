@@ -37,7 +37,10 @@ function parseCookies(header = '') {
   return out;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// um só endereço: sem vírgulas, ; < > " ( ) que formariam listas de destinatários
+const EMAIL_RE = /^[^\s@,;<>"()]+@[^\s@,;<>"()]+\.[^\s@,;<>"()]{2,}$/;
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
+/** campo de uma linha (nome, telefone): sem quebras de linha nem espaços repetidos */
+const line = (v, max = 200) => clean(String(v ?? '').replace(/\s+/g, ' '), max);
 
-module.exports = { hashPassword, verifyPassword, randomToken, bookingRef, parseCookies, EMAIL_RE, clean };
+module.exports = { hashPassword, verifyPassword, randomToken, bookingRef, parseCookies, EMAIL_RE, clean, line };

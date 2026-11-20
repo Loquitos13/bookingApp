@@ -9,7 +9,7 @@ Stack: Node.js 22.13+, Express, EJS e SQLite (incluído no Node). Não precisa d
 ```bash
 npm install
 npm start          # http://localhost:3000  ·  back office em /admin
-npm test           # 49 testes
+npm test           # 56 testes
 ```
 
 Na primeira execução é criada `data/app.db` com dados de demonstração fictícios: 3 profissionais, 5 serviços, um pacote, cerca de 800 marcações em 12 semanas de histórico e 3 semanas de futuro, clientes recorrentes, mensagens, férias e um feriado.
@@ -86,7 +86,7 @@ Com Docker: `docker compose up -d`. O `docker-compose.yml` tem todas as variáve
 | `BASE_URL` | URL público, usado nos links dos emails, no sitemap e no calendário (ex.: `https://www.minhaclinica.pt`) |
 | `DB_PATH` | Ficheiro SQLite. Os uploads e as cópias de segurança ficam na mesma pasta |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Utilizador inicial (dono). Sem `ADMIN_PASSWORD` e com `DEMO=0`, é gerada uma palavra-passe aleatória, mostrada uma vez no arranque |
-| `DEMO=0` | Não criar dados de demonstração |
+| `DEMO` | `0` não cria dados de demonstração; `1` cria. Vazio: demonstração em desenvolvimento, mas **não** com `NODE_ENV=production` (a imagem Docker), para nunca ficar público um dono `admin123` |
 | `TRUST_PROXY` | Defina `1` (ou o endereço do proxy) **só** quando há um proxy à frente (Nginx, Caddy, Cloudflare). Sem proxy, deixe vazio: caso contrário qualquer cliente pode falsificar o IP e contornar os limites de pedidos |
 | `NODE_ENV=production` | Cookies só por HTTPS, HSTS e `upgrade-insecure-requests` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM`, `NOTIFY_EMAIL` | Envio real de emails. Sem estas variáveis, os emails são escritos na consola |

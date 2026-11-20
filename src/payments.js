@@ -90,6 +90,10 @@ function applyEvent(event) {
   const stale = obj.id && b.payment_ref && obj.id !== b.payment_ref;
   const paid = () => {
     if (b.payment_status === 'paid') return null;
+    if (!b.payment_ref || obj.id !== b.payment_ref || !(+obj.amount_total >= (b.deposit_cents || 0)) || String(obj.currency || '').toLowerCase() !== 'eur') {
+      console.error(`[pagamentos] evento ${event.type} ignorado para a marcação ${id}: sessão, valor ou moeda não correspondem`);
+      return null;
+    }
     db.prepare(`UPDATE bookings SET payment_status = 'paid', status = CASE WHEN status = 'cancelled' THEN status ELSE ? END, updated_at = datetime('now') WHERE id = ?`).run(confirmStatus, id);
     // pago depois de cancelada (horário já libertado): não confirmar ao cliente, avisar o negócio
     return { id, late: b.status === 'cancelled' };
@@ -97,6 +101,7 @@ function applyEvent(event) {
   switch (event.type) {
     case 'checkout.session.completed':
       if (obj.payment_status === 'paid') return paid();
+      if (stale || !b.payment_ref) return null;
       // Multibanco: a referência foi gerada, o pagamento chega mais tarde — não libertar o horário entretanto
       db.prepare("UPDATE bookings SET payment_status = 'processing' WHERE id = ? AND payment_status = 'pending'").run(id);
       return null;

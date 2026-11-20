@@ -143,12 +143,12 @@ function nextDepartures(limit = 4) {
 class BookingError extends Error {}
 
 /** Reagenda uma marcação (cliente ou back office), revalidando a disponibilidade de forma atómica. */
-function rescheduleBooking(id, { date, start, staffId = null }, { forAdmin = false } = {}) {
+function rescheduleBooking(id, { date, start, staffId = null, strictStaff = false }, { forAdmin = false } = {}) {
   return tx(() => {
     const b = getBooking(id);
     if (!b) throw new BookingError('Marcação não encontrada.');
     const slot = getSlots({ serviceId: b.service_id, staffId, date, forAdmin, ignoreBookingId: b.id }).find((s) => s.start === start);
-    if (!slot) throw new BookingError('Esse horário acabou de ficar indisponível. Escolha outro.');
+    if (!slot || (strictStaff && !slot.staff.includes(+staffId))) throw new BookingError('Esse horário acabou de ficar indisponível. Escolha outro.');
     const newStaff = staffId && slot.staff.includes(+staffId) ? +staffId : slot.staff.includes(b.staff_id) ? b.staff_id : slot.staff[0];
     db.prepare("UPDATE bookings SET date = ?, start_min = ?, end_min = ?, staff_id = ?, updated_at = datetime('now') WHERE id = ?")
       .run(date, start, start + b.duration_min, newStaff, b.id);

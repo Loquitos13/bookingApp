@@ -9,7 +9,7 @@ function utcStamp(date, min, tz) {
   return new Date(guess - (asLocal - guess)).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
 }
 // RFC 5545: escapar \ ; , e qualquer quebra de linha (\r\n, \r ou \n), para o texto não criar propriedades novas
-const esc = (v) => String(v ?? '').replace(/([,;\\])/g, '\\$1').replace(/\r\n|\r|\n/g, '\\n');
+const esc = (v) => String(v ?? '').replace(/([,;\\])/g, '\\$1').replace(/\r\n|\r|\n|\u2028|\u2029|\u0085/g, '\\n').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 
 function calendar({ name, timezone, events, publish = false }) {
   const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';

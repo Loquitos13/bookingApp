@@ -1,0 +1,1568 @@
+[
+ {
+  "coverage_id": "public%2Fjs%2Fsw.js%23admin%20navigation%20cache::public%2Fjs%2Fsw.js%23logout%20cache%20clear::profile%2Fquick%2Fall-in-scope-subsystems::CLIENT-SIDE.md%23Service-worker%20cache%20and%20identity%20confusion",
+  "canonical_refs": {
+   "surface": "public/js/sw.js#admin navigation cache",
+   "boundary": "public/js/sw.js#logout cache clear",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "CLIENT-SIDE.md#Service-worker cache and identity confusion"
+  },
+  "surface": "public/js/sw.js#admin navigation cache",
+  "boundary": "public/js/sw.js#logout cache clear",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "CLIENT-SIDE.md#Service-worker cache and identity confusion",
+  "starting_paths": [
+   "public/js/sw.js",
+   "public/js/admin.js",
+   "server.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "CLIENT-SIDE.md#Core discipline",
+   "CLIENT-SIDE.md#Service-worker cache and identity confusion",
+   "CLIENT-SIDE.md#Universal moves",
+   "CLIENT-SIDE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "public/js/sw.js",
+   "public/js/admin.js",
+   "server.js",
+   "views/admin/login.ejs",
+   "src/auth.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "public/js/sw.js",
+     "public/js/admin.js",
+     "server.js",
+     "views/admin/login.ejs",
+     "src/auth.js"
+    ],
+    "invariant": "Cached admin pages never served to another account",
+    "method": "source",
+    "result": "network-first, redirects not cached, cache cleared on every login page load",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [
+   "PII stays in offline cache until next login-page visit; add Cache-Control no-store on admin pages"
+  ]
+ },
+ {
+  "coverage_id": "repository%23secrets%2C%20defaults%2C%20debug%2C%20cookies%2C%20redirects%2C%20errors::repository%23basic%20exposure%20checklist::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Obvious%20things",
+  "canonical_refs": {
+   "surface": "repository#secrets, defaults, debug, cookies, redirects, errors",
+   "boundary": "repository#basic exposure checklist",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Obvious things"
+  },
+  "surface": "repository#secrets, defaults, debug, cookies, redirects, errors",
+  "boundary": "repository#basic exposure checklist",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Obvious things",
+  "starting_paths": [
+   "server.js",
+   "src/db.js",
+   "src/security.js",
+   "docker-compose.yml",
+   "Dockerfile",
+   ".gitignore"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Obvious things",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "server.js",
+   "src/db.js",
+   "src/security.js",
+   "src/auth.js",
+   "docker-compose.yml",
+   "Dockerfile",
+   ".gitignore",
+   "src/payments.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/db.js",
+     "src/security.js",
+     "src/auth.js",
+     "docker-compose.yml",
+     "Dockerfile",
+     ".gitignore"
+    ],
+    "invariant": "Literal exposure checklist",
+    "method": "source",
+    "result": "no secrets/eval/CORS; cookie flags OK; redirects bound",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/payments.js"
+    ],
+    "invariant": "Unauthenticated errors leak no stack",
+    "method": "local",
+    "result": "non-ASCII Stripe signature -> 500; stack only without NODE_ENV=production",
+    "artifact": "agents/h-platform/artifacts/check-1.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [
+   "DEMO unset in Docker => demo owner admin@exemplo.pt/admin123 shown on login page; refuse demo under NODE_ENV=production unless DEMO=1",
+   "seeded password logged even when supplied",
+   "error handler depends on view locals for early routes"
+  ]
+ },
+ {
+  "coverage_id": "server.js%23POST%20%2Fwebhooks%2Fstripe::src%2Fpayments.js%23verifySignature%20and%20applyEvent::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Cryptography%20and%20secrets",
+  "canonical_refs": {
+   "surface": "server.js#POST /webhooks/stripe",
+   "boundary": "src/payments.js#verifySignature and applyEvent",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Cryptography and secrets"
+  },
+  "surface": "server.js#POST /webhooks/stripe",
+  "boundary": "src/payments.js#verifySignature and applyEvent",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Cryptography and secrets",
+  "starting_paths": [
+   "server.js",
+   "src/payments.js",
+   "src/routes/public.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Cryptography and secrets",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Duplicate delivery and idempotency gaps",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Out-of-order and stale message acceptance",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Envelope and payload identity mismatch",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "server.js",
+   "src/payments.js",
+   "src/routes/public.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/payments.js"
+    ],
+    "invariant": "HMAC verification fails closed",
+    "method": "source",
+    "result": "secret required, 300 s tolerance, timingSafeEqual",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/payments.js",
+     "src/routes/public.js"
+    ],
+    "invariant": "Paid event bound to own session and amount",
+    "method": "local",
+    "result": "foreign session cs_OTHER_SOURCE with 50 cents confirmed booking expecting 5000",
+    "artifact": "agents/h-platform/artifacts/check-1.txt"
+   },
+   {
+    "agent_id": "v-stripe",
+    "reviewed_paths": [
+     "server.js",
+     "src/payments.js",
+     "src/routes/public.js"
+    ],
+    "invariant": "Independent candidate validation of src/payments.js:applyEvent:paid-path-unbound-session-and-amount",
+    "method": "local",
+    "result": "Verifier decision: needs_validation (reproduced in sandbox)",
+    "artifact": "agents/v-stripe/artifacts/check-1.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "src/payments.js:applyEvent:paid-path-unbound-session-and-amount"
+  ],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [],
+  "verifier_decision": "needs_validation"
+ },
+ {
+  "coverage_id": "server.js%23baseUrl%20from%20Host%20header%20and%20trust%20proxy::server.js%23BASE_URL%20and%20TRUST_PROXY::profile%2Fquick%2Fall-in-scope-subsystems::WEB-PROTOCOL-AND-AUTH.md%23Host%20and%20forwarded-header%20trust",
+  "canonical_refs": {
+   "surface": "server.js#baseUrl from Host header and trust proxy",
+   "boundary": "server.js#BASE_URL and TRUST_PROXY",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust"
+  },
+  "surface": "server.js#baseUrl from Host header and trust proxy",
+  "boundary": "server.js#BASE_URL and TRUST_PROXY",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust",
+  "starting_paths": [
+   "server.js",
+   "src/routes/public.js",
+   "src/payments.js",
+   "src/security-mw.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+   "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust",
+   "WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+   "WEB-PROTOCOL-AND-AUTH.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "server.js",
+   "src/routes/public.js",
+   "src/payments.js",
+   "src/mailer.js",
+   "src/routes/admin.js",
+   "src/security-mw.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/routes/public.js",
+     "src/payments.js",
+     "src/mailer.js",
+     "src/routes/admin.js"
+    ],
+    "invariant": "Host header never decides cross-principal URLs",
+    "method": "source",
+    "result": "Host-derived URLs answer only the same request; emails use BASE_URL or localhost",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "server.js",
+     "src/routes/admin.js",
+     "src/security-mw.js"
+    ],
+    "invariant": "req.ip not client-chosen without TRUST_PROXY",
+    "method": "local",
+    "result": "lockout holds with rotating XFF when unset",
+    "artifact": "agents/h-platform/artifacts/check-3.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [
+   "make BASE_URL mandatory in production",
+   "compose publishes 3000 on all interfaces; with TRUST_PROXY=1 direct clients can spoof XFF; TRUST_PROXY=true crashes startup"
+  ]
+ },
+ {
+  "coverage_id": "src%2Fmailer.js%23notify%2A%20and%20send::src%2Fsecurity.js%23EMAIL_RE%20and%20clean::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "src/mailer.js#notify* and send",
+   "boundary": "src/security.js#EMAIL_RE and clean",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "src/mailer.js#notify* and send",
+  "boundary": "src/security.js#EMAIL_RE and clean",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Injection",
+  "starting_paths": [
+   "src/mailer.js",
+   "src/security.js",
+   "src/routes/public.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "src/mailer.js",
+   "src/security.js",
+   "src/routes/public.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/mailer.js",
+     "src/security.js",
+     "src/routes/public.js"
+    ],
+    "invariant": "No header injection or extra recipients",
+    "method": "local",
+    "result": "nodemailer encodes CRLF subject; comma address yields single recipient",
+    "artifact": "agents/h-public/artifacts/check-1.txt"
+   },
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/mailer.js"
+    ],
+    "invariant": "Plain-text bodies have no markup sink",
+    "method": "source",
+    "result": "text only; SMS has no customer name",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": [
+   "clean() keeps inner newlines in name: multi-line business-branded email text to an unverified address (12/h); collapse whitespace",
+   "EMAIL_RE accepts commas: per-email booking cap bypass via spellings; require a single parsed address"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23GET%20%2Fagenda%2C%20%2Fagenda%2Fimprimir%2C%20%2F%2C%20%2Fmarcacoes%2Fexportar.csv::src%2Froutes%2Fadmin.js%23numeric%20staffId%20in%20concatenated%20SQL::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#GET /agenda, /agenda/imprimir, /, /marcacoes/exportar.csv",
+   "boundary": "src/routes/admin.js#numeric staffId in concatenated SQL",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "src/routes/admin.js#GET /agenda, /agenda/imprimir, /, /marcacoes/exportar.csv",
+  "boundary": "src/routes/admin.js#numeric staffId in concatenated SQL",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Injection",
+  "starting_paths": [
+   "src/routes/admin.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-admin",
+  "reviewed_paths": [
+   "src/routes/admin.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js"
+    ],
+    "invariant": "Only JS Numbers are concatenated into SQL",
+    "method": "source",
+    "result": "staffId via unary + or ownStaff; other filters use placeholders",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js"
+    ],
+    "invariant": "Non-numeric/extreme staff values cannot alter queries",
+    "method": "local",
+    "result": "staff=1 OR 1=1 -> NaN -> null (200); Infinity -> caught 500, no injection",
+    "artifact": "agents/h-admin/artifacts/check-2.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-admin",
+  "hardening": [
+   "staff=Infinity yields a 500 (no such column); bind staffId as a parameter or require Number.isSafeInteger"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23GET%20%2Fmarcacoes%2F%3Aid%20history%2C%20%2Fclientes%2F%2A%2C%20%2Fapi%2Fclientes::src%2Froutes%2Fadmin.js%23STAFF_ALLOWED%20and%20OWNER_ONLY%20role%20gate::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#GET /marcacoes/:id history, /clientes/*, /api/clientes",
+   "boundary": "src/routes/admin.js#STAFF_ALLOWED and OWNER_ONLY role gate",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+  },
+  "surface": "src/routes/admin.js#GET /marcacoes/:id history, /clientes/*, /api/clientes",
+  "boundary": "src/routes/admin.js#STAFF_ALLOWED and OWNER_ONLY role gate",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "views/admin/booking.ejs",
+   "views/admin/client.ejs"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Export and backup scope expansion",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Enumeration and aggregate oracles",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "h-admin",
+  "reviewed_paths": [
+   "src/routes/admin.js",
+   "views/admin/client.ejs",
+   "views/admin/booking.ejs"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "views/admin/client.ejs"
+    ],
+    "invariant": "Staff cannot reach client aggregate/export/autocomplete",
+    "method": "source",
+    "result": "denied by STAFF_ALLOWED gate; reception by design",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "views/admin/booking.ejs"
+    ],
+    "invariant": "Staff booking page shows only own professional bookings",
+    "method": "local",
+    "result": "own booking history lists other staff booking; email swap via details reveals arbitrary customer history",
+    "artifact": "agents/h-admin/artifacts/check-1.txt"
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js"
+    ],
+    "invariant": "Encoded/case variants of /clientes blocked",
+    "method": "local",
+    "result": "/Clientes, /%63lientes -> 403/404",
+    "artifact": "agents/h-admin/artifacts/check-2.txt"
+   },
+   {
+    "agent_id": "v-history",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "views/admin/booking.ejs"
+    ],
+    "invariant": "Independent candidate validation of admin.js:marcacoes-id-history:cross-staff-customer-history",
+    "method": "local",
+    "result": "Verifier decision: confirmed (reproduced in sandbox)",
+    "artifact": "agents/v-history/artifacts/check-1.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "admin.js:marcacoes-id-history:cross-staff-customer-history"
+  ],
+  "unresolved": [],
+  "hunter": "h-admin",
+  "hardening": [],
+  "verifier_decision": "confirmed"
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Fclientes%2Fapagar%20and%20src%2Fscheduler.js%23backup::src%2Froutes%2Fadmin.js%23GDPR%20erase%20transaction::profile%2Fquick%2Fall-in-scope-subsystems::DATA-ISOLATION-AND-LIFECYCLE.md%23Deletion%2C%20revocation%2C%20and%20lifecycle%20attack%20classes",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /clientes/apagar and src/scheduler.js#backup",
+   "boundary": "src/routes/admin.js#GDPR erase transaction",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "DATA-ISOLATION-AND-LIFECYCLE.md#Deletion, revocation, and lifecycle attack classes"
+  },
+  "surface": "src/routes/admin.js#POST /clientes/apagar and src/scheduler.js#backup",
+  "boundary": "src/routes/admin.js#GDPR erase transaction",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "DATA-ISOLATION-AND-LIFECYCLE.md#Deletion, revocation, and lifecycle attack classes",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "src/scheduler.js",
+   "src/db.js",
+   "public/js/sw.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Deletion, revocation, and lifecycle attack classes",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Export, backup, restore, and migration attack classes",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Erase matches lower(customer_email) but client_notes/client_packages use exact email; 14 days of backups and the admin SW cache retain erased PII; no unit reviewed erase completeness"
+  ],
+  "hunter": "critic-deferred",
+  "hardening": []
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Fdefinicoes%2Flogo%20file%20write::src%2Froutes%2Fadmin.js%23multer%20limits%20and%20magic%20bytes::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /definicoes/logo file write",
+   "boundary": "src/routes/admin.js#multer limits and magic bytes",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+  },
+  "surface": "src/routes/admin.js#POST /definicoes/logo file write",
+  "boundary": "src/routes/admin.js#multer limits and magic bytes",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Resource and file handling",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "server.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "src/routes/admin.js",
+   "server.js",
+   "src/auth.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "server.js"
+    ],
+    "invariant": "Upload writes only server-named files in UPLOADS",
+    "method": "source",
+    "result": "memory storage 1 MiB, generated name, basename delete",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "server.js",
+     "src/auth.js"
+    ],
+    "invariant": "Polyglot/traversal names cannot escape or render",
+    "method": "local",
+    "result": "stored as logo-<ts>.webp served image/webp nosniff; no-CSRF variants 403",
+    "artifact": "agents/h-platform/artifacts/check-2.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [
+   "WebP check lacks RIFF prefix; /uploads has no CSP"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Flogin%2C%20%2Flogout%2C%20%2Fdefinicoes%2Flogo%20and%20authenticated%20POSTs::src%2Fauth.js%23CSRF%20token%20check::profile%2Fquick%2Fall-in-scope-subsystems::WEB-PROTOCOL-AND-AUTH.md%23Ordinary%20CSRF",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /login, /logout, /definicoes/logo and authenticated POSTs",
+   "boundary": "src/auth.js#CSRF token check",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF"
+  },
+  "surface": "src/routes/admin.js#POST /login, /logout, /definicoes/logo and authenticated POSTs",
+  "boundary": "src/auth.js#CSRF token check",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
+  "starting_paths": [
+   "src/auth.js",
+   "src/routes/admin.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+   "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
+   "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+   "WEB-PROTOCOL-AND-AUTH.md#Cookie scope and transport",
+   "WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+   "WEB-PROTOCOL-AND-AUTH.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-platform",
+  "reviewed_paths": [
+   "src/auth.js",
+   "src/routes/admin.js",
+   "src/db.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "src/auth.js",
+     "src/routes/admin.js",
+     "src/db.js"
+    ],
+    "invariant": "CSRF on every authenticated POST; sessions revoked",
+    "method": "source",
+    "result": "token check, narrow multipart exemption, revocation paths",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-platform",
+    "reviewed_paths": [
+     "src/auth.js",
+     "src/routes/admin.js"
+    ],
+    "invariant": "Cross-site POSTs without token rejected",
+    "method": "local",
+    "result": "403 for missing/array/text/multipart; login CSRF accepted (hardening)",
+    "artifact": "agents/h-platform/artifacts/check-2.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-platform",
+  "hardening": [
+   "login accepts cross-site POST (login CSRF); logout has no token: add Origin/Sec-Fetch-Site check"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Fmarcacoes%2C%20%2Futilizadores%2C%20%2Fdefinicoes%2C%20%2Fpacotes::src%2Froutes%2Fadmin.js%23server-side%20validation%20and%20tx::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /marcacoes, /utilizadores, /definicoes, /pacotes",
+   "boundary": "src/routes/admin.js#server-side validation and tx",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "src/routes/admin.js#POST /marcacoes, /utilizadores, /definicoes, /pacotes",
+  "boundary": "src/routes/admin.js#server-side validation and tx",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Business logic",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "src/db.js",
+   "src/packages.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-admin",
+  "reviewed_paths": [
+   "src/routes/admin.js",
+   "src/availability.js",
+   "src/db.js",
+   "src/packages.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "src/availability.js",
+     "src/db.js"
+    ],
+    "invariant": "Series creation forced to own staff, bounded and atomic",
+    "method": "source",
+    "result": "staffId forced, repeat 1..26, tx re-entrant, synchronous",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "src/packages.js"
+    ],
+    "invariant": "Package/user/settings writes bounded",
+    "method": "source",
+    "result": "clamps, last-owner guard, settings key allowlist; owner-only",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-admin",
+  "hardening": [
+   "cancel_series updates by series_id without a staff filter for the staff role; reception/staff edits have no audit trail"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Fmarcacoes%2F%3Aid%20action%3Dcancel_series%2C%20POST%20%2Fapi%2Freagendar::src%2Froutes%2Fadmin.js%23ownStaff%20scoping%20outside%20router.param::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /marcacoes/:id action=cancel_series, POST /api/reagendar",
+   "boundary": "src/routes/admin.js#ownStaff scoping outside router.param",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "src/routes/admin.js#POST /marcacoes/:id action=cancel_series, POST /api/reagendar",
+  "boundary": "src/routes/admin.js#ownStaff scoping outside router.param",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Access control",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "src/availability.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Tenant and object-isolation attack classes",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Parallel cross-staff paths: cancel_series updates by series_id without staff filter; /api/reagendar relies only on moveBooking"
+  ],
+  "hunter": "critic-deferred",
+  "hardening": []
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23POST%20%2Fmarcacoes%2F%3Aid::src%2Froutes%2Fadmin.js%23router.param%20id%20%2B%20ownStaff%20%2B%20moveBooking::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#POST /marcacoes/:id",
+   "boundary": "src/routes/admin.js#router.param id + ownStaff + moveBooking",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "src/routes/admin.js#POST /marcacoes/:id",
+  "boundary": "src/routes/admin.js#router.param id + ownStaff + moveBooking",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Access control",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "src/availability.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Missing tenant or owner enforcement",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+   "DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "candidate",
+  "agent_id": "h-admin",
+  "reviewed_paths": [
+   "src/routes/admin.js",
+   "src/availability.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "src/availability.js"
+    ],
+    "invariant": "Staff cannot reassign a booking to another professional",
+    "method": "local",
+    "result": "reschedule refused; action=move staffId=2 accepted, row moved to staff 2",
+    "artifact": "agents/h-admin/artifacts/check-1.txt"
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js"
+    ],
+    "invariant": "Other actions bound to own staff",
+    "method": "source",
+    "result": "router.param covers status/details/reschedule/delete; move is the exception",
+    "artifact": null
+   },
+   {
+    "agent_id": "v-move",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "src/availability.js"
+    ],
+    "invariant": "Independent candidate validation of admin.js:marcacoes-id-move:rescheduleBooking-staffId-unscoped",
+    "method": "local",
+    "result": "Verifier decision: confirmed (reproduced in sandbox)",
+    "artifact": "agents/v-move/artifacts/check-1.txt"
+   }
+  ],
+  "result_fingerprints": [
+   "admin.js:marcacoes-id-move:rescheduleBooking-staffId-unscoped"
+  ],
+  "unresolved": [],
+  "hunter": "h-admin",
+  "hardening": [
+   "booking page offers all professionals in move/reschedule selects to staff users"
+  ],
+  "verifier_decision": "confirmed"
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fadmin.js%23router.use%20role%20gate%20%28all%20%2Fadmin%20routes%29::src%2Froutes%2Fadmin.js%23role%20gate%20path%20normalisation::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "src/routes/admin.js#router.use role gate (all /admin routes)",
+   "boundary": "src/routes/admin.js#role gate path normalisation",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "src/routes/admin.js#router.use role gate (all /admin routes)",
+  "boundary": "src/routes/admin.js#role gate path normalisation",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Access control",
+  "starting_paths": [
+   "src/routes/admin.js",
+   "src/auth.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-admin",
+  "reviewed_paths": [
+   "src/routes/admin.js",
+   "src/auth.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js",
+     "src/auth.js"
+    ],
+    "invariant": "Gate normalisation matches strict case-sensitive router",
+    "method": "source",
+    "result": "all owner-only routes under OWNER_ONLY; role reloaded per request",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-admin",
+    "reviewed_paths": [
+     "src/routes/admin.js"
+    ],
+    "invariant": "Case/slash/encoded variants blocked for reception",
+    "method": "local",
+    "result": "403 or 404 for all variants",
+    "artifact": "agents/h-admin/artifacts/check-2.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-admin",
+  "hardening": []
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fpublic.js%23%2Fmarcacao%2F%3Atoken%20routes::src%2Froutes%2Fpublic.js%23bookingByToken%20and%20canCustomerCancel::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Access%20control",
+  "canonical_refs": {
+   "surface": "src/routes/public.js#/marcacao/:token routes",
+   "boundary": "src/routes/public.js#bookingByToken and canCustomerCancel",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Access control"
+  },
+  "surface": "src/routes/public.js#/marcacao/:token routes",
+  "boundary": "src/routes/public.js#bookingByToken and canCustomerCancel",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Access control",
+  "starting_paths": [
+   "src/routes/public.js",
+   "src/availability.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "src/routes/public.js",
+   "src/availability.js",
+   "src/security.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/routes/public.js",
+     "src/availability.js",
+     "src/security.js"
+    ],
+    "invariant": "Token routes resolve only by 192-bit token and gate changes",
+    "method": "source",
+    "result": "bookingByToken exact match; canCustomerCancel before reschedule/cancel; ?token only frees own slot",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": []
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fpublic.js%23GET%20%2Fcal%2F%3Atoken.ics%20and%20%2Fmarcacao%2F%3Atoken.ics::src%2Fics.js%23esc::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Injection",
+  "canonical_refs": {
+   "surface": "src/routes/public.js#GET /cal/:token.ics and /marcacao/:token.ics",
+   "boundary": "src/ics.js#esc",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Injection"
+  },
+  "surface": "src/routes/public.js#GET /cal/:token.ics and /marcacao/:token.ics",
+  "boundary": "src/ics.js#esc",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Injection",
+  "starting_paths": [
+   "src/ics.js",
+   "src/routes/public.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "src/ics.js",
+   "src/routes/public.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/ics.js"
+    ],
+    "invariant": "Customer text cannot add iCalendar properties",
+    "method": "local",
+    "result": "single VEVENT, all values escaped on one line",
+    "artifact": "agents/h-public/artifacts/check-3.txt"
+   },
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/routes/public.js"
+    ],
+    "invariant": "Feeds disclose only token holder data",
+    "method": "source",
+    "result": "exact token lookup, staff-scoped window, 60/h",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": [
+   "ics esc() passes U+2028/2029/0085/\\x0b; strip them and add 75-octet folding"
+  ]
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fpublic.js%23POST%20%2Fmarcar%2C%20%2Flista-espera%2C%20GET%20%2Fapi%2Fdays%2C%20%2Fapi%2Fslots::src%2Favailability.js%23createBooking%20and%20rescheduleBooking%20tx::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "src/routes/public.js#POST /marcar, /lista-espera, GET /api/days, /api/slots",
+   "boundary": "src/availability.js#createBooking and rescheduleBooking tx",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "src/routes/public.js#POST /marcar, /lista-espera, GET /api/days, /api/slots",
+  "boundary": "src/availability.js#createBooking and rescheduleBooking tx",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Business logic",
+  "starting_paths": [
+   "src/routes/public.js",
+   "src/availability.js",
+   "src/time.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "src/routes/public.js",
+   "src/availability.js",
+   "src/time.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/routes/public.js",
+     "src/availability.js",
+     "src/time.js"
+    ],
+    "invariant": "Anonymous booking cannot pick unavailable/out-of-window slot or unlinked staff",
+    "method": "source",
+    "result": "getSlots re-checked in tx; inputs normalised; price from service row",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": []
+ },
+ {
+  "coverage_id": "src%2Froutes%2Fpublic.js%23anonymous%20routes%20and%20%2Fapi%2F%2A::src%2Fsecurity-mw.js%23rateLimit::profile%2Fquick%2Fall-in-scope-subsystems::RESOURCE-EXHAUSTION-AND-AVAILABILITY.md%23Pre-authentication%20work%20imbalance",
+  "canonical_refs": {
+   "surface": "src/routes/public.js#anonymous routes and /api/*",
+   "boundary": "src/security-mw.js#rateLimit",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance"
+  },
+  "surface": "src/routes/public.js#anonymous routes and /api/*",
+  "boundary": "src/security-mw.js#rateLimit",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+  "starting_paths": [
+   "src/security-mw.js",
+   "src/routes/public.js",
+   "src/availability.js",
+   "server.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Reachable fatal error or deadlock",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+   "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "CLIENT-SIDE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "src/security-mw.js",
+   "src/routes/public.js",
+   "src/availability.js",
+   "server.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "src/security-mw.js",
+     "src/routes/public.js",
+     "src/availability.js",
+     "server.js"
+    ],
+    "invariant": "Bounded per-request work and per-IP gate",
+    "method": "local",
+    "result": "3-50 ms per request; 429 after 90/min; ah() wrapper prevents crash",
+    "artifact": "agents/h-public/artifacts/check-2.txt"
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": [
+   "GET / has no rate limit (bounded ~20 ms); Turnstile fetch has no timeout"
+  ]
+ },
+ {
+  "coverage_id": "src%2Fscheduler.js%23runJobs%20and%20src%2Froutes%2Fpublic.js%23waitlist%20routes::src%2Fscheduler.js%23status%20and%20time%20predicates::profile%2Fquick%2Fall-in-scope-subsystems::ATTACK-CLASSES.md%23Business%20logic",
+  "canonical_refs": {
+   "surface": "src/scheduler.js#runJobs and src/routes/public.js#waitlist routes",
+   "boundary": "src/scheduler.js#status and time predicates",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "ATTACK-CLASSES.md#Business logic"
+  },
+  "surface": "src/scheduler.js#runJobs and src/routes/public.js#waitlist routes",
+  "boundary": "src/scheduler.js#status and time predicates",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "ATTACK-CLASSES.md#Business logic",
+  "starting_paths": [
+   "src/scheduler.js",
+   "src/routes/public.js",
+   "src/payments.js",
+   "src/mailer.js",
+   "src/availability.js"
+  ],
+  "ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+  "selected_companion_blocks": [
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Replay, ordering, and transaction attack classes",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Universal moves",
+   "PROTOCOLS-RPC-AND-MESSAGING.md#Validation rules"
+  ],
+  "excluded_blocks": [],
+  "prior_status": "new",
+  "attempts": [],
+  "wave": 1,
+  "status": "deferred",
+  "agent_id": null,
+  "reviewed_paths": [],
+  "local_checks": [],
+  "result_fingerprints": [],
+  "unresolved": [
+   "quick_profile_final_critic: Scheduler lifecycle mode not in any unit: expirePayments vs late paid webhook / Multibanco processing, waitlist notices to unverified emails without per-email cap, state-changing GET /lista-espera/:token/sair"
+  ],
+  "hunter": "critic-deferred",
+  "hardening": []
+ },
+ {
+  "coverage_id": "views%2F%2A%2A%2F%2A.ejs%20and%20public%2Fjs%23customer-controlled%20fields::views%23EJS%20escaping%20and%20CSP%20nonce::profile%2Fquick%2Fall-in-scope-subsystems::CLIENT-SIDE.md%23DOM-based%20XSS",
+  "canonical_refs": {
+   "surface": "views/**/*.ejs and public/js#customer-controlled fields",
+   "boundary": "views#EJS escaping and CSP nonce",
+   "subsystem": "profile/quick/all-in-scope-subsystems",
+   "attack_class": "CLIENT-SIDE.md#DOM-based XSS"
+  },
+  "surface": "views/**/*.ejs and public/js#customer-controlled fields",
+  "boundary": "views#EJS escaping and CSP nonce",
+  "subsystem": "all in-scope subsystems (quick profile)",
+  "attack_class": "CLIENT-SIDE.md#DOM-based XSS",
+  "starting_paths": [
+   "views",
+   "public/js",
+   "src/security-mw.js"
+  ],
+  "ordinary_attack_class_block": null,
+  "selected_companion_blocks": [
+   "CLIENT-SIDE.md#Core discipline",
+   "CLIENT-SIDE.md#DOM-based XSS",
+   "CLIENT-SIDE.md#Universal moves",
+   "CLIENT-SIDE.md#Validation rules"
+  ],
+  "excluded_blocks": [
+   {
+    "block": "WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   },
+   {
+    "block": "PROTOCOLS-RPC-AND-MESSAGING.md#Core discipline",
+    "reason": "boundary handled by another unit or not present on this surface"
+   }
+  ],
+  "prior_status": "prior_covered_changed_source",
+  "attempts": [],
+  "wave": 1,
+  "status": "covered",
+  "agent_id": "h-public",
+  "reviewed_paths": [
+   "views/partials/public-head.ejs",
+   "views/public/book.ejs",
+   "views/public/booking.ejs",
+   "views/public/reschedule.ejs",
+   "views/admin/booking.ejs",
+   "views/admin/agenda.ejs",
+   "views/admin/settings.ejs",
+   "src/security-mw.js",
+   "public/js/book.js",
+   "public/js/picker.js",
+   "public/js/agenda.js",
+   "public/js/admin.js",
+   "public/js/site.js"
+  ],
+  "local_checks": [
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "views/partials/public-head.ejs",
+     "views/public/book.ejs",
+     "views/public/booking.ejs",
+     "views/public/reschedule.ejs",
+     "views/admin/booking.ejs",
+     "views/admin/agenda.ejs",
+     "views/admin/settings.ejs",
+     "src/security-mw.js"
+    ],
+    "invariant": "No customer field reaches unescaped EJS",
+    "method": "source",
+    "result": "all <%- are includes, static SVG, validated CSS, JSON with < escaped",
+    "artifact": null
+   },
+   {
+    "agent_id": "h-public",
+    "reviewed_paths": [
+     "public/js/book.js",
+     "public/js/picker.js",
+     "public/js/agenda.js",
+     "public/js/admin.js",
+     "public/js/site.js"
+    ],
+    "invariant": "innerHTML sinks get escaped or generated values",
+    "method": "source",
+    "result": "escaped names; 5-char time cap; textContent toast",
+    "artifact": null
+   }
+  ],
+  "result_fingerprints": [],
+  "unresolved": [],
+  "hunter": "h-public",
+  "hardening": []
+ }
+]

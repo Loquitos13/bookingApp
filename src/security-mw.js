@@ -39,6 +39,7 @@ async function verifyTurnstile(req) {
     const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY, response: token, remoteip: req.ip }),
+      signal: AbortSignal.timeout(5000),
     });
     return !!(await r.json()).success;
   } catch {

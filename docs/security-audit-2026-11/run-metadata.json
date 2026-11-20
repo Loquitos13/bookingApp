@@ -1,0 +1,36 @@
+{
+  "run_id": "bookingapp-run-2",
+  "repo": "loquitos13/bookingApp",
+  "target": "/home/user/bookingApp",
+  "source_ref": "b488c0a2e6984b098d88048d835fabae9f5e5273 (worktree clean)",
+  "profile": "quick",
+  "scope_paths": [
+    "server.js",
+    "src/",
+    "views/",
+    "public/js/",
+    "Dockerfile",
+    "docker-compose.yml",
+    "package.json"
+  ],
+  "budget": 12,
+  "execution_policy": "sandboxed-source-and-local-only",
+  "sandbox": "scratchpad/sandbox.sh: unshare -n (loopback only), all mounts remounted ro except agent scratch, env -i allowlist (HOME/TMPDIR=scratch, PATH), prlimit data 2GB/nproc 256/fsize 20MB/cpu 100s, timeout 120s",
+  "companions": [
+    "WEB-PROTOCOL-AND-AUTH.md",
+    "CLIENT-SIDE.md",
+    "DATA-ISOLATION-AND-LIFECYCLE.md",
+    "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md"
+  ],
+  "prior_runs": [
+    {
+      "path": "../coverage-ledger.json",
+      "source_ref": "pre-597b3de",
+      "status": "incomplete: 11 candidates never validated, no findings.json"
+    }
+  ],
+  "shared_file_owner": "parent",
+  "run_status": "complete",
+  "agents_spent": 11,
+  "notes": "quick profile: 3 critic units deferred; security-review (built-in) not run because origin/HEAD...HEAD spans the whole project (858 files incl. .claude skills)"
+}

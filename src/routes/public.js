@@ -6,7 +6,7 @@ const { notifyNewBooking, notifyStatusChange, notifyRescheduled, send } = requir
 const { isDate, nowIn, timeToMin, minToTime, weekday, formatDateLong } = require('../time');
 
 const { rateLimit, verifyTurnstile } = require('../security-mw');
-const { EMAIL_RE, clean, randomToken } = require('../security');
+const { EMAIL_RE, clean, line, randomToken } = require('../security');
 // Express 4 não apanha erros de handlers async: sem isto, um erro derruba o processo
 const ah = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
@@ -144,9 +144,9 @@ router.post('/marcar', rateLimit('book', 12, HOUR), ah(async (req, res) => {
     staffId: +req.body.staffId || '',
     date: clean(req.body.date, 10),
     time: clean(req.body.time, 5),
-    name: clean(req.body.name, 120),
+    name: line(req.body.name, 120),
     email: clean(req.body.email, 160).toLowerCase(),
-    phone: clean(req.body.phone, 30),
+    phone: line(req.body.phone, 30),
     notes: clean(req.body.notes, 1000),
   };
   if (req.body.website) return res.redirect('/'); // honeypot anti-spam
@@ -298,9 +298,9 @@ router.post('/lista-espera', rateLimit('waitlist', 10, HOUR), ah(async (req, res
   const serviceId = +req.body.serviceId;
   const staffId = +req.body.staffId || null;
   const date = clean(req.body.date, 10);
-  const name = clean(req.body.name, 120);
+  const name = line(req.body.name, 120);
   const email = clean(req.body.email, 160).toLowerCase();
-  const phone = clean(req.body.phone, 30);
+  const phone = line(req.body.phone, 30);
   const L = res.locals.L;
   const svc = db.prepare('SELECT * FROM services WHERE id = ? AND active = 1').get(serviceId);
   const staffOk = !staffId || db.prepare('SELECT 1 FROM staff_services ss JOIN staff st ON st.id = ss.staff_id WHERE ss.staff_id = ? AND ss.service_id = ? AND st.active = 1').get(staffId, serviceId);
@@ -338,11 +338,11 @@ router.get('/sitemap.xml', (req, res) => {
 router.post('/contacto', rateLimit('contact', 5, HOUR), ah(async (req, res) => {
   if (req.body.website) return res.redirect('/');
   if (!(await verifyTurnstile(req))) return res.redirect('/?enviado=0#contacto');
-  const name = clean(req.body.name, 120);
+  const name = line(req.body.name, 120);
   const email = clean(req.body.email, 160);
   const message = clean(req.body.message, 3000);
   if (name && EMAIL_RE.test(email) && message) {
-    db.prepare('INSERT INTO messages(name, email, phone, message) VALUES (?, ?, ?, ?)').run(name, email, clean(req.body.phone, 30), message);
+    db.prepare('INSERT INTO messages(name, email, phone, message) VALUES (?, ?, ?, ?)').run(name, email, line(req.body.phone, 30), message);
   }
   res.redirect('/?enviado=1#contacto');
 }));

@@ -1,0 +1,315 @@
+[
+ {
+  "verdict": "confirmed",
+  "fingerprint": "admin.js:marcacoes-id-history:cross-staff-customer-history",
+  "title": "Staff booking page leaks other professionals' bookings through the unscoped customer history",
+  "description": "GET /admin/marcacoes/:id renders the customer's 10 most recent other bookings, selected by email alone across all professionals. A user with role 'staff' is otherwise denied other professionals' bookings (403) and all client pages, yet this panel shows them the date, time, service, status and booking id of that customer's appointments with colleagues. Because staff can change customer_email on their own booking (action=details, only EMAIL_RE-checked), the panel becomes a lookup of any email address's appointment history across the business (10 rows per email), at the cost of leaving the changed email on the staff user's own booking record.",
+  "root_cause": "The history query in GET /marcacoes/:id (src/routes/admin.js:445-450) filters only on lower(customer_email) and b.id, with no staff_id predicate for the staff role, although the role model restricts staff to their own bookings (STAFF_ALLOWED line 68, ownStaff line 69, forced req.query.staff line 81, router.param('id') ownership check lines 85-91). router.param only binds the path booking, not the rows the handler loads.",
+  "intended_behavior": "For role 'staff', every booking listing, including the per-customer history on the booking page, is restricted to b.staff_id = req.user.staff_id, consistent with the router.param ownership check and the forced staff filter.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "src/routes/admin.js",
+    "line": 475,
+    "scope": "POST /admin/marcacoes/:id action=details",
+    "description": "Authenticated staff sets customer_email of their own booking to an arbitrary address; only EMAIL_RE checked (line 477), UPDATE at 478-480"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/routes/admin.js",
+    "line": 442,
+    "scope": "GET /admin/marcacoes/:id",
+    "description": "router.param('id') ownership check (85-91) passes because the path booking belongs to the caller"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/routes/admin.js",
+    "line": 448,
+    "scope": "history query in GET /marcacoes/:id",
+    "description": "WHERE lower(b.customer_email) = lower(?) AND b.id != ? ORDER BY b.date DESC LIMIT 10, no staff_id filter for the staff role"
+   },
+   {
+    "kind": "sink",
+    "file": "views/admin/booking.ejs",
+    "line": 109,
+    "scope": "Histórico deste cliente panel",
+    "description": "Renders id link, date, time, service name and status of each history row, including other professionals' bookings"
+   }
+  ],
+  "evidence": [
+   {
+    "file": "src/routes/admin.js",
+    "line": 89,
+    "description": "Direct access to another professional's booking returns 403: intended staff isolation, applied only to the path booking id"
+   },
+   {
+    "file": "src/routes/admin.js",
+    "line": 81,
+    "description": "Role gate forces req.query.staff to the caller's own professional for listings: intended scoping the history query omits"
+   },
+   {
+    "file": "src/routes/admin.js",
+    "line": 448,
+    "description": "History query lacks a staff_id predicate for the staff role"
+   },
+   {
+    "file": "src/routes/admin.js",
+    "line": 480,
+    "description": "Staff can rewrite customer_email on their own booking, turning the history into an arbitrary-email lookup"
+   },
+   {
+    "file": "views/admin/booking.ejs",
+    "line": 109,
+    "description": "History rows rendered with id link, date, time, service and status"
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "Logged in to the back office"
+   },
+   {
+    "kind": "authorization_role",
+    "description": "Role 'staff' linked to a professional with at least one booking"
+   },
+   {
+    "kind": "data_state",
+    "description": "Target customer email has bookings with other professionals"
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Authenticated back-office user with role 'staff' (dummy Ana, ana@teste.pt, staff_id 1)",
+   "payloads": [
+    "GET /admin/marcacoes/<own booking id>",
+    "POST /admin/marcacoes/<own booking id> (application/x-www-form-urlencoded) _csrf=<session csrf>&action=details&name=Outro&email=vitima@t.pt&phone=9, then GET /admin/marcacoes/<same id>"
+   ],
+   "instructions": [
+    "In the sandbox, fresh dummy DB (DEMO=0) with staff 1-3 and service 1; insert R1 (staff 1, c@t.pt), R2 (staff 2, c@t.pt), R3 (staff 2, vitima@t.pt), R4 (staff 1, outro@t.pt) and user Ana (role staff, staff_id 1)",
+    "Log in as Ana; GET /admin/marcacoes/R2 and R3 (control: expect 403)",
+    "GET /admin/marcacoes/R1 and inspect 'Histórico deste cliente' for R2",
+    "GET R4 (history empty), take _csrf, POST action=details email=vitima@t.pt, GET R4 again and inspect history for R3"
+   ],
+   "observed_result": "Independent reproduction (agents/v-history/artifacts/check-1.txt): GET R2 -> 403, GET R3 -> 403. Ana's R1 history contained href=\"/admin/marcacoes/2\" with 'Ter, 5 fev · 12:00', 'Avaliação inicial', 'Confirmada' (staff 2). R4 history before swap: 'Primeira marcação deste cliente.'; details POST -> 302 ok=Dados guardados.; R4 history after swap contained href=\"/admin/marcacoes/3\" with 'Qua, 6 fev · 15:00', 'Avaliação inicial', 'Confirmada' (staff 2)."
+  },
+  "remediation": {
+   "strategy": "Scope the booking-page history to the caller's own professional when the role is staff (b.staff_id = ownStaff(req)), enforcing the router.param invariant at the query that loads the extra rows; optionally apply the same filter to the series list and stop staff from changing customer_email on existing bookings. Add a roles.test.js regression: a staff user's own booking page must not link another professional's booking for the same email.",
+   "code_changes": [
+    {
+     "file_name": "src/routes/admin.js",
+     "fixed_code": "const own = ownStaff(req);\nconst history = db.prepare(`SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id WHERE lower(b.customer_email) = lower(?) AND b.id != ?${own ? ' AND b.staff_id = ?' : ''} ORDER BY b.date DESC LIMIT 10`).all(b.customer_email, b.id, ...(own ? [own] : []));"
+    }
+   ]
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Shared-customer case appears on an ordinary page view for any staff user; arbitrary-email variant needs one form edit on own booking; requires an authenticated staff account"
+   },
+   "impact": {
+    "score": "low",
+    "reason": "Discloses dates, times, services, statuses and ids of other professionals' appointments (max 10 rows per email); no notes or contact details of those bookings and no write access to them"
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Source trace verified line by line and independently reproduced in the sandbox with dummy data, with direct-access 403 controls"
+  }
+ },
+ {
+  "verdict": "confirmed",
+  "fingerprint": "admin.js:marcacoes-id-move:rescheduleBooking-staffId-unscoped",
+  "title": "Staff role can reassign own bookings to another professional via action=move",
+  "description": "POST /admin/marcacoes/:id with action=move passes the request body staffId straight to rescheduleBooking without comparing it to the caller own professional; the sibling action=reschedule and POST /admin/api/reagendar go through moveBooking, which refuses this for the staff role. A staff user can move any of their own bookings into a colleague free slot (writing into the colleague agenda and losing access to it). It also happens with staffId empty (UI default Qualquer disponivel) when the caller own professional is busy at the chosen time: rescheduleBooking falls back to slot.staff[0].",
+  "root_cause": "The own-staff invariant is enforced only in moveBooking (src/routes/admin.js:293). The action=move branch (src/routes/admin.js:484-489) calls rescheduleBooking with +req.body.staffId; rescheduleBooking (src/availability.js:146-153) chooses newStaff from the body staffId, the current staff, or any free professional (slot.staff[0]) without a caller-scope check; router.param(id) only checks the pre-change staff_id.",
+  "intended_behavior": "A user with role 'staff' may only reschedule a booking within their own column (staff_id == req.user.staff_id), as moveBooking enforces for the drag and manual-fit paths.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "src/routes/admin.js",
+    "line": 455,
+    "scope": "POST /marcacoes/:id",
+    "description": "Authenticated staff posts to own booking id; router.param (line 85) passes because the booking's current staff_id is theirs"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/routes/admin.js",
+    "line": 489,
+    "scope": "action === 'move'",
+    "description": "rescheduleBooking(b.id, { date, start, staffId: +req.body.staffId || null }, { forAdmin: true }) with attacker-chosen staffId and no ownStaff check"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/availability.js",
+    "line": 152,
+    "scope": "rescheduleBooking",
+    "description": "newStaff = body staffId if free in that slot, else own staff, else slot.staff[0] (any professional)"
+   },
+   {
+    "kind": "sink",
+    "file": "src/availability.js",
+    "line": 153,
+    "scope": "rescheduleBooking",
+    "description": "UPDATE bookings SET ... staff_id = newStaff writes the booking into another professional's agenda"
+   }
+  ],
+  "evidence": [
+   {
+    "file": "src/routes/admin.js",
+    "line": 293,
+    "description": "moveBooking refuses for staff when b.staff_id !== own or staffId !== own: intended policy"
+   },
+   {
+    "file": "src/routes/admin.js",
+    "line": 489,
+    "description": "action=move branch bypasses moveBooking and its own-staff check"
+   },
+   {
+    "file": "src/availability.js",
+    "line": 152,
+    "description": "rescheduleBooking trusts caller-supplied staffId or falls back to any free professional"
+   }
+  ],
+  "conditions": [
+   {
+    "kind": "authentication_level",
+    "description": "Attacker is logged in to the back office"
+   },
+   {
+    "kind": "authorization_role",
+    "description": "Role 'staff' linked to a professional, acting on one of their own bookings"
+   },
+   {
+    "kind": "data_state",
+    "description": "The target professional provides the booking service and has that slot free (getSlots forAdmin); for the empty-staffId variant the caller own professional must be busy at the chosen time"
+   }
+  ],
+  "execution": {
+   "attacker_perspective": "Authenticated back-office user with role staff (dummy Ana, staff_id 1) owning one booking",
+   "payloads": [
+    "POST /admin/marcacoes/<own id> body: _csrf=<session csrf>&action=move&date=2030-01-08&time=10:00&staffId=2",
+    "POST /admin/marcacoes/<R4 id> body: _csrf=<session csrf>&action=move&date=2030-01-08&time=11:00&staffId= (Ana already busy at 11:00)",
+    "Control: POST /admin/marcacoes/<own id> body: _csrf=<csrf>&action=reschedule&date=2030-01-08&time=10:00&staffId=2&force=1"
+   ],
+   "instructions": [
+    "In the parent-approved sandbox (loopback only, env -i, DEMO=0, dummy DB in scratch), start server.js via app.listen(0), insert staff user ana@teste.pt linked to staff 1 and a booking R1 for staff 1 on 2030-01-07 10:00",
+    "Log in as Ana; read the CSRF token",
+    "Send control action=reschedule with staffId=2: observe refusal",
+    "Send action=move with staffId=2; read the booking row from the dummy DB"
+   ],
+   "observed_result": "Independent verifier reproduction (agents/v-move/artifacts/check-1.txt): control action=reschedule -> 302 ?erro=Só pode mover as suas marcações., R1 stays staff_id 1. action=move staffId=2 -> 302 ok, R1 becomes {staff_id:2,date:2030-01-08,start_min:600}, Ana then 403 on R1. action=move staffId empty with Ana busy -> R4 becomes {staff_id:2,date:2030-01-08,start_min:660}."
+  },
+  "remediation": {
+   "strategy": "Bind action=move to the caller's own professional for the staff role: force staffId to ownStaff(req) and make rescheduleBooking reject (instead of falling back to slot.staff[0]) when the requested staff is not free. Add a roles.test.js regression.",
+   "code_changes": [
+    {
+     "file_name": "src/routes/admin.js",
+     "fixed_code": "const own = ownStaff(req);\nconst nb = rescheduleBooking(b.id, { date, start, staffId: own || +req.body.staffId || null, strictStaff: !!own }, { forAdmin: true });"
+    },
+    {
+     "file_name": "src/availability.js",
+     "fixed_code": "if (strictStaff && !slot.staff.includes(+staffId)) throw new BookingError('Esse horário acabou de ficar indisponível. Escolha outro.');"
+    }
+   ]
+  },
+  "severity": {
+   "likelihood": {
+    "score": "medium",
+    "reason": "Needs only an ordinary staff login and one form field; the default UI option can trigger it by accident"
+   },
+   "impact": {
+    "score": "low",
+    "reason": "Integrity of another professional's agenda (unwanted booking in their free slot, customer notified of change); no PII disclosure or privilege gain beyond scheduling"
+   },
+   "overall_severity": "low"
+  },
+  "confidence": {
+   "score": "high",
+   "reason": "Trace re-verified against HEAD b488c0a and independently reproduced in the sandbox (explicit and fallback variants) against the sibling control"
+  }
+ },
+ {
+  "verdict": "needs_validation",
+  "fingerprint": "src/payments.js:applyEvent:paid-path-unbound-session-and-amount",
+  "title": "Stripe webhook marks a booking paid for any paid checkout session naming its id, regardless of session or amount",
+  "description": "applyEvent takes the booking id from metadata.booking_id or client_reference_id and, on checkout.session.completed with payment_status=paid or on async_payment_succeeded, sets payment_status=paid and confirms the booking (server.js then sends the confirmation). The paid path never checks obj.id against the booking payment_ref (the stale check guards only expired/failed) and never compares amount_total or currency with deposit_cents/eur. HMAC only proves Stripe sent the event for this account, so any other checkout producer whose events reach this endpoint (a Payment Link with ?client_reference_id=<id>, another integration, or a second install sharing the Stripe account with colliding sequential ids) can confirm an unpaid booking for a smaller amount or another currency. Independently reproduced locally (agents/v-stripe/artifacts/check-1.txt): foreign session cs_FOREIGN_1, 50 usd, client_reference_id=1 and async_payment_succeeded cs_FOREIGN_2 with metadata.booking_id=2 each moved a 5000-cent booking to paid/confirmed; a foreign expired event was ignored.",
+  "claimed_root_cause": "src/payments.js applyEvent's paid() branch trusts payload identity fields (metadata.booking_id / client_reference_id) as authoritative and does not bind the event to the checkout session the app created (payment_ref) or to the expected amount and currency.",
+  "trace": [
+   {
+    "kind": "entrypoint",
+    "file": "server.js",
+    "line": 26,
+    "scope": "POST /webhooks/stripe",
+    "description": "Raw body; verifySignature proves only that Stripe sent the event for this account"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/payments.js",
+    "line": 84,
+    "scope": "applyEvent",
+    "description": "Booking id from obj.metadata.booking_id or obj.client_reference_id"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/payments.js",
+    "line": 90,
+    "scope": "applyEvent",
+    "description": "stale check (obj.id !== payment_ref) used only for expired/failed events"
+   },
+   {
+    "kind": "propagation",
+    "file": "src/payments.js",
+    "line": 99,
+    "scope": "applyEvent checkout.session.completed",
+    "description": "payment_status==='paid' calls paid() with no session id, amount or currency check"
+   },
+   {
+    "kind": "sink",
+    "file": "src/payments.js",
+    "line": 93,
+    "scope": "applyEvent paid()",
+    "description": "UPDATE bookings SET payment_status='paid', status=confirmStatus; server.js then sends confirmation email"
+   }
+  ],
+  "evidence": [
+   {
+    "file": "src/payments.js",
+    "line": 66,
+    "description": "createCheckout stores the app's own session id in bookings.payment_ref: the binding value exists"
+   },
+   {
+    "file": "src/payments.js",
+    "line": 48,
+    "description": "App sessions set client_reference_id=String(b.id); applyEvent accepts the same field from any session"
+   },
+   {
+    "file": "src/payments.js",
+    "line": 104,
+    "description": "async_payment_succeeded also calls paid() without stale or amount check"
+   },
+   {
+    "file": "src/routes/public.js",
+    "line": 181,
+    "description": "deposit_cents is the expected amount, never compared with the event"
+   },
+   {
+    "file": "src/payments.js",
+    "line": 60,
+    "description": "App sessions charge unit_amount=deposit_cents in eur; neither is compared on the event"
+   },
+   {
+    "file": "server.js",
+    "line": 37,
+    "description": "A non-late paid() result triggers notifyNewBooking confirmation emails"
+   }
+  ],
+  "blockers": [
+   "Whether the Stripe account has another producer of checkout.session events that can carry a victim booking id (Payment Links or pricing tables accepting client_reference_id from the URL, another integration, or a second install of this template sharing the account with colliding sequential ids) is a Stripe account fact not visible in the repository",
+   "Whether /webhooks/stripe is subscribed account-wide to checkout.session.completed / async_payment_succeeded from those sources is a Stripe Dashboard setting not visible in the repository"
+  ],
+  "validation_plan": {
+   "local": "Already observed (agents/h-platform/artifacts/check-1.txt): dummy booking with payment_ref cs_REAL, deposit_cents 5000; a webhook signed with the dummy secret for session cs_OTHER_SOURCE, amount_total 50, client_reference_id=<id> moved it to paid/confirmed. Regression: require obj.id === b.payment_ref and obj.amount_total >= b.deposit_cents with currency eur before paid(); assert booking stays pending.",
+   "deployment": "Owner checks in the Stripe Dashboard (test mode) whether the account has Payment Links, pricing tables or other Checkout integrations, and whether the /webhooks/stripe endpoint subscribes to checkout.session.* account-wide; optionally open a test Payment Link with ?client_reference_id=<a test booking id> on a test install and confirm the booking flips to paid."
+  }
+ }
+]

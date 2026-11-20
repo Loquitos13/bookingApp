@@ -7,7 +7,7 @@ const { holidayName } = require('../holidays');
 const path = require('node:path');
 const fs = require('node:fs');
 const { notifyStatusChange, notifyNewBooking } = require('../mailer');
-const { hashPassword, verifyPassword, clean, EMAIL_RE } = require('../security');
+const { hashPassword, verifyPassword, clean, line, EMAIL_RE } = require('../security');
 const { isDate, nowIn, addDays, timeToMin, weekday } = require('../time');
 
 // rotas sensíveis a maiúsculas e à barra final: o controlo de papéis compara caminhos exatos
@@ -38,7 +38,9 @@ router.get('/login', (req, res) => {
   if (req.user) return res.redirect('/admin');
   res.render('admin/login', { error: null, next: req.query.next || '/admin' });
 });
+const crossSite = (req) => req.get('sec-fetch-site') === 'cross-site';
 router.post('/login', (req, res) => {
+  if (crossSite(req)) return res.status(403).render('admin/login', { error: 'Pedido recusado. Abra a página de login e tente novamente.', next: '/admin' });
   const key = req.ip;
   const a = attempts.get(key) || { n: 0, t: Date.now() };
   if (Date.now() - a.t > 15 * 60 * 1000) Object.assign(a, { n: 0, t: Date.now() });
@@ -54,11 +56,14 @@ router.post('/login', (req, res) => {
   res.status(401).render('admin/login', { error: 'Email ou palavra-passe incorretos.', next: nextUrl });
 });
 router.post('/logout', (req, res) => {
+  if (crossSite(req)) return res.redirect('/admin');
   logout(req, res);
   res.redirect('/admin/login');
 });
 
 router.use(requireAuth);
+// páginas com dados de clientes: não guardar na cache HTTP do browser (o service worker tem a sua própria cópia offline)
+router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
 // ---------- papéis ----------
 // dono: tudo · receção: sem definições do negócio, serviços, equipa, horário, utilizadores e estatísticas
@@ -66,6 +71,7 @@ router.use(requireAuth);
 const ROLE_LABEL = { owner: 'Dono / gestor', reception: 'Receção', staff: 'Profissional' };
 const OWNER_ONLY = ['/definicoes', '/servicos', '/pacotes', '/equipa', '/horario', '/utilizadores', '/estatisticas'];
 const STAFF_ALLOWED = ['/agenda', '/marcacoes', '/api/slots', '/api/days', '/api/reagendar', '/conta'];
+const staffParam = (v) => (Number.isSafeInteger(+v) && +v > 0 ? +v : null);
 const ownStaff = (req) => (req.user.role === 'staff' ? +req.user.staff_id || -1 : null);
 router.use((req, res, next) => {
   const role = req.user.role;
@@ -228,7 +234,7 @@ router.get('/agenda', (req, res) => {
   const date = isDate(req.query.data) ? req.query.data : today();
   const view = ['dia', 'semana', 'mes'].includes(req.query.vista) ? req.query.vista : 'dia';
   const allStaff = db.prepare('SELECT * FROM staff WHERE active = 1 ORDER BY sort, name').all();
-  const staffId = +req.query.staff || null;
+  const staffId = staffParam(req.query.staff);
   const staff = staffId ? allStaff.filter((p) => p.id === staffId) : allStaff;
   const hoursBy = Object.fromEntries(db.prepare('SELECT * FROM hours').all().map((h) => [h.weekday, h]));
   const monday = addDays(date, -((weekday(date) + 6) % 7));
@@ -276,7 +282,7 @@ router.get('/agenda', (req, res) => {
 // folha do dia para imprimir
 router.get('/agenda/imprimir', (req, res) => {
   const date = isDate(req.query.data) ? req.query.data : today();
-  const staffId = +req.query.staff || null;
+  const staffId = staffParam(req.query.staff);
   const rows = db.prepare(
     `SELECT b.*, s.name service_name, st.name staff_name FROM bookings b JOIN services s ON s.id = b.service_id JOIN staff st ON st.id = b.staff_id
      WHERE b.date = ? AND b.status IN ('pending','confirmed','completed') ${staffId ? 'AND b.staff_id = ' + staffId : ''} ORDER BY st.sort, st.name, b.start_min`
@@ -378,19 +384,19 @@ router.get('/marcacoes/nova', (req, res) => {
 
 router.get('/api/slots', (req, res) => {
   if (!isDate(req.query.date)) return res.json({ slots: [] });
-  res.json({ slots: getSlots({ serviceId: +req.query.service, staffId: +req.query.staff || null, date: req.query.date, forAdmin: true, ignoreBookingId: +req.query.ignore || null }).map(({ start, time }) => ({ start, time })) });
+  res.json({ slots: getSlots({ serviceId: +req.query.service, staffId: staffParam(req.query.staff), date: req.query.date, forAdmin: true, ignoreBookingId: +req.query.ignore || null }).map(({ start, time }) => ({ start, time })) });
 });
 router.get('/api/days', (req, res) => {
   const t0 = today();
   const days = 120;
-  res.json({ today: t0, maxDays: days, days: availableDays({ serviceId: +req.query.service, staffId: +req.query.staff || null, from: t0, days: days + 1, ignoreBookingId: +req.query.ignore || null, forAdmin: true }) });
+  res.json({ today: t0, maxDays: days, days: availableDays({ serviceId: +req.query.service, staffId: staffParam(req.query.staff), from: t0, days: days + 1, ignoreBookingId: +req.query.ignore || null, forAdmin: true }) });
 });
 
 router.post('/marcacoes', (req, res) => {
   if (ownStaff(req)) req.body.staffId = String(ownStaff(req));
   const form = {
     serviceId: +req.body.serviceId, staffId: +req.body.staffId || null, date: clean(req.body.date, 10), time: clean(req.body.time, 5),
-    name: clean(req.body.name, 120), email: clean(req.body.email, 160).toLowerCase(), phone: clean(req.body.phone, 30),
+    name: line(req.body.name, 120), email: clean(req.body.email, 160).toLowerCase(), phone: line(req.body.phone, 30),
     notes: clean(req.body.notes, 1000), internalNotes: clean(req.body.internal_notes, 2000), force: req.body.force === '1', notify: req.body.notify === '1',
   };
   const start = timeToMin(form.time);
@@ -445,9 +451,9 @@ router.get('/marcacoes/:id', (req, res, next) => {
   const history = db
     .prepare(
       `SELECT b.*, s.name service_name FROM bookings b JOIN services s ON s.id = b.service_id
-       WHERE lower(b.customer_email) = lower(?) AND b.id != ? ORDER BY b.date DESC LIMIT 10`
+       WHERE lower(b.customer_email) = lower(?) AND b.id != ?${ownStaff(req) ? ' AND b.staff_id = ?' : ''} ORDER BY b.date DESC LIMIT 10`
     )
-    .all(b.customer_email, b.id);
+    .all(b.customer_email, b.id, ...(ownStaff(req) ? [ownStaff(req)] : []));
   const series = b.series_id ? db.prepare('SELECT id, date, start_min, status FROM bookings WHERE series_id = ? ORDER BY date').all(b.series_id) : [];
   res.render('admin/booking', { series, b, history, ...formData(), error: req.query.erro || null });
 });
@@ -477,7 +483,7 @@ router.post('/marcacoes/:id', (req, res, next) => {
     if (email && email !== '—' && !EMAIL_RE.test(email)) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('O email não parece válido.'));
     db.prepare(
       `UPDATE bookings SET customer_name = ?, customer_email = ?, customer_phone = ?, notes = ?, internal_notes = ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(clean(req.body.name, 120) || b.customer_name, email, clean(req.body.phone, 30), clean(req.body.notes, 1000), clean(req.body.internal_notes, 2000), b.id);
+    ).run(line(req.body.name, 120) || b.customer_name, email, line(req.body.phone, 30), clean(req.body.notes, 1000), clean(req.body.internal_notes, 2000), b.id);
     return back(res, `/admin/marcacoes/${b.id}`, 'Dados guardados.');
   }
 
@@ -486,7 +492,8 @@ router.post('/marcacoes/:id', (req, res, next) => {
     const start = timeToMin(req.body.time);
     if (!isDate(date) || start == null) return res.redirect(`/admin/marcacoes/${b.id}?erro=` + encodeURIComponent('Escolha o dia e a hora.'));
     try {
-      const nb = rescheduleBooking(b.id, { date, start, staffId: +req.body.staffId || null }, { forAdmin: true });
+      const own = ownStaff(req); // profissional: só dentro da sua própria agenda (como moveBooking)
+      const nb = rescheduleBooking(b.id, { date, start, staffId: own || +req.body.staffId || null, strictStaff: !!own }, { forAdmin: true });
       if (req.body.notify === '1') require('../mailer').notifyRescheduled(nb, { date: b.date, start: b.start_min }, { byBusiness: true });
       return back(res, `/admin/marcacoes/${b.id}`, 'Marcação reagendada.');
     } catch (e) {
@@ -502,7 +509,8 @@ router.post('/marcacoes/:id', (req, res, next) => {
   }
 
   if (action === 'cancel_series' && b.series_id) {
-    const r = db.prepare("UPDATE bookings SET status = 'cancelled', updated_at = datetime('now') WHERE series_id = ? AND date >= ? AND status IN ('pending','confirmed')").run(b.series_id, b.date);
+    const own = ownStaff(req);
+    const r = db.prepare(`UPDATE bookings SET status = 'cancelled', updated_at = datetime('now') WHERE series_id = ? AND date >= ? AND status IN ('pending','confirmed')${own ? ' AND staff_id = ?' : ''}`).run(b.series_id, b.date, ...(own ? [own] : []));
     return back(res, `/admin/marcacoes/${b.id}`, `${r.changes} marcações da série canceladas (esta e as seguintes).`);
   }
 
@@ -593,8 +601,8 @@ router.post('/clientes/apagar', (req, res) => {
   const anon = `anonimo-${require('node:crypto').randomBytes(4).toString('hex')}@removido.invalid`;
   tx(() => {
     db.prepare(`UPDATE bookings SET customer_name = 'Cliente removido', customer_email = ?, customer_phone = '', notes = '', internal_notes = '' WHERE lower(customer_email) = ?`).run(anon, email);
-    db.prepare('DELETE FROM client_notes WHERE email = ?').run(email);
-    db.prepare('DELETE FROM client_packages WHERE email = ?').run(email);
+    db.prepare('DELETE FROM client_notes WHERE lower(email) = ?').run(email);
+    db.prepare('DELETE FROM client_packages WHERE lower(email) = ?').run(email);
     db.prepare('DELETE FROM waitlist WHERE lower(email) = ?').run(email);
     db.prepare('DELETE FROM messages WHERE lower(email) = ?').run(email);
   });
@@ -709,7 +717,7 @@ function saveStaffServices(staffId, body) {
 }
 const color = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : '#3d7a6a');
 router.post('/equipa', (req, res) => {
-  const name = clean(req.body.name, 120);
+  const name = line(req.body.name, 120);
   if (!name) return back(res, '/admin/equipa', 'Indique o nome.');
   const id = Number(
     db.prepare('INSERT INTO staff(name, role, bio, color, active, sort) VALUES (?,?,?,?,?,?)')
@@ -731,7 +739,7 @@ router.post('/equipa/:id', (req, res) => {
     return back(res, '/admin/equipa', 'Profissional removido.');
   }
   db.prepare('UPDATE staff SET name = ?, role = ?, bio = ?, color = ?, active = ?, sort = ? WHERE id = ?')
-    .run(clean(req.body.name, 120) || (db.prepare('SELECT name FROM staff WHERE id = ?').get(id) || {}).name || 'Profissional', clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0, id);
+    .run(line(req.body.name, 120) || (db.prepare('SELECT name FROM staff WHERE id = ?').get(id) || {}).name || 'Profissional', clean(req.body.role, 80), clean(req.body.bio, 600), color(req.body.color), req.body.active ? 1 : 0, +req.body.sort || 0, id);
   saveStaffServices(id, req.body);
   back(res, '/admin/equipa', 'Profissional guardado.');
 });
@@ -826,7 +834,7 @@ function renderUsers(req, res, { error = null, created = null } = {}) {
 router.get('/utilizadores', (req, res) => renderUsers(req, res, { error: req.query.erro || null }));
 const staffLink = (role, v) => (role === 'staff' ? (db.prepare('SELECT id FROM staff WHERE id = ?').get(+v) || {}).id ?? null : null);
 router.post('/utilizadores', (req, res) => {
-  const name = clean(req.body.name, 120), email = clean(req.body.email, 160).toLowerCase();
+  const name = line(req.body.name, 120), email = clean(req.body.email, 160).toLowerCase();
   const role = ROLE_LABEL[req.body.role] ? req.body.role : 'reception';
   const staffId = staffLink(role, req.body.staff_id);
   const fail = (m) => res.redirect('/admin/utilizadores?erro=' + encodeURIComponent(m));
@@ -860,7 +868,7 @@ router.post('/utilizadores/:uid', (req, res) => {
   if (u.role === 'owner' && role !== 'owner' && owners <= 1) return fail('Tem de existir pelo menos um dono.');
   const staffId = staffLink(role, req.body.staff_id);
   if (role === 'staff' && !staffId) return fail('Escolha o profissional associado.');
-  db.prepare('UPDATE users SET name = ?, role = ?, staff_id = ? WHERE id = ?').run(clean(req.body.name, 120) || u.name, role, staffId, uid);
+  db.prepare('UPDATE users SET name = ?, role = ?, staff_id = ? WHERE id = ?').run(line(req.body.name, 120) || u.name, role, staffId, uid);
   back(res, '/admin/utilizadores', 'Utilizador guardado.');
 });
 
@@ -910,7 +918,7 @@ router.post('/definicoes/logo', (req, res) => {
       return back(res, '/admin/definicoes#marca', 'Logótipo removido.');
     }
     const sig = req.file.buffer.subarray(0, 12);
-    const ext = sig[0] === 0x89 && sig[1] === 0x50 ? 'png' : sig[0] === 0xff && sig[1] === 0xd8 ? 'jpg' : sig.toString('ascii', 8, 12) === 'WEBP' ? 'webp' : null;
+    const ext = sig[0] === 0x89 && sig[1] === 0x50 ? 'png' : sig[0] === 0xff && sig[1] === 0xd8 ? 'jpg' : sig.toString('ascii', 0, 4) === 'RIFF' && sig.toString('ascii', 8, 12) === 'WEBP' ? 'webp' : null;
     if (!ext) return res.redirect('/admin/definicoes?erro=' + encodeURIComponent('Use uma imagem PNG, JPEG ou WebP.') + '#marca');
     fs.mkdirSync(UPLOADS, { recursive: true });
     const name = `logo-${Date.now()}.${ext}`;
